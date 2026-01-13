@@ -18,8 +18,8 @@
 
 - Github 커밋 링크: https://github.com/sungalex/tubegai/commit/e6e86ac34daa33c5fb8bbdfc15605bd9e418635d
 - 스크린샷:
-  - ![이미지 1](images/assignment6/navigation1.png)
-  - ![이미지 2](images/assignment6/navigation2.png)
+  - ![이미지 1](images/assignment6/Navigation1.png)
+  - ![이미지 2](images/assignment6/Navigation2.png)
 - 설명:
   - Proudct, Projects, Dashboard, Login/Logout 메뉴 및 서브 Navigation 구현
 
