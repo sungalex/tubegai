@@ -22,7 +22,8 @@ import {
   Edit2,
   FolderKanban,
   Radio,
-  Tag
+  Tag,
+  Zap
 } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
@@ -62,22 +63,16 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Projects Dashboard</h2>
-          <p className="text-muted-foreground">Manage your creative workflow and production.</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button asChild>
-            <Link to="/projects/new">New Project</Link>
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Projects Dashboard</h2>
+        <p className="text-muted-foreground">Manage your creative workflow and production.</p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full max-w-[500px] grid-cols-4">
+        <TabsList className="grid w-full max-w-[600px] grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="active-projects">Active Projects</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="active-projects">Projects</TabsTrigger>
           <TabsTrigger value="channels">Channels</TabsTrigger>
           <TabsTrigger value="labels">Labels</TabsTrigger>
         </TabsList>
@@ -85,12 +80,7 @@ export default function DashboardPage() {
         {/* OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-6">
 
-          {/* Trend Analysis Section - New Feature */}
-          <section className="bg-background/50 rounded-xl border p-6 backdrop-blur-sm">
-            <TrendAnalyzer />
-          </section>
-
-          {/* Stat Cards */}
+          {/* Stat Cards - Executive Summary */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -114,36 +104,35 @@ export default function DashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">All Projects</CardTitle>
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
                 <Video className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{recentProjects.length}</div>
-                <p className="text-xs text-muted-foreground">Stored in workspace</p>
+                <div className="text-2xl font-bold">3</div>
+                <p className="text-xs text-muted-foreground">in progress</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
+                <Zap className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">120h</div>
-                <p className="text-xs text-muted-foreground">Using AI automation</p>
+                <div className="text-2xl font-bold">Top 5%</div>
+                <p className="text-xs text-muted-foreground">vs similar creators</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Charts Section */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Growth Trends Chart */}
+            {/* Main Chart area - Efficiency or Growth ?? Let's keep Growth Trends for now */}
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Growth Trends</CardTitle>
                 <CardDescription>Views and Subscriber growth over time.</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={350}>
+                <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="name" className="text-xs" />
@@ -157,28 +146,73 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            {/* Content Performance Chart */}
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Content Performance</CardTitle>
-                <CardDescription>Average Watch Time by Topic.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                    <XAxis dataKey="topic" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip
-                      cursor={{ fill: 'transparent' }}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                    <Bar dataKey="watchTime" fill="#adfa1d" radius={[4, 4, 0, 0]} name="Avg. Watch Time (s)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+
+            {/* Widgets Column */}
+            <div className="col-span-3 space-y-4">
+
+              {/* Mini Trends Widget */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Trending Now</CardTitle>
+                    <Link to="#" onClick={(e) => { e.preventDefault(); document.querySelector('[value="trends"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); }} className="text-xs text-muted-foreground hover:text-primary">
+                      View Hub
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { title: "AI Revolution 2026", growth: "+145%" },
+                    { title: "Minimalist Desk Setup", growth: "+89%" },
+                    { title: "Japan Travel Tips", growth: "+210%" },
+                  ].map((t, i) => (
+                    <div key={i} className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0">
+                      <span className="text-sm font-medium line-clamp-1">{t.title}</span>
+                      <span className="text-xs font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">{t.growth}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Recent Project Shortcut */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Continue Working</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recentProjects.slice(0, 1).map(p => (
+                    <div key={p.id} className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-sm">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">{p.step}</div>
+                        </div>
+                        <Badge variant="secondary">{p.status}</Badge>
+                      </div>
+                      <Button size="sm" className="w-full" asChild>
+                        <Link to={`/studio/${p.id}`}>
+                          <Edit2 className="h-3 w-3 mr-2" /> Resume Studio
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
           </div>
+        </TabsContent>
+
+        {/* TRENDS & IDEATION TAB - New Feature */}
+        <TabsContent value="trends" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Ideation Hub</h2>
+              <p className="text-muted-foreground">Discover winning topics and start creating instantly.</p>
+            </div>
+          </div>
+
+          {/* Full Trend Analyzer Component */}
+          <TrendAnalyzer />
         </TabsContent>
 
         {/* ACTIVE PROJECTS TAB (Renamed from Projects) */}
