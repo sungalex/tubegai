@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router";
 import { Menu } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
@@ -15,7 +14,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/common/components/ui/accordion";
-import logo from "~/assets/logo.png";
 
 interface MobileNavigationProps {
   navItems: any[];
@@ -35,8 +33,7 @@ export function MobileNavigation({ navItems, isOpen, setIsOpen }: MobileNavigati
         </SheetTrigger>
         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
           <SheetHeader>
-            <SheetTitle className="text-left flex items-center gap-2">
-              <img src={logo} alt="TubeGAI" className="h-6 w-auto" />
+            <SheetTitle>
               <span className="font-bold">TubeGAI</span>
             </SheetTitle>
           </SheetHeader>

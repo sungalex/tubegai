@@ -99,8 +99,6 @@ const getNavItems = (projectId: string) => [
 
 ];
 
-import logo from "~/assets/logo.png";
-
 export default function Navigation({ isLoggedIn, hasNotifications, hasMessages }: NavigationProps) {
   const params = useParams();
   const projectId = params.projectId || "1";
@@ -113,8 +111,7 @@ export default function Navigation({ isLoggedIn, hasNotifications, hasMessages }
         <div className="flex h-16 justify-between items-center">
           <div className="flex items-center gap-6">
             <MobileNavigation navItems={navItems} isOpen={isOpen} setIsOpen={setIsOpen} />
-            <Link to="/" className="mr-4 flex items-center gap-2">
-              <img src={logo} alt="TubeGAI" className="h-8 w-auto" />
+            <Link to="/">
               <span className="text-xl font-bold bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent hidden sm:inline-block">
                 TubeGAI
               </span>
