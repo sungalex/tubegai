@@ -1,27 +1,38 @@
+import { useState } from "react";
 import { Outlet } from "react-router";
-import { Separator } from "~/common/components/ui/separator";
+import { cn } from "~/lib/utils";
 import { StudioSidebar } from "../components/studio-sidebar";
 
 export default function StudioLayout() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <div className="container mx-auto space-y-6 pt-10 pb-16 px-4 md:px-8">
-      <div className="space-y-0.5">
-        <h2 className="text-2xl font-bold tracking-tight">Creator Studio</h2>
-        <p className="text-muted-foreground">
-          Manage your video production pipeline from script to export.
-        </p>
-      </div>
-      <Separator className="my-6" />
-      <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0 items-start">
-        <aside className="lg:w-1/5 sticky top-24 self-start">
-          <StudioSidebar />
-        </aside>
-        <div className="flex-1 lg:max-w-4xl w-full">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 min-h-[500px]">
-            <Outlet />
-          </div>
+    <div className="flex min-h-[calc(100vh-4rem)] w-full">
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "border-r bg-background transition-all duration-300 ease-in-out sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto hidden md:block",
+          isCollapsed ? "w-[50px]" : "w-48"
+        )}
+      >
+        <StudioSidebar
+          isCollapsed={isCollapsed}
+          toggleSidebar={() => setIsCollapsed(!isCollapsed)}
+        />
+      </aside>
+
+      {/* Main Content */}
+      <main className={cn(
+        "flex-1 transition-all duration-300 ease-in-out",
+        // The container class usually adds padding/max-width. 
+        // User wants full width usage when collapsed, but usually some padding is nice.
+        // We'll give it reasonable padding but allow it to grow.
+        "p-6"
+      )}>
+        <div className="h-full w-full">
+          <Outlet />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

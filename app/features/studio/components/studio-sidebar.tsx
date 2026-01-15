@@ -3,6 +3,7 @@
 import { Link, useLocation, useParams } from "react-router"
 import { cn } from "~/lib/utils"
 import { buttonVariants } from "~/common/components/ui/button"
+import { Separator } from "~/common/components/ui/separator"
 import {
   LayoutDashboard,
   FileText,
@@ -14,13 +15,16 @@ import {
   LineChart,
   Download,
   Captions,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
-  // items array can be passed or we can define it internally since it's specific to Studio
+  isCollapsed: boolean;
+  toggleSidebar: () => void;
 }
 
-export function StudioSidebar({ className, ...props }: SidebarNavProps) {
+export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props }: SidebarNavProps) {
   const location = useLocation()
   const params = useParams()
   const projectId = params.projectId
@@ -30,9 +34,6 @@ export function StudioSidebar({ className, ...props }: SidebarNavProps) {
     return projectId ? `/studio/${segment}/${projectId}` : `/studio/${segment}`
   }
 
-  // Dashboard path is special: /studio/dashboard (generic) or /studio/:projectId (specific)
-  // Wait, route for dashboard with project is /studio/:projectId. 
-  // Route for generic dashboard is /studio/dashboard.
   const getDashboardPath = () => {
     return projectId ? `/studio/${projectId}` : `/studio/dashboard`
   }
@@ -41,7 +42,7 @@ export function StudioSidebar({ className, ...props }: SidebarNavProps) {
     { title: "Dashboard", href: getDashboardPath(), icon: LayoutDashboard },
     { title: "Script", href: getPath("script"), icon: FileText },
     { title: "Storyboard", href: getPath("storyboard"), icon: Presentation },
-    { title: "Scene", href: getPath("scene"), icon: Clapperboard }, // Scene/Set
+    { title: "Scene", href: getPath("scene"), icon: Clapperboard },
     { title: "B-Roll", href: getPath("b-roll"), icon: Film },
     { title: "Subtitles", href: getPath("subtitles"), icon: Captions },
     { title: "Coloring", href: getPath("coloring"), icon: Palette },
@@ -51,37 +52,61 @@ export function StudioSidebar({ className, ...props }: SidebarNavProps) {
   ]
 
   return (
-    <nav
-      className={cn(
-        "flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1",
-        className
-      )}
-      {...props}
-    >
-      {items.map((item) => {
-        // Active check logic needs to be robust
-        // If current path starts with item.href (careful with prefixes)
-        // Actually, simple equality or checking the segment is safer.
-        // Let's use exact match for simple implementation or check if pathname includes the segment.
-        const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
+    <div className={cn("flex flex-col h-full", className)} {...props}>
+      {/* Header Section with Toggle */}
+      <div className={cn("flex items-center h-14", isCollapsed ? "justify-center" : "px-4 justify-between")}>
+        {!isCollapsed && (
+          <span className="font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
+            Creator Studio
+          </span>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors",
+            !isCollapsed && "ml-2"
+          )}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+        </button>
+      </div>
 
-        return (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              isActive
-                ? "bg-muted hover:bg-muted"
-                : "hover:bg-transparent hover:underline",
-              "justify-start gap-2"
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.title}
-          </Link>
-        )
-      })}
-    </nav>
+      <Separator />
+
+      {/* Navigation Items */}
+      <nav className="flex-1 py-4 space-y-1">
+        {items.map((item) => {
+          const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              title={isCollapsed ? item.title : undefined}
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                isActive
+                  ? "bg-muted hover:bg-muted text-primary"
+                  : "hover:bg-transparent hover:underline text-muted-foreground",
+                "w-full justify-start",
+                isCollapsed ? "px-2 justify-center" : "px-4"
+              )}
+            >
+              <item.icon className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+              {!isCollapsed && <span>{item.title}</span>}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Footer Info Only */}
+      <div className="mt-auto p-2 border-t text-[10px] text-muted-foreground text-center">
+        {!isCollapsed && projectId && (
+          <div className="px-2 pb-2">
+            Project: {projectId}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
