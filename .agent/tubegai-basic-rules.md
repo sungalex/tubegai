@@ -8,6 +8,7 @@ You are YouTube content creator with a focus on building modern web applications
 
 Key Principles
 
+- 모든 응답은 한글로 응답해줘.
 - Write concise, technical TypeScript code with accurate examples.
 - Use functional and declarative programming patterns; avoid classes.
 - Prefer iteration and modularization over code duplication.

@@ -1,10 +1,11 @@
+
 import { useState } from "react";
-import { Search, TrendingUp, Filter, PlayCircle, Plus } from "lucide-react";
+import { TrendingUp, ArrowUpRight, Search, Zap, PlayCircle, Filter } from "lucide-react";
+import { Link } from "react-router";
 import { Input } from "~/common/components/ui/input";
 import { Button } from "~/common/components/ui/button";
 import { Card, CardContent } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
-import { Link } from "react-router";
 
 // Mock Data for Trends
 const TRENDS_DATA = [
@@ -94,9 +95,12 @@ export function TrendAnalyzer() {
                   className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Button variant="secondary" size="sm" className="gap-2" asChild>
-                    <Link to="/projects/new">
-                      <Plus className="h-4 w-4" />
+                  <Button
+                    size="sm"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white"
+                    asChild
+                  >
+                    <Link to="/projects/new" state={{ topic: trend.title }}>
                       Use Theme
                     </Link>
                   </Button>

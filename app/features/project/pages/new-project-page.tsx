@@ -1,3 +1,32 @@
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Link, useNavigate, useLocation } from "react-router";
+import { ChevronLeft, Sparkles } from "lucide-react";
+
+import { Button } from "~/common/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/common/components/ui/form";
+import { Input } from "~/common/components/ui/input";
+import { Textarea } from "~/common/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/common/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "~/common/components/ui/radio-group";
+import { Card, CardContent } from "~/common/components/ui/card";
+
 export const meta = () => {
   return [
     { title: "New Project | TubeGAI" },
@@ -5,6 +34,222 @@ export const meta = () => {
   ];
 };
 
+const projectFormSchema = z.object({
+  title: z.string().min(2, {
+    message: "Project title must be at least 2 characters.",
+  }),
+  description: z.string().optional(),
+  type: z.enum(["short", "long"]),
+  tone: z.string().min(1, {
+    message: "Please select a tone.",
+  }),
+  visibility: z.enum(["public", "private"]),
+  topic: z.string().optional(),
+});
+
+type ProjectFormValues = z.infer<typeof projectFormSchema>;
+
+const defaultValues: Partial<ProjectFormValues> = {
+  title: "",
+  description: "",
+  type: "long",
+  visibility: "private",
+  topic: "",
+};
+
 export default function NewProjectPage() {
-  return <div>New Project Page</div>;
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get topic from navigation state if available
+  const initialTopic = location.state?.topic || "";
+
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: {
+      ...defaultValues,
+      topic: initialTopic
+    },
+  });
+
+  // Update topic if it changes (e.g. navigation)
+  useEffect(() => {
+    if (initialTopic) {
+      form.setValue("topic", initialTopic);
+      // Also auto-fill title if empty
+      if (!form.getValues("title")) {
+        form.setValue("title", `Project: ${initialTopic}`);
+      }
+      // Auto-fill description with prompt
+      if (!form.getValues("description")) {
+        form.setValue("description", `Create a video about ${initialTopic}. Focus on key trends and insights.`);
+      }
+    }
+  }, [initialTopic, form]);
+
+  function onSubmit(data: ProjectFormValues) {
+    console.log("Creating project:", data);
+    // TODO: Call API to create project
+    navigate("/projects");
+  }
+
+  return (
+    <div className="container max-w-3xl mx-auto py-10 px-4">
+      <div className="mb-8">
+        <Button variant="ghost" className="pl-0 mb-4" asChild>
+          <Link to="/projects/dashboard">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Create New Project</h1>
+        <p className="text-muted-foreground">
+          Define the basics for your new video project.
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+              {/* Topic (Auto-filled or Manual) */}
+              {initialTopic && (
+                <div className="bg-primary/10 p-4 rounded-lg flex items-center gap-3 text-primary mb-6">
+                  <Sparkles className="h-5 w-5" />
+                  <span className="font-medium">Theme selected: {initialTopic}</span>
+                </div>
+              )}
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Tech Reviews 2026" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      This is the name of your project.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="short">Shorts (60s)</SelectItem>
+                          <SelectItem value="long">Long Form</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tone & Style</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select tone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="informative">Informative</SelectItem>
+                          <SelectItem value="funny">Funny / Entertaining</SelectItem>
+                          <SelectItem value="cinematic">Cinematic</SelectItem>
+                          <SelectItem value="vlog">Casual / Vlog</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description / Concept</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Briefly describe your video idea..."
+                        className="resize-none"
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Visibility</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="private" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Private (Only you can view)
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="public" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Public (Visible to everyone)
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => navigate("/projects/dashboard")}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create Project</Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
