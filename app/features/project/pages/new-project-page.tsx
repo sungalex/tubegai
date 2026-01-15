@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useLocation } from "react-router";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "~/common/components/ui/button";
 import {
@@ -60,6 +61,7 @@ const defaultValues: Partial<ProjectFormValues> = {
 export default function NewProjectPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get topic from navigation state if available
   const initialTopic = location.state?.topic || "";
@@ -87,10 +89,26 @@ export default function NewProjectPage() {
     }
   }, [initialTopic, form]);
 
-  function onSubmit(data: ProjectFormValues) {
-    console.log("Creating project:", data);
-    // TODO: Call API to create project
-    navigate("/projects");
+  async function onSubmit(data: ProjectFormValues) {
+    setIsLoading(true);
+
+    // Simulate API call
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log("Creating project:", data);
+
+      toast.success("Project created successfully!", {
+        description: `"${data.title}" has been added to your dashboard.`,
+      });
+
+      navigate("/projects");
+    } catch (error) {
+      toast.error("Failed to create project.", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -128,7 +146,7 @@ export default function NewProjectPage() {
                   <FormItem>
                     <FormLabel>Project Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Tech Reviews 2026" {...field} />
+                      <Input placeholder="e.g., Tech Reviews 2026" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormDescription>
                       This is the name of your project.
@@ -145,7 +163,7 @@ export default function NewProjectPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Video Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select type" />
@@ -167,7 +185,7 @@ export default function NewProjectPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tone & Style</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select tone" />
@@ -198,6 +216,7 @@ export default function NewProjectPage() {
                         className="resize-none"
                         rows={4}
                         {...field}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -216,6 +235,7 @@ export default function NewProjectPage() {
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                         className="flex flex-col space-y-1"
+                        disabled={isLoading}
                       >
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
@@ -241,10 +261,13 @@ export default function NewProjectPage() {
               />
 
               <div className="flex justify-end gap-4">
-                <Button variant="outline" type="button" onClick={() => navigate("/projects/dashboard")}>
+                <Button variant="outline" type="button" onClick={() => navigate("/projects/dashboard")} disabled={isLoading}>
                   Cancel
                 </Button>
-                <Button type="submit">Create Project</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading ? "Creating..." : "Create Project"}
+                </Button>
               </div>
             </form>
           </Form>
