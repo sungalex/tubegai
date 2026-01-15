@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { LogOut, LogIn, UserPlus, Bell, MessageCircle, User, CreditCard, Palette, Plug } from "lucide-react";
+import { LogOut, LogIn, UserPlus, Bell, MessageCircle, User, CreditCard, Sun, Plug } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import {
   DropdownMenu,
@@ -119,7 +119,7 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/settings/appearance" className="cursor-pointer">
-                <Palette className="mr-2 h-4 w-4" />
+                <Sun className="mr-2 h-4 w-4" />
                 Appearance
               </Link>
             </DropdownMenuItem>

@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { User, CreditCard, Sun, Bell, Plug } from "lucide-react";
 import { Separator } from "~/common/components/ui/separator";
 import { SettingsSidebar } from "../components/settings-sidebar";
 
@@ -6,22 +7,27 @@ const sidebarNavItems = [
   {
     title: "Profile",
     href: "/settings/profile",
+    icon: User,
   },
   {
     title: "Account",
     href: "/settings/account",
+    icon: CreditCard,
   },
   {
     title: "Appearance",
     href: "/settings/appearance",
+    icon: Sun,
   },
   {
     title: "Notifications",
     href: "/settings/notifications",
+    icon: Bell,
   },
   {
     title: "Integrations",
     href: "/settings/integrations",
+    icon: Plug,
   },
 ];
 
