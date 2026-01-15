@@ -21,15 +21,15 @@ export default [
         id: "settings-profile",
       }),
       route("integrations", "features/settings/pages/integrations-page.tsx"),
-      route("account", "features/settings/pages/profile-page.tsx", {
+      route("account", "features/settings/pages/account-page.tsx", {
         id: "settings-account",
-      }), // Temporary placeholder
-      route("appearance", "features/settings/pages/profile-page.tsx", {
+      }),
+      route("appearance", "features/settings/pages/appearance-page.tsx", {
         id: "settings-appearance",
-      }), // Temporary placeholder
-      route("notifications", "features/settings/pages/profile-page.tsx", {
+      }),
+      route("notifications", "features/settings/pages/notifications-page.tsx", {
         id: "settings-notifications",
-      }), // Temporary placeholder
+      }),
     ]),
   ]),
 
