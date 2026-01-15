@@ -1,3 +1,5 @@
+import { Separator } from "~/common/components/ui/separator";
+
 export const meta = () => {
   return [
     { title: "Integrations | TubeGAI" },
@@ -7,10 +9,16 @@ export const meta = () => {
 
 export default function IntegrationsPage() {
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Integrations & Settings</h1>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium">Integrations</h3>
+        <p className="text-sm text-muted-foreground">
+          Manage integrations with YouTube and AI services.
+        </p>
+      </div>
+      <Separator />
       <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-        YouTube and AI service integration settings coming soon.
+        Authentication and connection settings implementation coming soon.
       </div>
     </div>
   );

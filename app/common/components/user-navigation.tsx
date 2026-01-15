@@ -1,12 +1,13 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { LogOut, LogIn, UserPlus, Bell, MessageCircle } from "lucide-react";
+import { LogOut, LogIn, UserPlus, Bell, MessageCircle, User, CreditCard, Palette, Plug } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/common/components/ui/dropdown-menu";
@@ -102,12 +103,39 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/settings/profile">Profile</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/settings/integrations">Settings</Link>
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Settings</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/profile" className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/account" className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Account
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/appearance" className="cursor-pointer">
+                <Palette className="mr-2 h-4 w-4" />
+                Appearance
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/notifications" className="cursor-pointer">
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/integrations" className="cursor-pointer">
+                <Plug className="mr-2 h-4 w-4" />
+                Integrations
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />

@@ -10,11 +10,28 @@ export default [
   index("common/pages/home-page.tsx"),
   route("auth/login", "features/auth/pages/login-page.tsx"),
   route("auth/join", "features/auth/pages/join-page.tsx"),
-  route("settings/profile", "features/settings/pages/profile-page.tsx"),
-  route(
-    "settings/integrations",
-    "features/settings/pages/integrations-page.tsx"
-  ),
+  // Settings
+  // Settings
+  layout("features/settings/layouts/settings-layout.tsx", [
+    ...prefix("settings", [
+      index("features/settings/pages/profile-page.tsx", {
+        id: "settings-index",
+      }),
+      route("profile", "features/settings/pages/profile-page.tsx", {
+        id: "settings-profile",
+      }),
+      route("integrations", "features/settings/pages/integrations-page.tsx"),
+      route("account", "features/settings/pages/profile-page.tsx", {
+        id: "settings-account",
+      }), // Temporary placeholder
+      route("appearance", "features/settings/pages/profile-page.tsx", {
+        id: "settings-appearance",
+      }), // Temporary placeholder
+      route("notifications", "features/settings/pages/profile-page.tsx", {
+        id: "settings-notifications",
+      }), // Temporary placeholder
+    ]),
+  ]),
 
   // Products
   ...prefix("products", [
@@ -36,6 +53,9 @@ export default [
   // Studio
   layout("features/studio/layouts/studio-layout.tsx", [
     ...prefix("studio", [
+      index("features/project/pages/project-list-page.tsx", {
+        id: "studio-index",
+      }), // Fallback to project list
       route(":projectId", "features/studio/pages/studio-dashboard-page.tsx"),
       route(
         "script/:projectId",
