@@ -56,6 +56,41 @@ export default [
       index("features/project/pages/project-list-page.tsx", {
         id: "studio-index",
       }), // Fallback to project list
+
+      // Static Routes (Project Selection)
+      // Static Routes (Project Selection)
+      route("dashboard", "features/studio/pages/studio-dashboard-page.tsx", {
+        id: "studio-dashboard-static",
+      }),
+      route("script", "features/studio/pages/studio-script-page.tsx", {
+        id: "studio-script-static",
+      }),
+      route("storyboard", "features/studio/pages/studio-storyboard-page.tsx", {
+        id: "studio-storyboard-static",
+      }),
+      route("scene", "features/studio/pages/studio-scene-page.tsx", {
+        id: "studio-scene-static",
+      }),
+      route("b-roll", "features/studio/pages/studio-b-roll-page.tsx", {
+        id: "studio-b-roll-static",
+      }),
+      route("subtitles", "features/studio/pages/studio-subtitles-page.tsx", {
+        id: "studio-subtitles-static",
+      }),
+      route("coloring", "features/studio/pages/studio-coloring-page.tsx", {
+        id: "studio-coloring-static",
+      }),
+      route("thumbnail", "features/studio/pages/studio-thumbnail-page.tsx", {
+        id: "studio-thumbnail-static",
+      }),
+      route("seo", "features/studio/pages/studio-seo-page.tsx", {
+        id: "studio-seo-static",
+      }),
+      route("export", "features/studio/pages/studio-export-page.tsx", {
+        id: "studio-export-static",
+      }),
+
+      // Parameterized Routes (Specific Project)
       route(":projectId", "features/studio/pages/studio-dashboard-page.tsx"),
       route(
         "script/:projectId",
