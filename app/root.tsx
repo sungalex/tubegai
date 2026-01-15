@@ -53,7 +53,7 @@ export default function App() {
   return (
     <div className="py-20">
       <Navigation
-        isLoggedIn={true}
+        isLoggedIn={false}
         hasNotifications={true}
         hasMessages={true}
       />
