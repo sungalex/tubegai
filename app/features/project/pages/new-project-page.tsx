@@ -98,10 +98,10 @@ export default function NewProjectPage() {
       console.log("Creating project:", data);
 
       toast.success("Project created successfully!", {
-        description: `"${data.title}" has been added to your dashboard.`,
+        description: "Redirecting to project studio...",
       });
-
-      navigate("/projects");
+      // Mock navigation to the new project detail page (ID: 1)
+      navigate("/projects/1");
     } catch (error) {
       toast.error("Failed to create project.", {
         description: "Please try again later.",

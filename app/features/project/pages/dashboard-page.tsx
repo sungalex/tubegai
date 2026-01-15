@@ -77,7 +77,7 @@ export default function DashboardPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full max-w-[500px] grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="projects">All Projects</TabsTrigger>
+          <TabsTrigger value="active-projects">Active Projects</TabsTrigger>
           <TabsTrigger value="channels">Channels</TabsTrigger>
           <TabsTrigger value="labels">Labels</TabsTrigger>
         </TabsList>
@@ -181,89 +181,227 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
 
-        {/* PROJECTS TAB */}
-        <TabsContent value="projects">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FolderKanban className="h-5 w-5" />
-                All Projects
-              </CardTitle>
-              <CardDescription>
-                Detailed list of all your video production projects.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Project Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Current Step</TableHead>
-                    <TableHead>Last Modified</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentProjects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-medium">{project.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={project.status === 'Completed' ? 'default' : 'secondary'}>
-                          {project.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{project.step}</TableCell>
-                      <TableCell>{project.date}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to={`/projects/${project.id}`}>
-                            <Edit2 className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        {/* ACTIVE PROJECTS TAB (Renamed from Projects) */}
+        <TabsContent value="active-projects" className="space-y-6">
+
+          {/* Status Summary */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">3</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">12</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Drafts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">5</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity Section */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Recent Activity</h3>
+            <Button variant="ghost" asChild>
+              <Link to="/projects/lists" className="flex items-center gap-2">
+                View All Projects <FolderKanban className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {recentProjects.map((project) => (
+              <Card key={project.id} className="flex flex-col">
+                <CardHeader className="p-4">
+                  <div className="flex justify-between items-start">
+                    <Badge variant={project.status === 'Completed' ? 'default' : 'secondary'} className="mb-2">
+                      {project.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{project.date}</span>
+                  </div>
+                  <CardTitle className="text-base line-clamp-1" title={project.name}>{project.name}</CardTitle>
+                  <CardDescription className="text-xs">Step: {project.step}</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 mt-auto">
+                  <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden mb-4">
+                    <div className="bg-primary h-full rounded-full" style={{ width: '45%' }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    <Button variant="outline" className="w-full h-8 text-xs px-2" asChild>
+                      <Link to={`/projects/${project.id}`}>
+                        Details
+                      </Link>
+                    </Button>
+                    <Button className="w-full h-8 text-xs px-2" asChild>
+                      <Link to={`/studio/${project.id}`}>
+                        <Edit2 className="h-3 w-3 mr-1.5" /> Studio
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
         </TabsContent>
 
-        {/* TOPICS / CHANNELS TAB */}
+        {/* CHANNELS TAB */}
         <TabsContent value="channels">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Radio className="h-5 w-5" />
-                Connected Channels
-              </CardTitle>
-              <CardDescription>
-                Manage your YouTube channel integrations here.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground border-dashed border-2 rounded-md m-4">
-              Channel Management Component Coming Soon
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Channel Overview</h3>
+                <p className="text-sm text-muted-foreground">Monitor performance across connected channels.</p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link to="/projects/channels">Manage Channels</Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Subscribers</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">892.4K</div>
+                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Channels</CardTitle>
+                  <Radio className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">2</div>
+                  <p className="text-xs text-muted-foreground">Both functioning normally</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Simultaneous Uploads</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">5</div>
+                  <p className="text-xs text-muted-foreground">Max allowed by plan</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Channel Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { name: "TubeGAI Official", status: "Active", latency: "24ms" },
+                    { name: "Alex Vlogs", status: "Active", latency: "31ms" },
+                  ].map((channel, i) => (
+                    <div key={i} className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        <div className="font-medium">{channel.name}</div>
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-4">
+                        <span>Latency: {channel.latency}</span>
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-200">
+                          {channel.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* LABELS TAB */}
         <TabsContent value="labels">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Project Labels
-              </CardTitle>
-              <CardDescription>
-                Organize your projects with custom taxonomy.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground border-dashed border-2 rounded-md m-4">
-              Label Management Component Coming Soon
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Label Analysis</h3>
+                <p className="text-sm text-muted-foreground">See how you are categorizing your projects.</p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link to="/projects/labels">Manage Labels</Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Used Labels</CardTitle>
+                  <CardDescription>Most frequently applied tags across all projects.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-5">
+                    {[
+                      { name: "Tutorial", count: 12, percentage: 75, color: "bg-blue-500" },
+                      { name: "Vlog", count: 8, percentage: 50, color: "bg-green-500" },
+                      { name: "Review", count: 5, percentage: 30, color: "bg-yellow-500" },
+                      { name: "Shorts", count: 3, percentage: 15, color: "bg-purple-500" },
+                    ].map((label, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${label.color}`} />
+                            {label.name}
+                          </span>
+                          <span className="text-muted-foreground">{label.count} projects</span>
+                        </div>
+                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          <div className={`h-full ${label.color}`} style={{ width: `${label.percentage}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Tagging Activity</CardTitle>
+                  <CardDescription>Recently labeled projects.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { project: "AI News Week 4", label: "News", date: "2 hours ago" },
+                      { project: "React Tutorial", label: "Tutorial", date: "5 hours ago" },
+                      { project: "Tokyo Trip", label: "Vlog", date: "1 day ago" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{item.project}</span>
+                          <span className="text-xs text-muted-foreground">{item.date}</span>
+                        </div>
+                        <Badge variant="secondary">{item.label}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
