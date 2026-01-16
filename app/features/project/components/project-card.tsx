@@ -70,7 +70,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </Link>
         </Button>
         <Button asChild className="w-full text-xs h-9 px-2">
-          <Link to={`/studio/${project.id}`}>
+          <Link to={`/studio/dashboard/${project.id}`}>
             <Edit2 className="w-3.5 h-3.5 mr-1.5" />
             Studio
           </Link>

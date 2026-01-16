@@ -139,7 +139,7 @@ export default function ProjectDetailPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="lg" asChild>
-              <Link to={`/studio/${project.id}`}>
+              <Link to={`/studio/dashboard/${project.id}`}>
                 Open Studio
               </Link>
             </Button>

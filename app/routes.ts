@@ -91,7 +91,10 @@ export default [
       }),
 
       // Parameterized Routes (Specific Project)
-      route(":projectId", "features/studio/pages/studio-dashboard-page.tsx"),
+      route(
+        "dashboard/:projectId",
+        "features/studio/pages/studio-dashboard-page.tsx"
+      ),
       route(
         "script/:projectId",
         "features/studio/pages/studio-script-page.tsx"

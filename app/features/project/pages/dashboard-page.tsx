@@ -190,7 +190,7 @@ export default function DashboardPage() {
                         <Badge variant="secondary">{p.status}</Badge>
                       </div>
                       <Button size="sm" className="w-full" asChild>
-                        <Link to={`/studio/${p.id}`}>
+                        <Link to={`/studio/dashboard/${p.id}`}>
                           <Edit2 className="h-3 w-3 mr-2" /> Resume Studio
                         </Link>
                       </Button>
@@ -280,7 +280,7 @@ export default function DashboardPage() {
                       </Link>
                     </Button>
                     <Button className="w-full h-8 text-xs px-2" asChild>
-                      <Link to={`/studio/${project.id}`}>
+                      <Link to={`/studio/dashboard/${project.id}`}>
                         <Edit2 className="h-3 w-3 mr-1.5" /> Studio
                       </Link>
                     </Button>

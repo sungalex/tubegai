@@ -34,12 +34,8 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
     return projectId ? `/studio/${segment}/${projectId}` : `/studio/${segment}`
   }
 
-  const getDashboardPath = () => {
-    return projectId ? `/studio/${projectId}` : `/studio/dashboard`
-  }
-
   const items = [
-    { title: "Dashboard", href: getDashboardPath(), icon: LayoutDashboard },
+    { title: "Dashboard", href: getPath("dashboard"), icon: LayoutDashboard },
     { title: "Script", href: getPath("script"), icon: FileText },
     { title: "Storyboard", href: getPath("storyboard"), icon: Presentation },
     { title: "Scene", href: getPath("scene"), icon: Clapperboard },
