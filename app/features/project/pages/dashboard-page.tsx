@@ -4,16 +4,23 @@ import { Button } from "~/common/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/common/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
 import {
-  BarChart,
+  Area,
+  AreaChart,
   Bar,
+  BarChart,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line
-} from 'recharts';
+  ReferenceLine
+} from "recharts";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent
+} from "~/common/components/ui/chart";
 import {
   Activity,
   Users,
@@ -23,27 +30,61 @@ import {
   FolderKanban,
   Radio,
   Tag,
-  Zap
+  Zap,
+  TrendingUp
 } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
 
 // Mock Data
 const data = [
-  { name: 'Jan', views: 4000, subs: 2400 },
-  { name: 'Feb', views: 3000, subs: 1398 },
-  { name: 'Mar', views: 2000, subs: 9800 },
-  { name: 'Apr', views: 2780, subs: 3908 },
-  { name: 'May', views: 1890, subs: 4800 },
-  { name: 'Jun', views: 2390, subs: 3800 },
+  { month: 'Jan', views: 4000, subs: 240 },
+  { month: 'Feb', views: 3000, subs: 139 },
+  { month: 'Mar', views: 2000, subs: 980 },
+  { month: 'Apr', views: 2780, subs: 390 },
+  { month: 'May', views: 1890, subs: 480 },
+  { month: 'Jun', views: 2390, subs: 380 },
 ];
 
+const chartConfig = {
+  views: {
+    label: "Page Views",
+    color: "#2563eb", // Vibrant Blue
+  },
+  subs: {
+    label: "Subscribers",
+    color: "#7c3aed", // Vibrant Violet
+  },
+} satisfies ChartConfig;
+
 const performanceData = [
-  { topic: 'AI News', watchTime: 120 },
-  { topic: 'Tutorials', watchTime: 200 },
-  { topic: 'Vlog', watchTime: 80 },
-  { topic: 'Reviews', watchTime: 160 },
+  { topic: 'AI News', watchTime: 120, fill: "#f59e0b" }, // Amber
+  { topic: 'Tutorials', watchTime: 200, fill: "#10b981" }, // Emerald
+  { topic: 'Vlog', watchTime: 80, fill: "#ec4899" }, // Pink
+  { topic: 'Reviews', watchTime: 160, fill: "#06b6d4" }, // Cyan
 ];
+
+const performanceConfig = {
+  watchTime: {
+    label: "Watch Time (h)",
+  },
+  ai: {
+    label: "AI News",
+    color: "#f59e0b",
+  },
+  tutorials: {
+    label: "Tutorials",
+    color: "#10b981",
+  },
+  vlog: {
+    label: "Vlog",
+    color: "#ec4899",
+  },
+  reviews: {
+    label: "Reviews",
+    color: "#06b6d4",
+  },
+} satisfies ChartConfig;
 
 const recentProjects = [
   { id: 1, name: "AI Revolution 2026", status: "In Progress", date: "2026-05-20", step: "Scripting" },
@@ -125,52 +166,97 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Main Chart area - Efficiency or Growth ?? Let's keep Growth Trends for now */}
-            <Card className="col-span-4">
+            {/* Main Chart area */}
+            <Card className="col-span-4 lg:col-span-5">
               <CardHeader>
-                <CardTitle>Growth Trends</CardTitle>
-                <CardDescription>Views and Subscriber growth over time.</CardDescription>
+                <CardTitle>Growth Analytics</CardTitle>
+                <CardDescription>
+                  Displaying views and subscriber growth for the first half of 2026.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="name" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              <CardContent>
+                <ChartContainer config={chartConfig} className="aspect-auto h-[350px] w-full">
+                  <AreaChart
+                    accessibilityLayer
+                    data={data}
+                    margin={{
+                      left: 12,
+                      right: 12,
+                    }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => value.slice(0, 3)}
                     />
-                    <Line type="monotone" dataKey="views" stroke="#8884d8" name="Views" strokeWidth={2} />
-                    <Line type="monotone" dataKey="subs" stroke="#82ca9d" name="Subscribers" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickCount={3}
+                    />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <Area
+                      dataKey="views"
+                      type="natural"
+                      fill="var(--color-views)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-views)"
+                      stackId="a"
+                    />
+                    <Area
+                      dataKey="subs"
+                      type="natural"
+                      fill="var(--color-subs)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-subs)"
+                      stackId="a"
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </AreaChart>
+                </ChartContainer>
               </CardContent>
             </Card>
 
-            {/* Widgets Column */}
-            <div className="col-span-3 space-y-4">
-
-              {/* Mini Trends Widget */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Trending Now</CardTitle>
-                    <Link to="#" onClick={(e) => { e.preventDefault(); document.querySelector('[value="trends"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); }} className="text-xs text-muted-foreground hover:text-primary">
-                      View Hub
-                    </Link>
-                  </div>
+            {/* Side Widgets - Reorganized */}
+            <div className="col-span-3 lg:col-span-2 space-y-4">
+              {/* Topic Performance Bar Chart */}
+              <Card className="flex flex-col">
+                <CardHeader className="items-center pb-0">
+                  <CardTitle>Topic Performance</CardTitle>
+                  <CardDescription>Watch time by category</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    { title: "AI Revolution 2026", growth: "+145%" },
-                    { title: "Minimalist Desk Setup", growth: "+89%" },
-                    { title: "Japan Travel Tips", growth: "+210%" },
-                  ].map((t, i) => (
-                    <div key={i} className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0">
-                      <span className="text-sm font-medium line-clamp-1">{t.title}</span>
-                      <span className="text-xs font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">{t.growth}</span>
-                    </div>
-                  ))}
+                <CardContent className="flex-1 pb-0">
+                  <ChartContainer
+                    config={performanceConfig}
+                    className="mx-auto aspect-square max-h-[250px]"
+                  >
+                    <BarChart data={performanceData}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="topic"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                      />
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent hideLabel />}
+                      />
+                      <Bar
+                        dataKey="watchTime"
+                        strokeWidth={2}
+                        radius={8}
+                      >
+                        {/* We can optionally color each bar differently here if needed by config matching, 
+                              but simpler to let chart config handle unified color or map index */}
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
                 </CardContent>
               </Card>
 
@@ -191,7 +277,7 @@ export default function DashboardPage() {
                       </div>
                       <Button size="sm" className="w-full" asChild>
                         <Link to={`/studio/dashboard/${p.id}`}>
-                          <Edit2 className="h-3 w-3 mr-2" /> Resume Studio
+                          <Edit2 className="h-3 w-3 mr-2" /> Open Studio Dashboard
                         </Link>
                       </Button>
                     </div>
