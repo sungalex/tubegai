@@ -18,6 +18,7 @@ import {
   ExternalLink
 } from "lucide-react";
 
+import { cn } from "~/lib/utils";
 import { Button } from "~/common/components/ui/button";
 import {
   Card,
@@ -82,6 +83,10 @@ export default function ProjectDetailPage() {
       avatar: "https://github.com/shadcn.png"
     },
     topic: "Technology",
+    labels: [
+      { name: "Urgent", color: "bg-red-500" },
+      { name: "Marketing", color: "bg-purple-500" }
+    ],
     createdAt: "Jan 12, 2024",
     updatedAt: "2 hours ago",
     size: "1.2 GB",
@@ -231,6 +236,19 @@ export default function ProjectDetailPage() {
                   <div className="font-medium text-sm">{project.topic}</div>
                 </div>
               </div>
+
+              {project.labels.length > 0 && (
+                <div className="pt-2">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Labels</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {project.labels.map((label, idx) => (
+                      <Badge key={idx} className={cn("px-2 py-0.5 text-white", label.color)}>
+                        {label.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

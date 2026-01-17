@@ -5,6 +5,8 @@ import { z } from "zod";
 import { Link, useNavigate, useLocation } from "react-router";
 import { ChevronLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "~/lib/utils";
+import { Badge } from "~/common/components/ui/badge";
 
 import { Button } from "~/common/components/ui/button";
 import {
@@ -46,6 +48,10 @@ const projectFormSchema = z.object({
   }),
   visibility: z.enum(["public", "private"]),
   topic: z.string().optional(),
+  channelId: z.string().min(1, {
+    message: "Please select a channel.",
+  }),
+  labels: z.array(z.string()),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -56,7 +62,23 @@ const defaultValues: Partial<ProjectFormValues> = {
   type: "long",
   visibility: "private",
   topic: "",
+  channelId: "",
+  labels: [],
 };
+
+// Mock Data from "YouTube API" & Labels
+const MOCK_CHANNELS = [
+  { id: "1", name: "TubeGAI Official", handle: "@tubegai_official" },
+  { id: "2", name: "Alex's Vlog", handle: "@alex_vlog_daily" },
+  { id: "3", name: "Tech Reviews", handle: "@tech_reviews_2024" },
+];
+
+const MOCK_LABELS = [
+  { id: "l1", name: "Urgent", color: "bg-red-500" },
+  { id: "l2", name: "In Progress", color: "bg-blue-500" },
+  { id: "l3", name: "Marketing", color: "bg-purple-500" },
+  { id: "l4", name: "Tutorial", color: "bg-green-500" },
+];
 
 export default function NewProjectPage() {
   const navigate = useNavigate();
@@ -139,22 +161,49 @@ export default function NewProjectPage() {
                 </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Tech Reviews 2026" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormDescription>
-                      This is the name of your project.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="channelId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Channel (Required)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a channel" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {MOCK_CHANNELS.map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>
+                              {channel.name} <span className="text-muted-foreground ml-1">({channel.handle})</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Tech Reviews 2026" {...field} disabled={isLoading} />
+                      </FormControl>
+                      <FormDescription>
+                        This is the name of your project.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -203,6 +252,43 @@ export default function NewProjectPage() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="labels"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Labels</FormLabel>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {MOCK_LABELS.map((label) => {
+                        const isSelected = field.value.includes(label.id);
+                        return (
+                          <Badge
+                            key={label.id}
+                            variant={isSelected ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer transition-all px-3 py-1",
+                              isSelected ? label.color : "hover:bg-muted"
+                            )}
+                            onClick={() => {
+                              const newValue = isSelected
+                                ? field.value.filter((id) => id !== label.id)
+                                : [...field.value, label.id];
+                              field.onChange(newValue);
+                            }}
+                          >
+                            {label.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <FormDescription>
+                      Select labels to organize your project.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
