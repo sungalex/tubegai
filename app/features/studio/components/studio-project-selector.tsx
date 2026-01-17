@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Link } from "react-router";
 import {
@@ -382,9 +384,9 @@ function ProjectCard({ project, primaryLabel, primarySegment }: { project: any, 
   return (
     <Card className="hover:border-primary/50 transition-colors flex flex-col group h-full">
       <CardHeader className="pb-4">
-        <CardTitle className="flex justify-between items-start text-xl">
-          <span className="truncate" title={project.title}>{project.title}</span>
-          <Badge variant={project.status === "Completed" ? "default" : "secondary"}>
+        <CardTitle className="flex justify-between items-start text-xl gap-2 w-full min-w-0">
+          <span className="truncate flex-1 block" title={project.title}>{project.title}</span>
+          <Badge variant={project.status === "Completed" ? "default" : "secondary"} className="shrink-0">
             {project.status}
           </Badge>
         </CardTitle>

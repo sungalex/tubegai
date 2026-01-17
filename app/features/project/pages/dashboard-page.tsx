@@ -165,9 +165,9 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
             {/* Main Chart area */}
-            <Card className="col-span-4 lg:col-span-5">
+            <Card className="col-span-1 md:col-span-2 lg:col-span-5">
               <CardHeader>
                 <CardTitle>Growth Analytics</CardTitle>
                 <CardDescription>
@@ -222,7 +222,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Side Widgets - Reorganized */}
-            <div className="col-span-3 lg:col-span-2 space-y-4">
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 space-y-4">
               {/* Topic Performance Bar Chart */}
               <Card className="flex flex-col">
                 <CardHeader className="items-center pb-0">

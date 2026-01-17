@@ -1,3 +1,5 @@
+"use client";
+
 import { useParams, Link } from "react-router";
 import {
   FileText,
