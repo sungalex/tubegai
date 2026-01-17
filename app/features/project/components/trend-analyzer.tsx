@@ -10,8 +10,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "~/common/components/ui/carousel";
 
 const TRENDS_DATA = [
@@ -165,7 +163,7 @@ export function TrendAnalyzer() {
         </div>
       </div>
 
-      <div className="w-full px-4">
+      <div className="w-full">
         <Carousel
           opts={{
             align: "start",
@@ -232,8 +230,6 @@ export function TrendAnalyzer() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
         </Carousel>
       </div>
     </div>
