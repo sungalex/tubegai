@@ -1,5 +1,9 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* Theme Configuration */
 @theme {
   --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
 
@@ -8,53 +12,7 @@
       offset-distance: 100%;
     }
   }
-}
 
-@layer components {
-  .border-beam-container {
-    --size: 200;
-    --duration: 15;
-    --anchor: 90;
-    --border-width: 1.5;
-    --color-from: #ffaa40;
-    --color-to: #9c40ff;
-    --delay: 0s;
-
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    border: calc(var(--border-width) * 1px) solid transparent;
-
-    /* Mask styles */
-    mask-clip: padding-box, border-box !important;
-    mask-composite: intersect !important;
-    mask:
-      linear-gradient(transparent, transparent), linear-gradient(white, white);
-  }
-
-  .border-beam-container::after {
-    content: "";
-    position: absolute;
-    aspect-ratio: 1;
-    width: calc(var(--size) * 1px);
-    animation: border-beam calc(var(--duration) * 1s) infinite linear;
-    animation-delay: var(--delay);
-    background: linear-gradient(
-      to left,
-      var(--color-from),
-      var(--color-to),
-      transparent
-    );
-    offset-anchor: calc(var(--anchor) * 1%) 50%;
-    offset-path: rect(0 auto auto 0 round calc(var(--size) * 1px));
-  }
-}
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme {
   --font-sans:
     "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -103,6 +61,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Base Layer */
 @layer base {
   :root {
     --radius: 0.625rem;
@@ -176,14 +135,54 @@
     --destructive-foreground: oklch(0.205 0 0);
     --link: oklch(0.6 0.15 20);
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Components */
+@layer components {
+  .border-beam-container {
+    --size: 200;
+    --duration: 15;
+    --anchor: 90;
+    --border-width: 1.5;
+    --color-from: #ffaa40;
+    --color-to: #9c40ff;
+    --delay: 0s;
+
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: calc(var(--border-width) * 1px) solid transparent;
+
+    /* Mask styles */
+    mask-clip: padding-box, border-box !important;
+    mask-composite: intersect !important;
+    mask:
+      linear-gradient(transparent, transparent), linear-gradient(white, white);
+  }
+
+  .border-beam-container::after {
+    content: "";
+    position: absolute;
+    aspect-ratio: 1;
+    width: calc(var(--size) * 1px);
+    animation: border-beam calc(var(--duration) * 1s) infinite linear;
+    animation-delay: var(--delay);
+    background: linear-gradient(
+      to left,
+      var(--color-from),
+      var(--color-to),
+      transparent
+    );
+    offset-anchor: calc(var(--anchor) * 1%) 50%;
+    offset-path: rect(0 auto auto 0 round calc(var(--size) * 1px));
   }
 }
