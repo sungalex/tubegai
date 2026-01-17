@@ -35,7 +35,7 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
   }
 
   const items = [
-    { title: "Dashboard", href: getPath("dashboard"), icon: LayoutDashboard },
+    { title: "Dashboard", href: "/studio/dashboard", icon: LayoutDashboard },
     { title: "Script", href: getPath("script"), icon: FileText },
     { title: "Storyboard", href: getPath("storyboard"), icon: Presentation },
     { title: "Scene", href: getPath("scene"), icon: Clapperboard },

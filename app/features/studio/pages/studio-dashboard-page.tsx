@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from "~/common/components/ui/progress";
 import { Badge } from "~/common/components/ui/badge";
 import { Separator } from "~/common/components/ui/separator";
+import { StudioProjectSelector } from "../components/studio-project-selector";
 
 export const meta = () => {
   return [
@@ -62,66 +63,7 @@ export default function StudioDashboardPage() {
   ];
 
   if (!projectId) {
-    return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight">Welcome to Studio</h2>
-            <p className="text-muted-foreground">Select a project to continue your work or start a new one.</p>
-          </div>
-          <Button asChild>
-            <Link to="/projects/new">
-              <Plus className="mr-2 h-4 w-4" /> New Project
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {recentProjects.map((project) => (
-            <Card key={project.id} className="hover:border-primary/50 transition-colors">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex justify-between items-start">
-                  <span className="truncate">{project.title}</span>
-                  <Badge variant={project.status === "Completed" ? "default" : "secondary"}>
-                    {project.status}
-                  </Badge>
-                </CardTitle>
-                <CardDescription>Last edited {project.lastEdited}</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Progress</span>
-                    <span>{project.progress}%</span>
-                  </div>
-                  <Progress value={project.progress} className="h-2" />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="ghost" className="w-full justify-between" asChild>
-                  <Link to={`/studio/dashboard/${project.id}`}>
-                    Open Studio <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-
-        <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-            <Clapperboard className="h-10 w-10 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">No active projects?</h3>
-            <p className="mb-4 mt-2 text-sm text-muted-foreground">
-              Get started by creating a new project. Our AI tools will help you generate scripts, storyboards, and videos in minutes.
-            </p>
-            <Button variant="outline" asChild>
-              <Link to="/projects/new">Create Project</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <StudioProjectSelector />;
   }
 
   return (
