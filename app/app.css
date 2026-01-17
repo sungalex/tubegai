@@ -1,4 +1,55 @@
 @import "tailwindcss";
+
+@theme {
+  --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
+
+  @keyframes border-beam {
+    100% {
+      offset-distance: 100%;
+    }
+  }
+}
+
+@layer components {
+  .border-beam-container {
+    --size: 200;
+    --duration: 15;
+    --anchor: 90;
+    --border-width: 1.5;
+    --color-from: #ffaa40;
+    --color-to: #9c40ff;
+    --delay: 0s;
+
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: calc(var(--border-width) * 1px) solid transparent;
+
+    /* Mask styles */
+    mask-clip: padding-box, border-box !important;
+    mask-composite: intersect !important;
+    mask:
+      linear-gradient(transparent, transparent), linear-gradient(white, white);
+  }
+
+  .border-beam-container::after {
+    content: "";
+    position: absolute;
+    aspect-ratio: 1;
+    width: calc(var(--size) * 1px);
+    animation: border-beam calc(var(--duration) * 1s) infinite linear;
+    animation-delay: var(--delay);
+    background: linear-gradient(
+      to left,
+      var(--color-from),
+      var(--color-to),
+      transparent
+    );
+    offset-anchor: calc(var(--anchor) * 1%) 50%;
+    offset-path: rect(0 auto auto 0 round calc(var(--size) * 1px));
+  }
+}
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

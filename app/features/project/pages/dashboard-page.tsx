@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
+import NumberTicker from "~/common/components/magicui/number-ticker";
 
 // Mock Data
 const data = [
@@ -129,7 +130,9 @@ export default function DashboardPage() {
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2.4M</div>
+                <div className="text-2xl font-bold flex items-center">
+                  <NumberTicker value={2.4} />M
+                </div>
                 <p className="text-xs text-muted-foreground">+12% from last month</p>
               </CardContent>
             </Card>
@@ -139,7 +142,9 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">15.2K</div>
+                <div className="text-2xl font-bold flex items-center">
+                  <NumberTicker value={15200} />
+                </div>
                 <p className="text-xs text-muted-foreground">+5% from last month</p>
               </CardContent>
             </Card>
@@ -398,7 +403,9 @@ export default function DashboardPage() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">892.4K</div>
+                  <div className="text-2xl font-bold flex items-center">
+                    <NumberTicker value={892400} />
+                  </div>
                   <p className="text-xs text-muted-foreground">+20.1% from last month</p>
                 </CardContent>
               </Card>

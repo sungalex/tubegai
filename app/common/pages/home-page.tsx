@@ -3,6 +3,8 @@ import { Button } from "~/common/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/common/components/ui/accordion";
 import { Sparkles, TrendingUp, FileText, Video, Mic, Share2, Play } from "lucide-react";
+import { BorderBeam } from "~/common/components/magicui/border-beam";
+import { BentoGrid, BentoCard } from "~/common/components/magicui/bento-grid";
 
 export const meta = () => {
   return [
@@ -42,6 +44,7 @@ export default function HomePage() {
             <p className="text-xl text-muted-foreground">Transform your 3-day workload into a 3-hour breeze.</p>
           </div>
           <div className="relative aspect-video bg-muted rounded-xl overflow-hidden shadow-xl border flex items-center justify-center group cursor-pointer max-w-5xl mx-auto">
+            <BorderBeam size={250} duration={12} delay={9} />
             <div className="text-center">
               <div className="w-16 h-16 bg-background/90 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform">
                 <Play className="w-8 h-8 fill-foreground text-foreground ml-1" />
@@ -62,38 +65,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={TrendingUp}
-              title="Trend Analysis"
-              description="Analyze real-time YouTube trends to find winning topics using Inspiration API."
-            />
-            <FeatureCard
-              icon={FileText}
-              title="AI Script Generation"
-              description="Generate optimized scripts instantly based on keywords and channel performance data."
-            />
-            <FeatureCard
-              icon={Video}
-              title="Stock Footage Match"
-              description="AI automatically finds and matches the perfect stock footage for your script."
-            />
-            <FeatureCard
-              icon={Mic}
-              title="Text-Based Editing"
-              description="Edit your video by simply editing the text. No complex timeline manipulation needed."
-            />
-            <FeatureCard
-              icon={Sparkles}
-              title="Auto-Dubbing & Subs"
-              description="Generate professional voiceovers and synchronized subtitles in one click."
-            />
-            <FeatureCard
-              icon={Share2}
-              title="SEO & Export"
-              description="Optimize metadata for search visibility and export directly to YouTube."
-            />
-          </div>
+          <BentoGrid className="max-w-6xl mx-auto lg:grid-cols-3 lg:auto-rows-[20rem]">
+            {features.map((feature) => (
+              <BentoCard
+                key={feature.name}
+                {...feature}
+                className={feature.className}
+              />
+            ))}
+          </BentoGrid>
         </div>
       </section>
 
@@ -155,20 +135,41 @@ export default function HomePage() {
   );
 }
 
-function FeatureCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
-  return (
-    <Card className="bg-background">
-      <CardHeader>
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2 text-primary">
-          <Icon className="w-5 h-5" />
-        </div>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <CardDescription>
-          {description}
-        </CardDescription>
-      </CardContent>
-    </Card>
-  )
-}
+const features = [
+  {
+    Icon: TrendingUp,
+    name: "Trend Analysis",
+    description: "Analyze real-time YouTube trends to find winning topics.",
+    href: "/auth/join",
+    cta: "Start Analyzing",
+    background: <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-50" />,
+    className: "lg:row-start-1 lg:col-start-1 lg:col-span-2",
+  },
+  {
+    Icon: FileText,
+    name: "AI Script Generation",
+    description: "Generate optimized scripts instantly.",
+    href: "/auth/join",
+    cta: "Generate Script",
+    background: <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-transparent opacity-50" />,
+    className: "lg:row-start-1 lg:col-start-3 lg:col-span-1",
+  },
+  {
+    Icon: Video,
+    name: "Stock Footage Match",
+    description: "AI finds the perfect stock footage.",
+    href: "/auth/join",
+    cta: "Learn More",
+    background: <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent opacity-50" />,
+    className: "lg:row-start-2 lg:col-start-1 lg:col-span-1",
+  },
+  {
+    Icon: Mic,
+    name: "Text-Based Editing",
+    description: "Edit your video by entering text.",
+    href: "/auth/join",
+    cta: "Try Editor",
+    background: <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-transparent opacity-50" />,
+    className: "lg:row-start-2 lg:col-start-2 lg:col-span-2",
+  },
+];
