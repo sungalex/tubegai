@@ -46,7 +46,7 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
     { title: "Coloring", href: getPath("coloring"), icon: Palette },
     { title: "Thumbnail", href: getPath("thumbnail"), icon: ImageIcon },
     { title: "SEO", href: getPath("seo"), icon: LineChart },
-    { title: "Export", href: getPath("export"), icon: Download },
+    { title: "Export & Publish", href: getPath("export"), icon: Download },
   ]
 
   return (
