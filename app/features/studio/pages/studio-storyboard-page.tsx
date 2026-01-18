@@ -68,7 +68,7 @@ const GENERATED_SCENES_POOL: Record<string, StoryboardScene[]> = {
       description: "Host appears in a modern studio environment, smiling.",
       visualPrompt: "Professional studio, young tech enthusiast host, soft lighting",
       duration: 8,
-      imageUrl: "https://images.unsplash.com/photo-1478720568477-152d9b164e63?q=80&w=600&auto=format&fit=crop"
+      imageUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=600&auto=format&fit=crop"
     }
   ],
   "seg2": [
