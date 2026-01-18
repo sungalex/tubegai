@@ -17,6 +17,7 @@ import {
   Captions,
   ChevronsLeft,
   ChevronsRight,
+  Scissors,
 } from "lucide-react"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -40,6 +41,7 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
     { title: "Storyboard", href: getPath("storyboard"), icon: Presentation },
     { title: "Scene", href: getPath("scene"), icon: Clapperboard },
     { title: "B-Roll", href: getPath("b-roll"), icon: Film },
+    { title: "Rough Cut", href: getPath("roughcut"), icon: Scissors },
     { title: "Subtitles", href: getPath("subtitles"), icon: Captions },
     { title: "Coloring", href: getPath("coloring"), icon: Palette },
     { title: "Thumbnail", href: getPath("thumbnail"), icon: ImageIcon },

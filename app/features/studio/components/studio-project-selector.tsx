@@ -16,7 +16,8 @@ import {
   LineChart,
   Download,
   Search,
-  Filter
+  Filter,
+  Scissors
 } from "lucide-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { Button } from "~/common/components/ui/button";
@@ -57,7 +58,9 @@ const QUICK_ACCESS_STEPS = [
   { id: "script", icon: FileText, label: "Script" },
   { id: "storyboard", icon: Presentation, label: "Storyboard" },
   { id: "scene", icon: Clapperboard, label: "Scene" },
+  { id: "scene", icon: Clapperboard, label: "Scene" },
   { id: "b-roll", icon: Film, label: "B-Roll" },
+  { id: "roughcut", icon: Scissors, label: "Rough Cut" },
   { id: "subtitles", icon: Captions, label: "Subtitles" },
   { id: "coloring", icon: Palette, label: "Coloring" },
   { id: "thumbnail", icon: ImageIcon, label: "Thumbnail" },
@@ -92,7 +95,7 @@ const ITEMS_PER_PAGE = 6;
 interface StudioProjectSelectorProps {
   title?: string;
   description?: string;
-  context?: "dashboard" | "script" | "storyboard" | "scene" | "b-roll" | "subtitles" | "coloring" | "thumbnail" | "seo" | "export";
+  context?: "dashboard" | "script" | "storyboard" | "scene" | "b-roll" | "subtitles" | "coloring" | "thumbnail" | "seo" | "export" | "roughcut";
 }
 
 export function StudioProjectSelector({
@@ -118,6 +121,8 @@ export function StudioProjectSelector({
         return { label: "Go Scene", segment: "scene" };
       case "b-roll":
         return { label: "Go B-Roll", segment: "b-roll" };
+      case "roughcut":
+        return { label: "Go Rough Cut", segment: "roughcut" };
       case "subtitles":
         return { label: "Go Subtitles", segment: "subtitles" };
       case "coloring":

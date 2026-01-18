@@ -74,6 +74,9 @@ export default [
       route("b-roll", "features/studio/pages/studio-b-roll-page.tsx", {
         id: "studio-b-roll-static",
       }),
+      route("roughcut", "features/studio/pages/studio-rough-cut-page.tsx", {
+        id: "studio-rough-cut-static",
+      }),
       route("subtitles", "features/studio/pages/studio-subtitles-page.tsx", {
         id: "studio-subtitles-static",
       }),
@@ -107,6 +110,10 @@ export default [
       route(
         "b-roll/:projectId",
         "features/studio/pages/studio-b-roll-page.tsx"
+      ),
+      route(
+        "roughcut/:projectId",
+        "features/studio/pages/studio-rough-cut-page.tsx"
       ),
       route(
         "subtitles/:projectId",
