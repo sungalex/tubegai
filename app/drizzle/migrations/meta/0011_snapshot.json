@@ -1,6 +1,6 @@
 {
-  "id": "7e5fa891-b3a9-43fd-b5d6-0057a11721d6",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "e4368652-1bd7-4613-91ea-0213ffd04c9e",
+  "prevId": "fdd00eae-0567-41d0-922f-49e7a909f51c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -365,10 +365,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "channel_videos_project_id_projects_id_fk": {
-          "name": "channel_videos_project_id_projects_id_fk",
+        "channel_videos_project_id_project_id_fk": {
+          "name": "channel_videos_project_id_project_id_fk",
           "tableFrom": "channel_videos",
-          "tableTo": "projects",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -687,8 +687,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.project_labels": {
-      "name": "project_labels",
+    "tubegai.project_label": {
+      "name": "project_label",
       "schema": "tubegai",
       "columns": {
         "project_id": {
@@ -706,10 +706,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_labels_project_id_projects_id_fk": {
-          "name": "project_labels_project_id_projects_id_fk",
-          "tableFrom": "project_labels",
-          "tableTo": "projects",
+        "project_label_project_id_project_id_fk": {
+          "name": "project_label_project_id_project_id_fk",
+          "tableFrom": "project_label",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -720,9 +720,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "project_labels_label_id_labels_id_fk": {
-          "name": "project_labels_label_id_labels_id_fk",
-          "tableFrom": "project_labels",
+        "project_label_label_id_labels_id_fk": {
+          "name": "project_label_label_id_labels_id_fk",
+          "tableFrom": "project_label",
           "tableTo": "labels",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -736,8 +736,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "project_labels_project_id_label_id_pk": {
-          "name": "project_labels_project_id_label_id_pk",
+        "project_label_project_id_label_id_pk": {
+          "name": "project_label_project_id_label_id_pk",
           "columns": [
             "project_id",
             "label_id"
@@ -749,8 +749,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.project_pipelines": {
-      "name": "project_pipelines",
+    "tubegai.project_pipeline": {
+      "name": "project_pipeline",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -877,10 +877,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_pipelines_project_id_projects_id_fk": {
-          "name": "project_pipelines_project_id_projects_id_fk",
-          "tableFrom": "project_pipelines",
-          "tableTo": "projects",
+        "project_pipeline_project_id_project_id_fk": {
+          "name": "project_pipeline_project_id_project_id_fk",
+          "tableFrom": "project_pipeline",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -894,8 +894,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "project_pipelines_project_id_unique": {
-          "name": "project_pipelines_project_id_unique",
+        "project_pipeline_project_id_unique": {
+          "name": "project_pipeline_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "project_id"
@@ -970,10 +970,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_seo_project_id_projects_id_fk": {
-          "name": "project_seo_project_id_projects_id_fk",
+        "project_seo_project_id_project_id_fk": {
+          "name": "project_seo_project_id_project_id_fk",
           "tableFrom": "project_seo",
-          "tableTo": "projects",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -999,8 +999,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.projects": {
-      "name": "projects",
+    "tubegai.project": {
+      "name": "project",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1089,9 +1089,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "projects_user_id_users_id_fk": {
-          "name": "projects_user_id_users_id_fk",
-          "tableFrom": "projects",
+        "project_user_id_users_id_fk": {
+          "name": "project_user_id_users_id_fk",
+          "tableFrom": "project",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1103,9 +1103,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "projects_channel_id_channels_id_fk": {
-          "name": "projects_channel_id_channels_id_fk",
-          "tableFrom": "projects",
+        "project_channel_id_channels_id_fk": {
+          "name": "project_channel_id_channels_id_fk",
+          "tableFrom": "project",
           "tableTo": "channels",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -1213,8 +1213,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.integrations": {
-      "name": "integrations",
+    "tubegai.settings_integration": {
+      "name": "settings_integration",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1286,9 +1286,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "integrations_user_id_users_id_fk": {
-          "name": "integrations_user_id_users_id_fk",
-          "tableFrom": "integrations",
+        "settings_integration_user_id_users_id_fk": {
+          "name": "settings_integration_user_id_users_id_fk",
+          "tableFrom": "settings_integration",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1307,8 +1307,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.mcp_servers": {
-      "name": "mcp_servers",
+    "tubegai.settings_mcp_server": {
+      "name": "settings_mcp_server",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1366,9 +1366,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "mcp_servers_user_id_users_id_fk": {
-          "name": "mcp_servers_user_id_users_id_fk",
-          "tableFrom": "mcp_servers",
+        "settings_mcp_server_user_id_users_id_fk": {
+          "name": "settings_mcp_server_user_id_users_id_fk",
+          "tableFrom": "settings_mcp_server",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1387,8 +1387,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.notification_settings": {
-      "name": "notification_settings",
+    "tubegai.settings_notification": {
+      "name": "settings_notification",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1442,9 +1442,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notification_settings_id_users_id_fk": {
-          "name": "notification_settings_id_users_id_fk",
-          "tableFrom": "notification_settings",
+        "settings_notification_id_users_id_fk": {
+          "name": "settings_notification_id_users_id_fk",
+          "tableFrom": "settings_notification",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1463,8 +1463,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.subscriptions": {
-      "name": "subscriptions",
+    "tubegai.settings_subscription": {
+      "name": "settings_subscription",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1550,9 +1550,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "subscriptions_user_id_users_id_fk": {
-          "name": "subscriptions_user_id_users_id_fk",
-          "tableFrom": "subscriptions",
+        "settings_subscription_user_id_users_id_fk": {
+          "name": "settings_subscription_user_id_users_id_fk",
+          "tableFrom": "settings_subscription",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1567,8 +1567,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "subscriptions_user_id_unique": {
-          "name": "subscriptions_user_id_unique",
+        "settings_subscription_user_id_unique": {
+          "name": "settings_subscription_user_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "user_id"
@@ -1579,8 +1579,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.b_rolls": {
-      "name": "b_rolls",
+    "tubegai.studio_b_roll": {
+      "name": "studio_b_roll",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1596,8 +1596,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "storyboard_scene_id": {
-          "name": "storyboard_scene_id",
+        "storyboard_id": {
+          "name": "storyboard_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1637,10 +1637,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "b_rolls_project_id_projects_id_fk": {
-          "name": "b_rolls_project_id_projects_id_fk",
-          "tableFrom": "b_rolls",
-          "tableTo": "projects",
+        "studio_b_roll_project_id_project_id_fk": {
+          "name": "studio_b_roll_project_id_project_id_fk",
+          "tableFrom": "studio_b_roll",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -1651,13 +1651,13 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "b_rolls_storyboard_scene_id_storyboard_scenes_id_fk": {
-          "name": "b_rolls_storyboard_scene_id_storyboard_scenes_id_fk",
-          "tableFrom": "b_rolls",
-          "tableTo": "storyboard_scenes",
+        "studio_b_roll_storyboard_id_studio_storyboard_id_fk": {
+          "name": "studio_b_roll_storyboard_id_studio_storyboard_id_fk",
+          "tableFrom": "studio_b_roll",
+          "tableTo": "studio_storyboard",
           "schemaTo": "tubegai",
           "columnsFrom": [
-            "storyboard_scene_id"
+            "storyboard_id"
           ],
           "columnsTo": [
             "id"
@@ -1665,9 +1665,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "b_rolls_asset_id_media_assets_id_fk": {
-          "name": "b_rolls_asset_id_media_assets_id_fk",
-          "tableFrom": "b_rolls",
+        "studio_b_roll_asset_id_media_assets_id_fk": {
+          "name": "studio_b_roll_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_b_roll",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -1686,8 +1686,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.coloring_presets": {
-      "name": "coloring_presets",
+    "tubegai.studio_coloring_preset": {
+      "name": "studio_coloring_preset",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1717,8 +1717,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.export_history": {
-      "name": "export_history",
+    "tubegai.studio_export_history": {
+      "name": "studio_export_history",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1781,10 +1781,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "export_history_project_id_projects_id_fk": {
-          "name": "export_history_project_id_projects_id_fk",
-          "tableFrom": "export_history",
-          "tableTo": "projects",
+        "studio_export_history_project_id_project_id_fk": {
+          "name": "studio_export_history_project_id_project_id_fk",
+          "tableFrom": "studio_export_history",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -1795,9 +1795,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "export_history_video_asset_id_media_assets_id_fk": {
-          "name": "export_history_video_asset_id_media_assets_id_fk",
-          "tableFrom": "export_history",
+        "studio_export_history_video_asset_id_media_assets_id_fk": {
+          "name": "studio_export_history_video_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_export_history",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -1816,8 +1816,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.project_coloring_settings": {
-      "name": "project_coloring_settings",
+    "tubegai.studio_coloring_setting": {
+      "name": "studio_coloring_setting",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1848,10 +1848,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_coloring_settings_project_id_projects_id_fk": {
-          "name": "project_coloring_settings_project_id_projects_id_fk",
-          "tableFrom": "project_coloring_settings",
-          "tableTo": "projects",
+        "studio_coloring_setting_project_id_project_id_fk": {
+          "name": "studio_coloring_setting_project_id_project_id_fk",
+          "tableFrom": "studio_coloring_setting",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -1862,10 +1862,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "project_coloring_settings_preset_id_coloring_presets_id_fk": {
-          "name": "project_coloring_settings_preset_id_coloring_presets_id_fk",
-          "tableFrom": "project_coloring_settings",
-          "tableTo": "coloring_presets",
+        "studio_coloring_setting_preset_id_studio_coloring_preset_id_fk": {
+          "name": "studio_coloring_setting_preset_id_studio_coloring_preset_id_fk",
+          "tableFrom": "studio_coloring_setting",
+          "tableTo": "studio_coloring_preset",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "preset_id"
@@ -1879,8 +1879,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "project_coloring_settings_project_id_unique": {
-          "name": "project_coloring_settings_project_id_unique",
+        "studio_coloring_setting_project_id_unique": {
+          "name": "studio_coloring_setting_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "project_id"
@@ -1891,8 +1891,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.project_thumbnails": {
-      "name": "project_thumbnails",
+    "tubegai.studio_thumbnail": {
+      "name": "studio_thumbnail",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1911,10 +1911,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_thumbnails_project_id_projects_id_fk": {
-          "name": "project_thumbnails_project_id_projects_id_fk",
-          "tableFrom": "project_thumbnails",
-          "tableTo": "projects",
+        "studio_thumbnail_project_id_project_id_fk": {
+          "name": "studio_thumbnail_project_id_project_id_fk",
+          "tableFrom": "studio_thumbnail",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -1928,8 +1928,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "project_thumbnails_project_id_unique": {
-          "name": "project_thumbnails_project_id_unique",
+        "studio_thumbnail_project_id_unique": {
+          "name": "studio_thumbnail_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "project_id"
@@ -1940,8 +1940,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.rough_cut_timelines": {
-      "name": "rough_cut_timelines",
+    "tubegai.studio_rough_cut_timeline": {
+      "name": "studio_rough_cut_timeline",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1981,10 +1981,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "rough_cut_timelines_project_id_projects_id_fk": {
-          "name": "rough_cut_timelines_project_id_projects_id_fk",
-          "tableFrom": "rough_cut_timelines",
-          "tableTo": "projects",
+        "studio_rough_cut_timeline_project_id_project_id_fk": {
+          "name": "studio_rough_cut_timeline_project_id_project_id_fk",
+          "tableFrom": "studio_rough_cut_timeline",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -1998,8 +1998,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "rough_cut_timelines_project_id_unique": {
-          "name": "rough_cut_timelines_project_id_unique",
+        "studio_rough_cut_timeline_project_id_unique": {
+          "name": "studio_rough_cut_timeline_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "project_id"
@@ -2010,8 +2010,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.rough_cut_versions": {
-      "name": "rough_cut_versions",
+    "tubegai.studio_rough_cut_version": {
+      "name": "studio_rough_cut_version",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2067,10 +2067,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "rough_cut_versions_project_id_projects_id_fk": {
-          "name": "rough_cut_versions_project_id_projects_id_fk",
-          "tableFrom": "rough_cut_versions",
-          "tableTo": "projects",
+        "studio_rough_cut_version_project_id_project_id_fk": {
+          "name": "studio_rough_cut_version_project_id_project_id_fk",
+          "tableFrom": "studio_rough_cut_version",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -2081,9 +2081,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "rough_cut_versions_video_asset_id_media_assets_id_fk": {
-          "name": "rough_cut_versions_video_asset_id_media_assets_id_fk",
-          "tableFrom": "rough_cut_versions",
+        "studio_rough_cut_version_video_asset_id_media_assets_id_fk": {
+          "name": "studio_rough_cut_version_video_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_rough_cut_version",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -2102,8 +2102,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.scene_videos": {
-      "name": "scene_videos",
+    "tubegai.studio_video": {
+      "name": "studio_video",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2113,8 +2113,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "storyboard_scene_id": {
-          "name": "storyboard_scene_id",
+        "storyboard_id": {
+          "name": "storyboard_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -2155,13 +2155,13 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "scene_videos_storyboard_scene_id_storyboard_scenes_id_fk": {
-          "name": "scene_videos_storyboard_scene_id_storyboard_scenes_id_fk",
-          "tableFrom": "scene_videos",
-          "tableTo": "storyboard_scenes",
+        "studio_video_storyboard_id_studio_storyboard_id_fk": {
+          "name": "studio_video_storyboard_id_studio_storyboard_id_fk",
+          "tableFrom": "studio_video",
+          "tableTo": "studio_storyboard",
           "schemaTo": "tubegai",
           "columnsFrom": [
-            "storyboard_scene_id"
+            "storyboard_id"
           ],
           "columnsTo": [
             "id"
@@ -2169,10 +2169,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "scene_videos_project_id_projects_id_fk": {
-          "name": "scene_videos_project_id_projects_id_fk",
-          "tableFrom": "scene_videos",
-          "tableTo": "projects",
+        "studio_video_project_id_project_id_fk": {
+          "name": "studio_video_project_id_project_id_fk",
+          "tableFrom": "studio_video",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -2183,9 +2183,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "scene_videos_video_asset_id_media_assets_id_fk": {
-          "name": "scene_videos_video_asset_id_media_assets_id_fk",
-          "tableFrom": "scene_videos",
+        "studio_video_video_asset_id_media_assets_id_fk": {
+          "name": "studio_video_video_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_video",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -2204,8 +2204,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.script_segments": {
-      "name": "script_segments",
+    "tubegai.studio_script_segment": {
+      "name": "studio_script_segment",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2249,10 +2249,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "script_segments_script_id_scripts_id_fk": {
-          "name": "script_segments_script_id_scripts_id_fk",
-          "tableFrom": "script_segments",
-          "tableTo": "scripts",
+        "studio_script_segment_script_id_studio_script_id_fk": {
+          "name": "studio_script_segment_script_id_studio_script_id_fk",
+          "tableFrom": "studio_script_segment",
+          "tableTo": "studio_script",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "script_id"
@@ -2270,8 +2270,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.scripts": {
-      "name": "scripts",
+    "tubegai.studio_script": {
+      "name": "studio_script",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2309,10 +2309,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "scripts_project_id_projects_id_fk": {
-          "name": "scripts_project_id_projects_id_fk",
-          "tableFrom": "scripts",
-          "tableTo": "projects",
+        "studio_script_project_id_project_id_fk": {
+          "name": "studio_script_project_id_project_id_fk",
+          "tableFrom": "studio_script",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -2326,8 +2326,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "scripts_project_id_unique": {
-          "name": "scripts_project_id_unique",
+        "studio_script_project_id_unique": {
+          "name": "studio_script_project_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "project_id"
@@ -2338,8 +2338,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.storyboard_scenes": {
-      "name": "storyboard_scenes",
+    "tubegai.studio_storyboard": {
+      "name": "studio_storyboard",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2349,8 +2349,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "storyboard_id": {
-          "name": "storyboard_id",
+        "project_id": {
+          "name": "project_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -2402,13 +2402,13 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "storyboard_scenes_storyboard_id_storyboards_id_fk": {
-          "name": "storyboard_scenes_storyboard_id_storyboards_id_fk",
-          "tableFrom": "storyboard_scenes",
-          "tableTo": "storyboards",
+        "studio_storyboard_project_id_project_id_fk": {
+          "name": "studio_storyboard_project_id_project_id_fk",
+          "tableFrom": "studio_storyboard",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
-            "storyboard_id"
+            "project_id"
           ],
           "columnsTo": [
             "id"
@@ -2416,10 +2416,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "storyboard_scenes_script_segment_id_script_segments_id_fk": {
-          "name": "storyboard_scenes_script_segment_id_script_segments_id_fk",
-          "tableFrom": "storyboard_scenes",
-          "tableTo": "script_segments",
+        "studio_storyboard_script_segment_id_studio_script_segment_id_fk": {
+          "name": "studio_storyboard_script_segment_id_studio_script_segment_id_fk",
+          "tableFrom": "studio_storyboard",
+          "tableTo": "studio_script_segment",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "script_segment_id"
@@ -2430,9 +2430,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "storyboard_scenes_image_asset_id_media_assets_id_fk": {
-          "name": "storyboard_scenes_image_asset_id_media_assets_id_fk",
-          "tableFrom": "storyboard_scenes",
+        "studio_storyboard_image_asset_id_media_assets_id_fk": {
+          "name": "studio_storyboard_image_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_storyboard",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -2451,57 +2451,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.storyboards": {
-      "name": "storyboards",
-      "schema": "tubegai",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "storyboards_project_id_projects_id_fk": {
-          "name": "storyboards_project_id_projects_id_fk",
-          "tableFrom": "storyboards",
-          "tableTo": "projects",
-          "schemaTo": "tubegai",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "storyboards_project_id_unique": {
-          "name": "storyboards_project_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "project_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "tubegai.subtitles": {
-      "name": "subtitles",
+    "tubegai.studio_subtitle": {
+      "name": "studio_subtitle",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2551,10 +2502,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "subtitles_project_id_projects_id_fk": {
-          "name": "subtitles_project_id_projects_id_fk",
-          "tableFrom": "subtitles",
-          "tableTo": "projects",
+        "studio_subtitle_project_id_project_id_fk": {
+          "name": "studio_subtitle_project_id_project_id_fk",
+          "tableFrom": "studio_subtitle",
+          "tableTo": "project",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_id"
@@ -2572,8 +2523,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.thumbnail_candidates": {
-      "name": "thumbnail_candidates",
+    "tubegai.studio_thumbnail_candidate": {
+      "name": "studio_thumbnail_candidate",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2612,10 +2563,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "thumbnail_candidates_project_thumbnail_id_project_thumbnails_id_fk": {
-          "name": "thumbnail_candidates_project_thumbnail_id_project_thumbnails_id_fk",
-          "tableFrom": "thumbnail_candidates",
-          "tableTo": "project_thumbnails",
+        "studio_thumbnail_candidate_project_thumbnail_id_studio_thumbnail_id_fk": {
+          "name": "studio_thumbnail_candidate_project_thumbnail_id_studio_thumbnail_id_fk",
+          "tableFrom": "studio_thumbnail_candidate",
+          "tableTo": "studio_thumbnail",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_thumbnail_id"
@@ -2626,9 +2577,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "thumbnail_candidates_image_asset_id_media_assets_id_fk": {
-          "name": "thumbnail_candidates_image_asset_id_media_assets_id_fk",
-          "tableFrom": "thumbnail_candidates",
+        "studio_thumbnail_candidate_image_asset_id_media_assets_id_fk": {
+          "name": "studio_thumbnail_candidate_image_asset_id_media_assets_id_fk",
+          "tableFrom": "studio_thumbnail_candidate",
           "tableTo": "media_assets",
           "schemaTo": "tubegai",
           "columnsFrom": [
@@ -2647,8 +2598,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.thumbnail_overlays": {
-      "name": "thumbnail_overlays",
+    "tubegai.studio_thumbnail_overlay": {
+      "name": "studio_thumbnail_overlay",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2680,10 +2631,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "thumbnail_overlays_project_thumbnail_id_project_thumbnails_id_fk": {
-          "name": "thumbnail_overlays_project_thumbnail_id_project_thumbnails_id_fk",
-          "tableFrom": "thumbnail_overlays",
-          "tableTo": "project_thumbnails",
+        "studio_thumbnail_overlay_project_thumbnail_id_studio_thumbnail_id_fk": {
+          "name": "studio_thumbnail_overlay_project_thumbnail_id_studio_thumbnail_id_fk",
+          "tableFrom": "studio_thumbnail_overlay",
+          "tableTo": "studio_thumbnail",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "project_thumbnail_id"
@@ -2701,8 +2652,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.timeline_segments": {
-      "name": "timeline_segments",
+    "tubegai.studio_rough_cut_timeline_segment": {
+      "name": "studio_rough_cut_timeline_segment",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -2794,10 +2745,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "timeline_segments_timeline_id_rough_cut_timelines_id_fk": {
-          "name": "timeline_segments_timeline_id_rough_cut_timelines_id_fk",
-          "tableFrom": "timeline_segments",
-          "tableTo": "rough_cut_timelines",
+        "studio_rough_cut_timeline_segment_timeline_id_studio_rough_cut_timeline_id_fk": {
+          "name": "studio_rough_cut_timeline_segment_timeline_id_studio_rough_cut_timeline_id_fk",
+          "tableFrom": "studio_rough_cut_timeline_segment",
+          "tableTo": "studio_rough_cut_timeline",
           "schemaTo": "tubegai",
           "columnsFrom": [
             "timeline_id"

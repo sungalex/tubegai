@@ -1,6 +1,6 @@
 {
-  "id": "7e5fa891-b3a9-43fd-b5d6-0057a11721d6",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "cd505445-05d7-4985-abeb-e29d0b50a410",
+  "prevId": "7e5fa891-b3a9-43fd-b5d6-0057a11721d6",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1213,8 +1213,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.integrations": {
-      "name": "integrations",
+    "tubegai.settings_integrations": {
+      "name": "settings_integrations",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1286,9 +1286,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "integrations_user_id_users_id_fk": {
-          "name": "integrations_user_id_users_id_fk",
-          "tableFrom": "integrations",
+        "settings_integrations_user_id_users_id_fk": {
+          "name": "settings_integrations_user_id_users_id_fk",
+          "tableFrom": "settings_integrations",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -1387,8 +1387,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tubegai.notification_settings": {
-      "name": "notification_settings",
+    "tubegai.settings_notification": {
+      "name": "settings_notification",
       "schema": "tubegai",
       "columns": {
         "id": {
@@ -1442,9 +1442,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notification_settings_id_users_id_fk": {
-          "name": "notification_settings_id_users_id_fk",
-          "tableFrom": "notification_settings",
+        "settings_notification_id_users_id_fk": {
+          "name": "settings_notification_id_users_id_fk",
+          "tableFrom": "settings_notification",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [

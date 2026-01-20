@@ -23,9 +23,10 @@ import {
   uploadStatusEnum,
 } from "../../drizzle/enums";
 import { projects, mediaAssets } from "../project/project-schema";
+import { tubegaiSchema } from "../../drizzle/schema-def";
 
 // Pre-Production
-export const scripts = pgTable("scripts", {
+export const scripts = tubegaiSchema.table("studio_script", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -36,7 +37,7 @@ export const scripts = pgTable("scripts", {
   savedAt: timestamp("saved_at").defaultNow(),
 });
 
-export const scriptSegments = pgTable("script_segments", {
+export const scriptSegments = tubegaiSchema.table("studio_script_segment", {
   id: uuid("id").defaultRandom().primaryKey(),
   scriptId: uuid("script_id")
     .references(() => scripts.id, { onDelete: "cascade" })
@@ -47,18 +48,10 @@ export const scriptSegments = pgTable("script_segments", {
   estimatedDuration: integer("estimated_duration"),
 });
 
-export const storyboards = pgTable("storyboards", {
+export const storyboards = tubegaiSchema.table("studio_storyboard", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
-    .unique()
-    .notNull(),
-});
-
-export const storyboardScenes = pgTable("storyboard_scenes", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  storyboardId: uuid("storyboard_id")
-    .references(() => storyboards.id, { onDelete: "cascade" })
     .notNull(),
   scriptSegmentId: uuid("script_segment_id").references(
     () => scriptSegments.id,
@@ -75,10 +68,10 @@ export const storyboardScenes = pgTable("storyboard_scenes", {
 });
 
 // Production (Assets)
-export const sceneVideos = pgTable("scene_videos", {
+export const sceneVideos = tubegaiSchema.table("studio_video", {
   id: uuid("id").defaultRandom().primaryKey(),
-  storyboardSceneId: uuid("storyboard_scene_id")
-    .references(() => storyboardScenes.id, { onDelete: "cascade" })
+  storyboardId: uuid("storyboard_id")
+    .references(() => storyboards.id, { onDelete: "cascade" })
     .notNull(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -91,15 +84,14 @@ export const sceneVideos = pgTable("scene_videos", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const bRolls = pgTable("b_rolls", {
+export const bRolls = tubegaiSchema.table("studio_b_roll", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
     .notNull(),
-  storyboardSceneId: uuid("storyboard_scene_id").references(
-    () => storyboardScenes.id,
-    { onDelete: "set null" },
-  ),
+  storyboardId: uuid("storyboard_id").references(() => storyboards.id, {
+    onDelete: "set null",
+  }),
   assetId: uuid("asset_id").references(() => mediaAssets.id, {
     onDelete: "set null",
   }),
@@ -110,52 +102,61 @@ export const bRolls = pgTable("b_rolls", {
 });
 
 // Production (Rough Cut)
-export const roughCutTimelines = pgTable("rough_cut_timelines", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id")
-    .references(() => projects.id, { onDelete: "cascade" })
-    .unique()
-    .notNull(),
-  zoomScale: doublePrecision("zoom_scale").default(30),
-  currentTime: doublePrecision("current_time").default(0),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const roughCutTimelines = tubegaiSchema.table(
+  "studio_rough_cut_timeline",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .unique()
+      .notNull(),
+    zoomScale: doublePrecision("zoom_scale").default(30),
+    currentTime: doublePrecision("current_time").default(0),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+);
 
-export const timelineSegments = pgTable("timeline_segments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  timelineId: uuid("timeline_id")
-    .references(() => roughCutTimelines.id, { onDelete: "cascade" })
-    .notNull(),
-  trackId: text("track_id").default("V1").notNull(),
-  type: timelineTrackTypeEnum("type").notNull(), // video / audio
-  resourceType: timelineResourceTypeEnum("resource_type").notNull(),
-  resourceId: uuid("resource_id").notNull(), // Polymorphic ID
-  startTime: doublePrecision("start_time").notNull(),
-  duration: doublePrecision("duration").notNull(),
-  trimStart: doublePrecision("trim_start").default(0),
-  trimEnd: doublePrecision("trim_end"),
-  playbackSpeed: doublePrecision("playback_speed").default(1.0),
-  volume: doublePrecision("volume").default(1.0),
-  zIndex: integer("z_index").default(0),
-});
+export const timelineSegments = tubegaiSchema.table(
+  "studio_rough_cut_timeline_segment",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    timelineId: uuid("timeline_id")
+      .references(() => roughCutTimelines.id, { onDelete: "cascade" })
+      .notNull(),
+    trackId: text("track_id").default("V1").notNull(),
+    type: timelineTrackTypeEnum("type").notNull(), // video / audio
+    resourceType: timelineResourceTypeEnum("resource_type").notNull(),
+    resourceId: uuid("resource_id").notNull(), // Polymorphic ID
+    startTime: doublePrecision("start_time").notNull(),
+    duration: doublePrecision("duration").notNull(),
+    trimStart: doublePrecision("trim_start").default(0),
+    trimEnd: doublePrecision("trim_end"),
+    playbackSpeed: doublePrecision("playback_speed").default(1.0),
+    volume: doublePrecision("volume").default(1.0),
+    zIndex: integer("z_index").default(0),
+  },
+);
 
-export const roughCutVersions = pgTable("rough_cut_versions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id")
-    .references(() => projects.id, { onDelete: "cascade" })
-    .notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  versionNumber: integer("version_number").notNull(),
-  videoAssetId: uuid("video_asset_id").references(() => mediaAssets.id, {
-    onDelete: "set null",
-  }),
-  duration: doublePrecision("duration"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const roughCutVersions = tubegaiSchema.table(
+  "studio_rough_cut_version",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    versionNumber: integer("version_number").notNull(),
+    videoAssetId: uuid("video_asset_id").references(() => mediaAssets.id, {
+      onDelete: "set null",
+    }),
+    duration: doublePrecision("duration"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+);
 
 // Post-Production
-export const subtitles = pgTable("subtitles", {
+export const subtitles = tubegaiSchema.table("studio_subtitle", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -167,25 +168,28 @@ export const subtitles = pgTable("subtitles", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const coloringPresets = pgTable("coloring_presets", {
+export const coloringPresets = tubegaiSchema.table("studio_coloring_preset", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   filterParameters: jsonb("filter_parameters").notNull(),
 });
 
-export const projectColoringSettings = pgTable("project_coloring_settings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id")
-    .references(() => projects.id, { onDelete: "cascade" })
-    .unique()
-    .notNull(),
-  presetId: text("preset_id").references(() => coloringPresets.id, {
-    onDelete: "set null",
-  }),
-  customParameters: jsonb("custom_parameters"),
-});
+export const projectColoringSettings = tubegaiSchema.table(
+  "studio_coloring_setting",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .unique()
+      .notNull(),
+    presetId: text("preset_id").references(() => coloringPresets.id, {
+      onDelete: "set null",
+    }),
+    customParameters: jsonb("custom_parameters"),
+  },
+);
 
-export const projectThumbnails = pgTable("project_thumbnails", {
+export const projectThumbnails = tubegaiSchema.table("studio_thumbnail", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -194,26 +198,32 @@ export const projectThumbnails = pgTable("project_thumbnails", {
   // selectedCandidateId circular ref handled below
 });
 
-export const thumbnailCandidates = pgTable("thumbnail_candidates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectThumbnailId: uuid("project_thumbnail_id")
-    .references(() => projectThumbnails.id, { onDelete: "cascade" })
-    .notNull(),
-  imageAssetId: uuid("image_asset_id")
-    .references(() => mediaAssets.id, { onDelete: "cascade" })
-    .notNull(),
-  isFavorite: boolean("is_favorite").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const thumbnailCandidates = tubegaiSchema.table(
+  "studio_thumbnail_candidate",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectThumbnailId: uuid("project_thumbnail_id")
+      .references(() => projectThumbnails.id, { onDelete: "cascade" })
+      .notNull(),
+    imageAssetId: uuid("image_asset_id")
+      .references(() => mediaAssets.id, { onDelete: "cascade" })
+      .notNull(),
+    isFavorite: boolean("is_favorite").default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+);
 
-export const thumbnailOverlays = pgTable("thumbnail_overlays", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectThumbnailId: uuid("project_thumbnail_id")
-    .references(() => projectThumbnails.id, { onDelete: "cascade" })
-    .notNull(),
-  type: thumbnailOverlayTypeEnum("type").notNull(),
-  properties: jsonb("properties").notNull(),
-});
+export const thumbnailOverlays = tubegaiSchema.table(
+  "studio_thumbnail_overlay",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectThumbnailId: uuid("project_thumbnail_id")
+      .references(() => projectThumbnails.id, { onDelete: "cascade" })
+      .notNull(),
+    type: thumbnailOverlayTypeEnum("type").notNull(),
+    properties: jsonb("properties").notNull(),
+  },
+);
 
 // Add cyclic reference column to projectThumbnails
 // We can't easily add a column to an existing table var in Drizzle like this without redefining or some tricks.
@@ -224,7 +234,7 @@ export const thumbnailOverlays = pgTable("thumbnail_overlays", {
 // Redefining `projectThumbnails` to include the column.
 
 // Delivery
-export const exportHistory = pgTable("export_history", {
+export const exportHistorys = tubegaiSchema.table("studio_export_history", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -253,40 +263,29 @@ export const scriptSegmentsRelations = relations(scriptSegments, ({ one }) => ({
     fields: [scriptSegments.scriptId],
     references: [scripts.id],
   }),
-  storyboardScene: one(storyboardScenes), // mapped from storyboard_scenes.script_segment_id
+  storyboard: one(storyboards), // mapped from storyboard_scenes.script_segment_id
 }));
 
-export const storyboardsRelations = relations(storyboards, ({ one, many }) => ({
+export const storyboardsRelations = relations(storyboards, ({ one }) => ({
   project: one(projects, {
     fields: [storyboards.projectId],
     references: [projects.id],
   }),
-  scenes: many(storyboardScenes),
+  scriptSegment: one(scriptSegments, {
+    fields: [storyboards.scriptSegmentId],
+    references: [scriptSegments.id],
+  }),
+  imageAsset: one(mediaAssets, {
+    fields: [storyboards.imageAssetId],
+    references: [mediaAssets.id],
+  }),
+  sceneVideo: one(sceneVideos),
 }));
 
-export const storyboardScenesRelations = relations(
-  storyboardScenes,
-  ({ one }) => ({
-    storyboard: one(storyboards, {
-      fields: [storyboardScenes.storyboardId],
-      references: [storyboards.id],
-    }),
-    scriptSegment: one(scriptSegments, {
-      fields: [storyboardScenes.scriptSegmentId],
-      references: [scriptSegments.id],
-    }),
-    imageAsset: one(mediaAssets, {
-      fields: [storyboardScenes.imageAssetId],
-      references: [mediaAssets.id],
-    }),
-    sceneVideo: one(sceneVideos),
-  }),
-);
-
 export const sceneVideosRelations = relations(sceneVideos, ({ one }) => ({
-  storyboardScene: one(storyboardScenes, {
-    fields: [sceneVideos.storyboardSceneId],
-    references: [storyboardScenes.id],
+  storyboard: one(storyboards, {
+    fields: [sceneVideos.storyboardId],
+    references: [storyboards.id],
   }),
   project: one(projects, {
     fields: [sceneVideos.projectId],
@@ -303,9 +302,9 @@ export const bRollsRelations = relations(bRolls, ({ one }) => ({
     fields: [bRolls.projectId],
     references: [projects.id],
   }),
-  storyboardScene: one(storyboardScenes, {
-    fields: [bRolls.storyboardSceneId],
-    references: [storyboardScenes.id],
+  storyboard: one(storyboards, {
+    fields: [bRolls.storyboardId],
+    references: [storyboards.id],
   }),
   asset: one(mediaAssets, {
     fields: [bRolls.assetId],
@@ -407,13 +406,13 @@ export const thumbnailOverlaysRelations = relations(
   }),
 );
 
-export const exportHistoryRelations = relations(exportHistory, ({ one }) => ({
+export const exportHistorysRelations = relations(exportHistorys, ({ one }) => ({
   project: one(projects, {
-    fields: [exportHistory.projectId],
+    fields: [exportHistorys.projectId],
     references: [projects.id],
   }),
   videoAsset: one(mediaAssets, {
-    fields: [exportHistory.videoAssetId],
+    fields: [exportHistorys.videoAssetId],
     references: [mediaAssets.id],
   }),
 }));

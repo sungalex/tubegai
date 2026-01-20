@@ -17,8 +17,9 @@ import {
   mcpStatusEnum,
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
+import { tubegaiSchema } from "../../drizzle/schema-def";
 
-export const subscriptions = pgTable("subscriptions", {
+export const subscriptions = tubegaiSchema.table("settings_subscription", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -43,7 +44,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   }),
 }));
 
-export const billingHistory = pgTable("billing_history", {
+export const billingHistory = tubegaiSchema.table("billing_history", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -63,17 +64,20 @@ export const billingHistoryRelations = relations(billingHistory, ({ one }) => ({
   }),
 }));
 
-export const notificationSettings = pgTable("notification_settings", {
-  id: uuid("id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  emailMarketing: boolean("email_marketing").default(false),
-  emailProjectUpdates: boolean("email_project_updates").default(true),
-  emailSecurity: boolean("email_security").default(true),
-  pushEverything: boolean("push_everything").default(false),
-  pushComments: boolean("push_comments").default(true),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const notificationSettings = tubegaiSchema.table(
+  "settings_notification",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emailMarketing: boolean("email_marketing").default(false),
+    emailProjectUpdates: boolean("email_project_updates").default(true),
+    emailSecurity: boolean("email_security").default(true),
+    pushEverything: boolean("push_everything").default(false),
+    pushComments: boolean("push_comments").default(true),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+);
 
 export const notificationSettingsRelations = relations(
   notificationSettings,
@@ -85,7 +89,7 @@ export const notificationSettingsRelations = relations(
   }),
 );
 
-export const integrations = pgTable("integrations", {
+export const integrations = tubegaiSchema.table("settings_integration", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -107,7 +111,7 @@ export const integrationsRelations = relations(integrations, ({ one }) => ({
   }),
 }));
 
-export const mcpServers = pgTable("mcp_servers", {
+export const mcpServers = tubegaiSchema.table("settings_mcp_server", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })

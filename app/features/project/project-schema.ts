@@ -23,8 +23,9 @@ import {
   aiGenerationTypeEnum,
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
+import { tubegaiSchema } from "../../drizzle/schema-def";
 
-export const mediaAssets = pgTable("media_assets", {
+export const mediaAssets = tubegaiSchema.table("media_asset", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -46,7 +47,7 @@ export const mediaAssets = pgTable("media_assets", {
 // Need to import doublePrecision
 // import { pgTable, uuid, text, timestamp, integer, boolean, bigint, primaryKey, doublePrecision } from "drizzle-orm/pg-core";
 
-export const channels = pgTable("channels", {
+export const channels = tubegaiSchema.table("channel", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -63,7 +64,7 @@ export const channels = pgTable("channels", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const labels = pgTable("labels", {
+export const labels = tubegaiSchema.table("label", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   color: text("color").default("#000000").notNull(),
@@ -71,7 +72,7 @@ export const labels = pgTable("labels", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const projects = pgTable("projects", {
+export const projects = tubegaiSchema.table("project", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
@@ -96,7 +97,7 @@ export const projects = pgTable("projects", {
 // Since `projects` is defined AFTER `mediaAssets`, I should modify `mediaAssets` to use arrow function `references(() => projects.id)` AND ensuring projects is exported.
 // But `projects` is defined in same file. Arrow function works.
 
-export const channelVideos = pgTable("channel_videos", {
+export const channelVideos = tubegaiSchema.table("channel_video", {
   id: uuid("id").defaultRandom().primaryKey(),
   channelId: uuid("channel_id")
     .references(() => channels.id, { onDelete: "cascade" })
@@ -121,8 +122,8 @@ export const channelVideos = pgTable("channel_videos", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const projectLabels = pgTable(
-  "project_labels",
+export const projectLabels = tubegaiSchema.table(
+  "project_label",
   {
     projectId: uuid("project_id")
       .references(() => projects.id, { onDelete: "cascade" })
@@ -136,7 +137,7 @@ export const projectLabels = pgTable(
   }),
 );
 
-export const projectPipelines = pgTable("project_pipelines", {
+export const projectPipelines = tubegaiSchema.table("project_pipeline", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -168,7 +169,7 @@ export const projectPipelines = pgTable("project_pipelines", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const projectSeo = pgTable("project_seo", {
+export const projectSeo = tubegaiSchema.table("project_seo", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
@@ -183,7 +184,7 @@ export const projectSeo = pgTable("project_seo", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const aiGenerationCache = pgTable(
+export const aiGenerationCache = tubegaiSchema.table(
   "ai_generation_cache",
   {
     id: uuid("id").defaultRandom().primaryKey(),

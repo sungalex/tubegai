@@ -1,31 +1,38 @@
-import { pgEnum } from "drizzle-orm/pg-core";
+import { tubegaiSchema } from "./schema-def";
 
 // Foundation & Identity
-export const channelStatusEnum = pgEnum("channel_status", [
+export const channelStatusEnum = tubegaiSchema.enum("channel_status", [
   "active",
   "disconnected",
   "error",
 ]);
-export const mediaTypeEnum = pgEnum("media_type", ["image", "video", "audio"]);
-export const mediaProviderEnum = pgEnum("media_provider", [
+export const mediaTypeEnum = tubegaiSchema.enum("media_type", [
+  "image",
+  "video",
+  "audio",
+]);
+export const mediaProviderEnum = tubegaiSchema.enum("media_provider", [
   "s3",
   "r2",
   "local",
 ]);
 
 // Project Core
-export const projectTypeEnum = pgEnum("project_type", ["short", "long"]);
-export const projectToneEnum = pgEnum("project_tone", [
+export const projectTypeEnum = tubegaiSchema.enum("project_type", [
+  "short",
+  "long",
+]);
+export const projectToneEnum = tubegaiSchema.enum("project_tone", [
   "informative",
   "funny",
   "cinematic",
   "vlog",
 ]);
-export const projectVisibilityEnum = pgEnum("project_visibility", [
+export const projectVisibilityEnum = tubegaiSchema.enum("project_visibility", [
   "public",
   "private",
 ]);
-export const projectStatusEnum = pgEnum("project_status", [
+export const projectStatusEnum = tubegaiSchema.enum("project_status", [
   "draft",
   "in_progress",
   "completed",
@@ -33,21 +40,21 @@ export const projectStatusEnum = pgEnum("project_status", [
 ]);
 
 // Pipeline
-export const pipelinePhaseEnum = pgEnum("pipeline_phase", [
+export const pipelinePhaseEnum = tubegaiSchema.enum("pipeline_phase", [
   "planning",
   "production",
   "post_production",
   "review",
   "completed",
 ]);
-export const stepStatusEnum = pgEnum("step_status", [
+export const stepStatusEnum = tubegaiSchema.enum("step_status", [
   "pending",
   "in_progress",
   "completed",
 ]);
 
 // Studio: Pre-Production
-export const scriptSegmentTypeEnum = pgEnum("script_segment_type", [
+export const scriptSegmentTypeEnum = tubegaiSchema.enum("script_segment_type", [
   "hook",
   "intro",
   "body",
@@ -56,12 +63,12 @@ export const scriptSegmentTypeEnum = pgEnum("script_segment_type", [
 ]);
 
 // Studio: Production (Assets)
-export const sceneVideoStatusEnum = pgEnum("scene_video_status", [
+export const sceneVideoStatusEnum = tubegaiSchema.enum("scene_video_status", [
   "generating",
   "completed",
   "failed",
 ]);
-export const bRollProviderEnum = pgEnum("b_roll_provider", [
+export const bRollProviderEnum = tubegaiSchema.enum("b_roll_provider", [
   "pexels",
   "pixabay",
   "unsplash",
@@ -69,76 +76,76 @@ export const bRollProviderEnum = pgEnum("b_roll_provider", [
 ]);
 
 // Studio: Production (Rough Cut)
-export const timelineTrackTypeEnum = pgEnum("timeline_track_type", [
+export const timelineTrackTypeEnum = tubegaiSchema.enum("timeline_track_type", [
   "video",
   "audio",
 ]);
-export const timelineResourceTypeEnum = pgEnum("timeline_resource_type", [
-  "scene",
-  "b_roll",
-  "upload",
-  "audio",
-]);
+export const timelineResourceTypeEnum = tubegaiSchema.enum(
+  "timeline_resource_type",
+  ["scene", "b_roll", "upload", "audio"],
+);
 
 // Studio: Post-Production
-export const thumbnailOverlayTypeEnum = pgEnum("thumbnail_overlay_type", [
-  "text",
-  "image",
-]);
+export const thumbnailOverlayTypeEnum = tubegaiSchema.enum(
+  "thumbnail_overlay_type",
+  ["text", "image"],
+);
 
 // Delivery
-export const exportFormatEnum = pgEnum("export_format", ["mp4", "mov"]);
-export const exportResolutionEnum = pgEnum("export_resolution", [
+export const exportFormatEnum = tubegaiSchema.enum("export_format", [
+  "mp4",
+  "mov",
+]);
+export const exportResolutionEnum = tubegaiSchema.enum("export_resolution", [
   "1080p",
   "4k",
 ]);
-export const exportStatusEnum = pgEnum("export_status", [
+export const exportStatusEnum = tubegaiSchema.enum("export_status", [
   "pending",
   "completed",
   "failed",
 ]);
-export const uploadStatusEnum = pgEnum("upload_status", [
+export const uploadStatusEnum = tubegaiSchema.enum("upload_status", [
   "not_uploaded",
   "uploaded",
 ]);
 
 // Settings
-export const subscriptionPlanEnum = pgEnum("subscription_plan", [
+export const subscriptionPlanEnum = tubegaiSchema.enum("subscription_plan", [
   "free",
   "pro",
   "enterprise",
 ]);
-export const subscriptionStatusEnum = pgEnum("subscription_status", [
-  "active",
-  "canceled",
-  "past_due",
+export const subscriptionStatusEnum = tubegaiSchema.enum(
+  "subscription_status",
+  ["active", "canceled", "past_due"],
+);
+export const billingCycleEnum = tubegaiSchema.enum("billing_cycle", [
+  "monthly",
+  "yearly",
 ]);
-export const billingCycleEnum = pgEnum("billing_cycle", ["monthly", "yearly"]);
-export const paymentStatusEnum = pgEnum("payment_status", [
+export const paymentStatusEnum = tubegaiSchema.enum("payment_status", [
   "paid",
   "pending",
   "failed",
 ]);
-export const integrationProviderEnum = pgEnum("integration_provider", [
-  "youtube",
-  "gemini",
-  "pexels",
-  "openai",
-  "elevenlabs",
-]);
-export const integrationStatusEnum = pgEnum("integration_status", [
+export const integrationProviderEnum = tubegaiSchema.enum(
+  "integration_provider",
+  ["youtube", "gemini", "pexels", "openai", "elevenlabs"],
+);
+export const integrationStatusEnum = tubegaiSchema.enum("integration_status", [
   "active",
   "inactive",
   "error",
 ]);
-export const mcpStatusEnum = pgEnum("mcp_status", [
+export const mcpStatusEnum = tubegaiSchema.enum("mcp_status", [
   "connected",
   "disconnected",
   "error",
 ]);
 
 // AI Resource Optimization
-export const aiGenerationTypeEnum = pgEnum("ai_generation_type", [
+export const aiGenerationTypeEnum = tubegaiSchema.enum("ai_generation_type", [
   "image",
   "video",
   "script",
