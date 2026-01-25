@@ -1,3 +1,6 @@
-import { pgSchema } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum } from "drizzle-orm/pg-core";
 
-export const tubegaiSchema = pgSchema("tubegai");
+export const tubegaiSchema = {
+  table: pgTable,
+  enum: pgEnum,
+};

@@ -111,7 +111,7 @@ export const roughCutTimelines = tubegaiSchema.table(
       .unique()
       .notNull(),
     zoomScale: doublePrecision("zoom_scale").default(30),
-    currentTime: doublePrecision("current_time").default(0),
+    playheadPosition: doublePrecision("playhead_position").default(0),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
 );
