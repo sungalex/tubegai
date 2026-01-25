@@ -9,7 +9,7 @@
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:typegen": "supabase gen types typescript --project-id wuimlylfdjylvrtbudbh > database.types.ts"
+    "db:typegen": "supabase gen types typescript --project-id peyncmsqlmfykdlbaqnn > database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
