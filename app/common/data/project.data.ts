@@ -3,9 +3,23 @@
 // =============================================================================
 // This layer abstracts data fetching, making it easy to switch from mock to API.
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, ilike, asc, and, count } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import { formatDistanceToNow } from "date-fns";
+
+// Sort options type
+export type ProjectSortOption = "newest" | "oldest" | "name" | "progress";
+
+// Pagination constants
+export const PROJECTS_PER_PAGE = 8;
+
+// Paginated result type
+export interface PaginatedProjects {
+  projects: Project[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+}
 
 import type {
   RecentProject,
@@ -63,11 +77,67 @@ export async function getRecentProjects(userId: string): Promise<RecentProject[]
 }
 
 /**
- * Fetch all projects
- * TODO: Replace with API call
+ * Fetch projects for a user with search, sort, and pagination options
  */
-export async function getProjects(): Promise<Project[]> {
-  return PROJECTS;
+export async function getProjects(
+  userId: string,
+  options?: {
+    search?: string;
+    sort?: ProjectSortOption;
+    page?: number;
+  }
+): Promise<PaginatedProjects> {
+  const { search, sort = "newest", page = 1 } = options ?? {};
+
+  // Build where conditions
+  const whereConditions = search
+    ? and(
+        eq(schema.projects.ownerId, userId),
+        ilike(schema.projects.title, `%${search}%`)
+      )
+    : eq(schema.projects.ownerId, userId);
+
+  // Build order by
+  const orderByMap = {
+    newest: [desc(schema.projects.updatedAt)],
+    oldest: [asc(schema.projects.updatedAt)],
+    name: [asc(schema.projects.title)],
+    progress: [desc(schema.projects.progress)],
+  };
+
+  // Get total count
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(schema.projects)
+    .where(whereConditions);
+
+  const totalCount = countResult?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PROJECTS_PER_PAGE);
+  const offset = (page - 1) * PROJECTS_PER_PAGE;
+
+  // Get paginated projects
+  const projectList = await db.query.projects.findMany({
+    where: whereConditions,
+    orderBy: orderByMap[sort],
+    limit: PROJECTS_PER_PAGE,
+    offset,
+  });
+
+  const projects = projectList.map((project) => ({
+    id: project.id,
+    title: project.title,
+    thumbnail: project.thumbnailUrl ?? undefined,
+    status: STATUS_DISPLAY_MAP[project.status] as Project["status"],
+    lastModified: formatDistanceToNow(project.updatedAt, { addSuffix: true }),
+    progress: project.progress,
+  }));
+
+  return {
+    projects,
+    totalCount,
+    totalPages,
+    currentPage: page,
+  };
 }
 
 /**

@@ -63,16 +63,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <span className="text-xs text-muted-foreground">{project.progress}% completed</span>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-2 grid grid-cols-2 gap-2">
-        <Button variant="outline" asChild className="w-full text-xs h-9 px-2">
-          <Link to={`/projects/${project.id}`}>
-            Details
-          </Link>
-        </Button>
+      <CardFooter className="p-4 pt-2">
         <Button asChild className="w-full text-xs h-9 px-2">
-          <Link to={`/studio/dashboard/${project.id}`}>
+          <Link to={`/studio/script/${project.id}`}>
             <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-            Studio
+            Open in Studio
           </Link>
         </Button>
       </CardFooter>
