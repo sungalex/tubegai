@@ -103,6 +103,16 @@ export const uploadStatusEnum = tubegaiSchema.enum("upload_status", [
 ]);
 
 // ============================================
+// MVP Enums: Trend
+// ============================================
+
+export const trendSourceEnum = tubegaiSchema.enum("trend_source", [
+  "youtube_api",
+  "ai_generated",
+  "manual",
+]);
+
+// ============================================
 // Phase 2+ Enums (Enabled for MVP)
 // ============================================
 

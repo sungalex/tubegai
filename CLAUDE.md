@@ -20,18 +20,18 @@ TubeGAI is an AI-powered video creator workflow platform built with **React Rout
 
 ### Tech Stack
 
-| Aspect | Implementation |
-|--------|-----------------|
-| **Framework** | React Router v7 with Vite |
-| **Styling** | Tailwind CSS 4 with Shadcn UI |
-| **Forms** | React Hook Form + Zod validation |
-| **Database** | PostgreSQL + Drizzle ORM + Supabase |
+| Aspect               | Implementation                        |
+| -------------------- | ------------------------------------- |
+| **Framework**        | React Router v7 with Vite             |
+| **Styling**          | Tailwind CSS 4 with Shadcn UI         |
+| **Forms**            | React Hook Form + Zod validation      |
+| **Database**         | PostgreSQL + Drizzle ORM + Supabase   |
 | **State Management** | React Router loaders + local useState |
-| **Notifications** | Sonner toast library |
-| **Charts/Data** | Recharts for data visualization |
-| **Animation** | Framer Motion |
-| **Icons** | Lucide React |
-| **Type Safety** | TypeScript strict mode |
+| **Notifications**    | Sonner toast library                  |
+| **Charts/Data**      | Recharts for data visualization       |
+| **Animation**        | Framer Motion                         |
+| **Icons**            | Lucide React                          |
+| **Type Safety**      | TypeScript strict mode                |
 
 ## Project Structure
 
@@ -67,6 +67,7 @@ app/
 ### Feature Structure Convention
 
 Each feature follows a consistent pattern:
+
 ```
 app/features/{feature}/
 ├── pages/                  # Named *-page.tsx
@@ -98,7 +99,9 @@ import { relations } from "drizzle-orm";
 // Define table
 export const projects = tubegaiSchema.table("project", {
   id: uuid("id").defaultRandom().primaryKey(),
-  ownerId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  ownerId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   title: text("title").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -120,7 +123,10 @@ Define enums in [app/drizzle/enums.ts](app/drizzle/enums.ts):
 import { tubegaiSchema } from "./schema-def";
 
 export const projectStatusEnum = tubegaiSchema.enum("project_status", [
-  "draft", "in_progress", "completed", "archived"
+  "draft",
+  "in_progress",
+  "completed",
+  "archived",
 ]);
 ```
 
@@ -140,7 +146,13 @@ export const projectStatusEnum = tubegaiSchema.enum("project_status", [
 Routes are defined centrally in [app/routes.ts](app/routes.ts):
 
 ```typescript
-import { type RouteConfig, route, layout, prefix, index } from "@react-router/dev/routes";
+import {
+  type RouteConfig,
+  route,
+  layout,
+  prefix,
+  index,
+} from "@react-router/dev/routes";
 
 export default [
   // Static route
@@ -154,7 +166,7 @@ export default [
     ...prefix("studio", [
       index("features/project/pages/project-list-page.tsx"),
       route("script", "features/studio/pages/studio-script-page.tsx"),
-    ])
+    ]),
   ]),
 ] satisfies RouteConfig;
 ```
@@ -216,7 +228,12 @@ export default function Page({ loaderData, actionData }: Route.ComponentProps) {
 
 ```typescript
 import { Button } from "~/common/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/common/components/ui/card";
 import { Input } from "~/common/components/ui/input";
 ```
 
@@ -308,7 +325,9 @@ Abstract data fetching in `app/common/data/*.data.ts` for easy API integration:
 import { MOCK_SCRIPTS } from "../mocks/studio";
 
 // Data access layer - can easily switch from mock to real API
-export async function getScriptSegments(projectId: string): Promise<ScriptSegment[]> {
+export async function getScriptSegments(
+  projectId: string,
+): Promise<ScriptSegment[]> {
   // TODO: Replace with API call when backend is ready
   // return await fetch(`/api/scripts/${projectId}`).then(r => r.json());
   return MOCK_SCRIPTS;
@@ -316,7 +335,7 @@ export async function getScriptSegments(projectId: string): Promise<ScriptSegmen
 
 export async function createScriptSegment(
   projectId: string,
-  data: CreateScriptSegmentInput
+  data: CreateScriptSegmentInput,
 ): Promise<ScriptSegment> {
   // TODO: POST to API
   return { id: crypto.randomUUID(), ...data };
@@ -324,6 +343,7 @@ export async function createScriptSegment(
 ```
 
 Usage in pages:
+
 ```typescript
 import { getScriptSegments } from "~/common/data/studio.data";
 
@@ -364,12 +384,14 @@ export type ApiResponse<T> = {
 ## State Management Patterns
 
 ### Local UI State
+
 ```typescript
 const [isOpen, setIsOpen] = useState(false);
 const [selectedId, setSelectedId] = useState<string | null>(null);
 ```
 
 ### Server State (Loader Data)
+
 ```typescript
 export default function Page({ loaderData }: Route.ComponentProps) {
   const { projects, user } = loaderData;
@@ -403,6 +425,7 @@ export function useMediaQuery(query: string) {
 ```
 
 Usage:
+
 ```typescript
 const isXlScreen = useMediaQuery("(min-width: 1280px)");
 ```
@@ -460,17 +483,17 @@ import { toast } from "sonner";
 
 // Success
 toast.success("Script Generated", {
-  description: "AI has successfully created a new script draft."
+  description: "AI has successfully created a new script draft.",
 });
 
 // Error
 toast.error("Login failed", {
-  description: "Invalid email or password."
+  description: "Invalid email or password.",
 });
 
 // Info
 toast.info("Processing video", {
-  description: "This may take a few minutes."
+  description: "This may take a few minutes.",
 });
 
 // Custom with action
@@ -478,8 +501,8 @@ toast("New comment", {
   description: "John replied to your video.",
   action: {
     label: "View",
-    onClick: () => navigate("/comments")
-  }
+    onClick: () => navigate("/comments"),
+  },
 });
 ```
 
@@ -501,6 +524,7 @@ SUPABASE_ANON_KEY=your-anon-key
 ```
 
 Access in code:
+
 ```typescript
 // Server-side only
 const dbUrl = process.env.DATABASE_URL;
@@ -519,6 +543,7 @@ route("script", "features/studio/pages/studio-script-page.tsx"),
 ```
 
 When working on features:
+
 - Check route comments to understand feature phase
 - Don't build Phase 2+ features unless explicitly requested
 - Use mock data for API integrations (mark with `// TODO: Replace with API`)
@@ -526,6 +551,7 @@ When working on features:
 ## Common Anti-Patterns to Avoid
 
 ### ❌ Don't
+
 ```typescript
 // Don't import from Remix
 import { useLoaderData } from "@remix-run/react";
@@ -537,7 +563,10 @@ return json({ data });
 import { Button } from "@radix-ui/react-button";
 
 // Don't use enums
-enum Status { Draft, Active }
+enum Status {
+  Draft,
+  Active,
+}
 
 // Don't use type for object shapes
 type User = { name: string };
@@ -547,6 +576,7 @@ type User = { name: string };
 ```
 
 ### ✅ Do
+
 ```typescript
 // Use Route.ComponentProps
 export default function Page({ loaderData }: Route.ComponentProps) {}
@@ -561,7 +591,9 @@ import { Button } from "~/common/components/ui/button";
 type Status = "draft" | "active";
 
 // Use interfaces for object shapes
-interface User { name: string }
+interface User {
+  name: string;
+}
 
 // Edit existing files
 // Good: Add to existing component file
@@ -570,6 +602,7 @@ interface User { name: string }
 ## Code Style Guidelines
 
 ### Component Structure
+
 ```typescript
 // 1. Imports
 import { useState } from "react";
@@ -606,6 +639,7 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
 ```
 
 ### Import Order
+
 1. React and React Router
 2. Third-party libraries
 3. Internal utilities and hooks
@@ -619,3 +653,7 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
 - Manual testing via dev server
 - Type safety via TypeScript strict mode
 - Consider adding Vitest + React Testing Library in Phase 2+
+
+## Analysis Report
+
+- 분석 결과는 항상 한글로 작성해줘

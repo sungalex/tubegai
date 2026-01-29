@@ -96,6 +96,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   // labels: many(projectLabels),
   // pipeline: one(projectPipelines),
   // seo: one(projectSeo),
+  // Note: trend relation is defined in trend-schema.ts
 }));
 
 // ============================================
