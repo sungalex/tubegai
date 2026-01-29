@@ -12,13 +12,7 @@
  * - project_pipeline, project_seo, ai_generation_cache
  */
 
-import {
-  uuid,
-  text,
-  timestamp,
-  integer,
-  bigint,
-} from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, integer, bigint } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import {
   mediaTypeEnum,
@@ -69,6 +63,11 @@ export const projects = tubegaiSchema.table("project", {
   status: projectStatusEnum("status").default("draft").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+  // MVP UI Support Fields
+  progress: integer("progress").default(0).notNull(),
+  currentStep: text("current_step"),
+  thumbnailUrl: text("thumbnail_url"),
 });
 
 // ============================================

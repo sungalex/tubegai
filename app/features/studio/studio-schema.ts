@@ -67,7 +67,7 @@ export const storyboards = tubegaiSchema.table("studio_storyboard", {
     .notNull(),
   scriptSegmentId: uuid("script_segment_id").references(
     () => scriptSegments.id,
-    { onDelete: "set null" }
+    { onDelete: "set null" },
   ),
   sceneNumber: integer("scene_number").notNull(),
   orderIndex: integer("order_index").default(0).notNull(),
@@ -181,35 +181,46 @@ export const exportHistorysRelations = relations(exportHistorys, ({ one }) => ({
 }));
 
 // ============================================
-// DISABLED: Phase 2+ Tables
+// MVP Tables: Post-Production
 // ============================================
 
-/*
-import { boolean, jsonb, primaryKey } from "drizzle-orm/pg-core";
-import {
-  bRollProviderEnum,
-  timelineTrackTypeEnum,
-  timelineResourceTypeEnum,
-  thumbnailOverlayTypeEnum,
-} from "../../drizzle/enums";
+export const subtitles = tubegaiSchema.table("studio_subtitle", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  startTime: doublePrecision("start_time").notNull(),
+  endTime: doublePrecision("end_time").notNull(),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-// B-Roll
-export const bRolls = tubegaiSchema.table("studio_b_roll", { ... });
+export const seos = tubegaiSchema.table("studio_seo", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .unique()
+    .notNull(),
+  title: text("title"),
+  description: text("description"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-// Rough Cut
-export const roughCutTimelines = tubegaiSchema.table("studio_rough_cut_timeline", { ... });
-export const timelineSegments = tubegaiSchema.table("studio_rough_cut_timeline_segment", { ... });
-export const roughCutVersions = tubegaiSchema.table("studio_rough_cut_version", { ... });
+// ============================================
+// Post-Production Relations
+// ============================================
 
-// Subtitles
-export const subtitles = tubegaiSchema.table("studio_subtitle", { ... });
+export const subtitlesRelations = relations(subtitles, ({ one }) => ({
+  project: one(projects, {
+    fields: [subtitles.projectId],
+    references: [projects.id],
+  }),
+}));
 
-// Coloring
-export const coloringPresets = tubegaiSchema.table("studio_coloring_preset", { ... });
-export const projectColoringSettings = tubegaiSchema.table("studio_coloring_setting", { ... });
-
-// Thumbnails
-export const projectThumbnails = tubegaiSchema.table("studio_thumbnail", { ... });
-export const thumbnailCandidates = tubegaiSchema.table("studio_thumbnail_candidate", { ... });
-export const thumbnailOverlays = tubegaiSchema.table("studio_thumbnail_overlay", { ... });
-*/
+export const seosRelations = relations(seos, ({ one }) => ({
+  project: one(projects, {
+    fields: [seos.projectId],
+    references: [projects.id],
+  }),
+}));
