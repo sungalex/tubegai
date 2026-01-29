@@ -3,11 +3,12 @@
 // =============================================================================
 
 export interface RecentProject {
-  id: number;
+  id: string;
   name: string;
   status: string;
   date: string;
   step: string;
+  progress: number;
 }
 
 export interface Project {

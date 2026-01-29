@@ -1,5 +1,4 @@
 import type { Route } from "./+types/dashboard-page";
-// import { useLoaderData } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
@@ -8,10 +7,13 @@ import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
 import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data";
+import { requireAuth } from "~/lib/auth.server";
 
-export async function loader() {
+export async function loader({ request }: Route.LoaderArgs) {
+  const userId = await requireAuth(request);
+
   const [recentProjects, trends, recommendations] = await Promise.all([
-    getRecentProjects(),
+    getRecentProjects(userId),
     getTrends(),
     getAIRecommendations(),
   ]);
@@ -117,7 +119,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                 </CardHeader>
                 <CardContent className="p-4 pt-0 mt-auto">
                   <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden mb-4">
-                    <div className="bg-primary h-full rounded-full" style={{ width: '45%' }} />
+                    <div className="bg-primary h-full rounded-full" style={{ width: `${project.progress}%` }} />
                   </div>
                   <Button className="w-full h-8 text-xs px-2" asChild>
                     <Link to={`/studio/script/${project.id}`}>

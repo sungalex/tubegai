@@ -3,6 +3,10 @@
 // =============================================================================
 // This layer abstracts data fetching, making it easy to switch from mock to API.
 
+import { desc, eq } from "drizzle-orm";
+import { db, schema } from "~/lib/db.server";
+import { formatDistanceToNow } from "date-fns";
+
 import type {
   RecentProject,
   Project,
@@ -15,7 +19,6 @@ import type {
 } from "../types/project.types";
 
 import {
-  RECENT_PROJECTS,
   PROJECTS,
   PROJECT_DETAIL,
   CHANNELS,
@@ -27,16 +30,36 @@ import {
   AI_RECOMMENDATIONS,
 } from "../mocks/project-mock";
 
+// Status mapping: DB enum -> UI display
+const STATUS_DISPLAY_MAP: Record<string, string> = {
+  draft: "Draft",
+  in_progress: "In Progress",
+  completed: "Completed",
+  archived: "Archived",
+};
+
 // =============================================================================
 // Project Data Functions
 // =============================================================================
 
 /**
- * Fetch recent projects for dashboard
- * TODO: Replace with API call
+ * Fetch recent projects for dashboard (max 4, ordered by updatedAt)
  */
-export async function getRecentProjects(): Promise<RecentProject[]> {
-  return RECENT_PROJECTS;
+export async function getRecentProjects(userId: string): Promise<RecentProject[]> {
+  const projects = await db.query.projects.findMany({
+    where: eq(schema.projects.ownerId, userId),
+    orderBy: [desc(schema.projects.updatedAt)],
+    limit: 4,
+  });
+
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.title,
+    status: STATUS_DISPLAY_MAP[project.status] ?? project.status,
+    date: formatDistanceToNow(project.updatedAt, { addSuffix: true }),
+    step: project.currentStep ?? "Script",
+    progress: project.progress,
+  }));
 }
 
 /**

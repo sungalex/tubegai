@@ -31,32 +31,36 @@ import type {
 
 export const RECENT_PROJECTS: RecentProject[] = [
   {
-    id: 1,
+    id: "1",
     name: "AI Revolution 2026",
     status: "In Progress",
     date: "2026-05-20",
     step: "Scripting",
+    progress: 45,
   },
   {
-    id: 2,
+    id: "2",
     name: "Tech Trends Q3",
     status: "Completed",
     date: "2026-05-18",
     step: "Done",
+    progress: 100,
   },
   {
-    id: 3,
+    id: "3",
     name: "Product Review: X1",
     status: "Draft",
     date: "2026-05-15",
     step: "Idea",
+    progress: 10,
   },
   {
-    id: 4,
+    id: "4",
     name: "Weekly Vlog #42",
     status: "In Progress",
     date: "2026-05-12",
     step: "Editing",
+    progress: 75,
   },
 ];
 
