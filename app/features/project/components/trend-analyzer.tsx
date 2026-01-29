@@ -54,8 +54,12 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                   </div>
                   <h4 className="font-medium group-hover:text-purple-400 transition-colors">{item.title}</h4>
                 </div>
-                <Button size="sm" className="w-full bg-secondary/50 hover:bg-purple-500 hover:text-white transition-all" asChild>
-                  <Link to="/projects/new" state={{ topic: item.title }}>Create Project</Link>
+                <Button
+                  size="sm"
+                  className="w-full bg-purple-500 hover:bg-purple-600 text-white transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                  asChild
+                >
+                  <Link to="/projects/new" state={{ topic: item.title }}>Use Idea</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -95,15 +99,18 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
           opts={{
             align: "start",
             loop: true,
+            dragFree: true,
+            skipSnaps: true,
           }}
           plugins={[
             AutoScroll({
               speed: 1,
               stopOnInteraction: false,
               stopOnMouseEnter: true,
+              playOnInit: true,
             }),
           ]}
-          className="w-full"
+          className="w-full cursor-grab active:cursor-grabbing"
         >
           <CarouselContent>
             {filteredTrends.map((trend) => (
