@@ -654,6 +654,6 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
 - Type safety via TypeScript strict mode
 - Consider adding Vitest + React Testing Library in Phase 2+
 
-## Analysis Report
+## Reporting
 
-- 분석 결과는 항상 한글로 작성해줘
+- 분석 결과, 계획 수립 등 보고서는 항상 한글로 작성해줘
