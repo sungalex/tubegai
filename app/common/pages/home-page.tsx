@@ -142,7 +142,7 @@ const features = [
     description: "Analyze real-time YouTube trends to find winning topics.",
     href: "/auth/join",
     cta: "Start Analyzing",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-50" />,
+    background: <div className="absolute inset-0 bg-linear-to-br from-blue-500/20 to-transparent opacity-50" />,
     className: "lg:row-start-1 lg:col-start-1 lg:col-span-2",
   },
   {
@@ -151,7 +151,7 @@ const features = [
     description: "Generate optimized scripts instantly.",
     href: "/auth/join",
     cta: "Generate Script",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-transparent opacity-50" />,
+    background: <div className="absolute inset-0 bg-linear-to-br from-purple-500/20 to-transparent opacity-50" />,
     className: "lg:row-start-1 lg:col-start-3 lg:col-span-1",
   },
   {
@@ -160,7 +160,7 @@ const features = [
     description: "AI finds the perfect stock footage.",
     href: "/auth/join",
     cta: "Learn More",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent opacity-50" />,
+    background: <div className="absolute inset-0 bg-linear-to-br from-green-500/20 to-transparent opacity-50" />,
     className: "lg:row-start-2 lg:col-start-1 lg:col-span-1",
   },
   {
@@ -169,7 +169,7 @@ const features = [
     description: "Edit your video by entering text.",
     href: "/auth/join",
     cta: "Try Editor",
-    background: <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-transparent opacity-50" />,
+    background: <div className="absolute inset-0 bg-linear-to-br from-pink-500/20 to-transparent opacity-50" />,
     className: "lg:row-start-2 lg:col-start-2 lg:col-span-2",
   },
 ];

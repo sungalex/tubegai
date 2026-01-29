@@ -142,7 +142,7 @@ export default function StudioScriptPage() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="uppercase text-[10px] tracking-wider min-w-[60px] justify-center">
+                  <Badge variant="outline" className="uppercase text-[10px] tracking-wider min-w-15 justify-center">
                     {segment.type}
                   </Badge>
                   <span className="text-xs text-muted-foreground">Segment {index + 1}</span>
@@ -156,7 +156,7 @@ export default function StudioScriptPage() {
                 <Textarea
                   value={segment.content}
                   onChange={(e) => handleUpdateSegment(segment.id, e.target.value)}
-                  className="min-h-[100px] resize-none text-base leading-relaxed"
+                  className="min-h-25 resize-none text-base leading-relaxed"
                   placeholder="Write your script here..."
                 />
 
@@ -178,7 +178,7 @@ export default function StudioScriptPage() {
         <div className="lg:col-span-1 flex flex-col gap-6 min-h-0">
 
           {/* AI Generate Card */}
-          <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900">
+          <Card className="bg-linear-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <Sparkles className="w-5 h-5" /> AI Writer

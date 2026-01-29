@@ -224,7 +224,7 @@ export default function StudioScenePage() {
             {segments.map((segment, index) => (
               <div key={segment.id} className="flex flex-col lg:flex-row gap-6 group">
                 {/* Script Context */}
-                <div className="lg:w-1/4 flex-shrink-0 space-y-3 lg:sticky lg:top-6 self-start">
+                <div className="lg:w-1/4 shrink-0 space-y-3 lg:sticky lg:top-6 self-start">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-inset ring-primary/20">
                       {index + 1}

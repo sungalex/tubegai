@@ -9,9 +9,26 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "~/common/components/ui/navigation-menu";
+import type { LucideIcon } from "lucide-react";
+
+interface NavSubItem {
+  name: string;
+  description: string;
+  to: string;
+  icon?: LucideIcon;
+  featured?: boolean;
+  disabled?: boolean;
+}
+
+interface NavItem {
+  name: string;
+  to: string;
+  icon?: LucideIcon;
+  items?: NavSubItem[];
+}
 
 interface DesktopNavigationProps {
-  navItems: any[];
+  navItems: NavItem[];
 }
 
 export function DesktopNavigation({ navItems }: DesktopNavigationProps) {
@@ -31,18 +48,18 @@ export function DesktopNavigation({ navItems }: DesktopNavigationProps) {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className={cn(
-                      "grid gap-3 p-4 md:w-[400px]",
-                      item.items.some((sub: any) => sub.featured)
-                        ? "lg:w-[500px] lg:grid-cols-[.75fr_1fr]"
-                        : "lg:w-[600px] md:grid-cols-2"
+                      "grid gap-3 p-4 md:w-100",
+                      item.items.some((sub) => sub.featured)
+                        ? "lg:w-125 lg:grid-cols-[0.75fr_1fr]"
+                        : "lg:w-150 md:grid-cols-2"
                     )}>
-                      {item.items.map((subItem: any) => (
+                      {item.items.map((subItem) => (
                         subItem.featured ? (
                           <li key={subItem.name} className="row-span-3">
                             <NavigationMenuLink asChild>
                               <Link
                                 className={cn(
-                                  "flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-primary/80 to-primary p-6 no-underline outline-none focus:shadow-md",
+                                  "flex h-full w-full select-none flex-col justify-end rounded-md bg-linear-to-b from-primary/80 to-primary p-6 no-underline outline-none focus:shadow-md",
                                   subItem.disabled && "pointer-events-none opacity-50"
                                 )}
                                 to={subItem.to}

@@ -33,7 +33,7 @@ export default function StudioLayout() {
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[240px]">
+          <SheetContent side="left" className="p-0 w-60">
             {/* Reusing StudioSidebar inside Sheet. 
                  Note: We might need to handle closing on navigation. 
                  StudioSidebar likely just contains links. 
@@ -54,7 +54,7 @@ export default function StudioLayout() {
       <aside
         className={cn(
           "border-r bg-background transition-all duration-300 ease-in-out sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto hidden lg:block z-40",
-          isCollapsed ? "w-[50px]" : "w-48"
+          isCollapsed ? "w-12.5" : "w-48"
         )}
       >
         <StudioSidebar

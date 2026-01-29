@@ -42,7 +42,7 @@ export default function PlusPage() {
       <section className="py-24 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-3 gap-8 text-left">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900">
+            <Card className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900">
               <CardContent className="p-8 space-y-4">
                 <div className="w-12 h-12 rounded-lg bg-blue-600 text-white flex items-center justify-center mb-4">
                   <Users className="w-6 h-6" />
@@ -53,7 +53,7 @@ export default function PlusPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900">
+            <Card className="bg-linear-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900">
               <CardContent className="p-8 space-y-4">
                 <div className="w-12 h-12 rounded-lg bg-indigo-600 text-white flex items-center justify-center mb-4">
                   <Globe className="w-6 h-6" />
@@ -64,7 +64,7 @@ export default function PlusPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-100 dark:border-purple-900">
+            <Card className="bg-linear-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-100 dark:border-purple-900">
               <CardContent className="p-8 space-y-4">
                 <div className="w-12 h-12 rounded-lg bg-purple-600 text-white flex items-center justify-center mb-4">
                   <Database className="w-6 h-6" />

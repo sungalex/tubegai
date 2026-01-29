@@ -49,11 +49,11 @@ export default function ProPage() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none" />
 
         <div className="container mx-auto max-w-4xl space-y-8 relative z-10">
-          <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 border-0 px-4 py-1 text-sm font-medium">
+          <Badge className="bg-linear-to-r from-purple-500 to-blue-500 border-0 px-4 py-1 text-sm font-medium">
             Most Popular Choice
           </Badge>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-            TubeGAI <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Pro</span>
+            TubeGAI <span className="text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-blue-400">Pro</span>
           </h1>
           <p className="text-2xl text-gray-300 max-w-2xl mx-auto font-light">
             Unleash your full potential with the tool built for serious creators.
@@ -82,7 +82,7 @@ export default function ProPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {FEATURES.map((feature, i) => (
               <div key={i} className="flex gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <div>
@@ -92,7 +92,7 @@ export default function ProPage() {
               </div>
             ))}
             <div className="flex gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                 <div className="text-xl font-bold text-purple-600 dark:text-purple-400">AI</div>
               </div>
               <div>

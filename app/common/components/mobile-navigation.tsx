@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { Menu } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import {
   Sheet,
@@ -15,8 +16,24 @@ import {
   AccordionTrigger,
 } from "~/common/components/ui/accordion";
 
+interface NavSubItem {
+  name: string;
+  description: string;
+  to: string;
+  icon?: LucideIcon;
+  featured?: boolean;
+  disabled?: boolean;
+}
+
+interface NavItem {
+  name: string;
+  to: string;
+  icon?: LucideIcon;
+  items?: NavSubItem[];
+}
+
 interface MobileNavigationProps {
-  navItems: any[];
+  navItems: NavItem[];
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }
@@ -31,7 +48,7 @@ export function MobileNavigation({ navItems, isOpen, setIsOpen }: MobileNavigati
             <span className="sr-only">Toggle menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+        <SheetContent side="left" className="w-75 sm:w-100">
           <SheetHeader>
             <SheetTitle>
               <span className="font-bold">TubeGAI</span>
@@ -50,7 +67,7 @@ export function MobileNavigation({ navItems, isOpen, setIsOpen }: MobileNavigati
                     </AccordionTrigger>
                     <AccordionContent className="pl-4 pb-2">
                       <div className="flex flex-col space-y-2">
-                        {item.items.map((subItem: any) => (
+                        {item.items.map((subItem) => (
                           <Link
                             key={subItem.name}
                             to={subItem.to}

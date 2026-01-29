@@ -158,10 +158,10 @@ export default function LabelsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead className="w-50">Name</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-[100px] text-center">Projects</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
+              <TableHead className="w-25 text-center">Projects</TableHead>
+              <TableHead className="w-25 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -220,7 +220,7 @@ export default function LabelsPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit Label" : "Create Label"}</DialogTitle>
             <DialogDescription>

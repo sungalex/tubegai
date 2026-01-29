@@ -211,7 +211,7 @@ export function StudioProjectSelector({
         <div className="relative w-full sm:w-96 flex gap-2">
           {/* Search Scope Selector (Title/Labels) - Channel moved to filter */}
           <Select value={searchScope} onValueChange={setSearchScope}>
-            <SelectTrigger className="w-[110px] shrink-0">
+            <SelectTrigger className="w-27.5 shrink-0">
               <SelectValue placeholder="Target" />
             </SelectTrigger>
             <SelectContent>
@@ -239,7 +239,7 @@ export function StudioProjectSelector({
         <div className="flex gap-2 w-full sm:w-auto">
           {/* Channel Selection */}
           <Select value={channelFilter} onValueChange={setChannelFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-35">
               <SelectValue placeholder="Channel" />
             </SelectTrigger>
             <SelectContent>
@@ -252,7 +252,7 @@ export function StudioProjectSelector({
 
           {/* Status Selection */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-35">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -307,7 +307,7 @@ export function StudioProjectSelector({
             All Projects
           </h3>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -370,7 +370,7 @@ export function StudioProjectSelector({
           </>
         ) : (
           <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-            <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+            <div className="mx-auto flex max-w-105 flex-col items-center justify-center text-center">
               <Clapperboard className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
               <h3 className="text-lg font-semibold">No projects found</h3>
               <p className="mb-4 mt-2 text-sm text-muted-foreground">

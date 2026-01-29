@@ -72,7 +72,7 @@ export default function StudioDashboardPage() {
     <div className="space-y-8">
       {/* Project Header */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <div className="w-full md:w-[240px] aspect-video bg-muted rounded-lg overflow-hidden shrink-0 border relative group">
+        <div className="w-full md:w-60 aspect-video bg-muted rounded-lg overflow-hidden shrink-0 border relative group">
           <img
             src={projectData.thumbnail}
             alt="Project Thumbnail"

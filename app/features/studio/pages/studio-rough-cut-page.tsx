@@ -644,7 +644,7 @@ export default function StudioRoughCutPage() {
         <div className="flex-1 flex flex-col min-w-0">
 
           {/* Top: Preview Player */}
-          <div className="flex-1 bg-black flex flex-col items-center justify-center relative min-h-[300px]">
+          <div className="flex-1 bg-black flex flex-col items-center justify-center relative min-h-75">
             <div className="relative aspect-video max-h-[80%] w-[90%] bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden">
               <p className="text-zinc-500 font-medium">Program Monitor (Preview)</p>
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-2 flex items-center gap-4 text-white">
@@ -784,7 +784,7 @@ export default function StudioRoughCutPage() {
                   </div>
                   <div className="flex-1 relative py-3 opacity-50">
                     {/* Mock Audio Wave */}
-                    <div className="absolute left-0 right-0 top-1/2 h-8 -translate-y-1/2 bg-emerald-900/30 w-[800px] border border-emerald-800/50 rounded flex items-center justify-center text-[10px] text-emerald-500">
+                    <div className="absolute left-0 right-0 top-1/2 h-8 -translate-y-1/2 bg-emerald-900/30 w-200 border border-emerald-800/50 rounded flex items-center justify-center text-[10px] text-emerald-500">
                       Background Music (Placeholder)
                     </div>
                   </div>

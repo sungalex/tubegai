@@ -147,7 +147,7 @@ export default function StudioThumbnailPage() {
                       className="bg-background"
                     />
                     <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0"
+                      className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white border-0"
                       onClick={handleGenerate}
                       disabled={isGenerating || !prompt}
                     >

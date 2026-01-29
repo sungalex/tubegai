@@ -1,13 +1,11 @@
 import { useState, useRef } from "react";
 import { useParams } from "react-router";
-import { Search, Film, Download, ExternalLink, Play, Plus, Check, Upload } from "lucide-react";
+import { Search, Film, Play, Plus, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
 import { Input } from "~/common/components/ui/input";
 import { Badge } from "~/common/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/common/components/ui/card";
 import { Separator } from "~/common/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
 import { ScrollArea } from "~/common/components/ui/scroll-area";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import {
@@ -389,7 +387,7 @@ export default function StudioBRollPage() {
                   <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
 
                   {/* Overlay Info */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                     <p className="text-white text-sm font-medium truncate">{video.title}</p>
                     <div className="flex justify-between items-center text-[10px] text-white/80 mt-1">
                       <span>{video.provider}</span>

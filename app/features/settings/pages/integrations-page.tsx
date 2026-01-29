@@ -115,7 +115,7 @@ export default function IntegrationsPage() {
                 )}
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mt-2 mb-4 min-h-[40px]">
+                <p className="text-sm text-muted-foreground mt-2 mb-4 min-h-10">
                   {item.description}
                 </p>
                 {item.connected && (

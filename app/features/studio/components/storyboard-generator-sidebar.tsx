@@ -126,7 +126,7 @@ export function StoryboardGeneratorSidebar({
             onValueChange={setDensity}
             max={100}
             step={10}
-            className="[&_[role=slider]]:h-4 [&_[role=slider]]:w-4"
+            className="**:[[role=slider]]:h-4 **:[[role=slider]]:w-4"
           />
         </div>
 
@@ -208,7 +208,7 @@ export function StoryboardGeneratorSidebar({
                 <Label className="text-xs">Negative Prompt</Label>
                 <Textarea
                   placeholder="e.g. blur, watermark, distorted text, low quality"
-                  className="min-h-[60px] text-xs resize-none"
+                  className="min-h-15 text-xs resize-none"
                   value={negativePrompt}
                   onChange={(e) => setNegativePrompt(e.target.value)}
                 />

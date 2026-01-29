@@ -58,7 +58,7 @@ export default function SettingsLayout() {
               Settings Menu
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+          <SheetContent side="left" className="w-70 sm:w-80">
             <div className="px-1 py-6">
               <h3 className="font-semibold text-lg mb-4 px-4">Settings</h3>
               <SettingsSidebar

@@ -200,21 +200,21 @@ export default function StudioSeoPage() {
                   value={metadata.description}
                   onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
                   placeholder="Describe your video..."
-                  className="min-h-[120px]"
+                  className="min-h-30"
                 />
               </div>
 
               {/* Tags Section */}
               <div className="space-y-4">
                 <label className="text-sm font-medium">Tags & Keywords</label>
-                <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[40px] bg-background">
+                <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-10 bg-background">
                   {metadata.tags.map(tag => (
                     <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-white" onClick={() => removeTag(tag)}>
                       {tag} &times;
                     </Badge>
                   ))}
                   <input
-                    className="text-sm bg-transparent outline-none flex-1 min-w-[80px]"
+                    className="text-sm bg-transparent outline-none flex-1 min-w-20"
                     placeholder={metadata.tags.length === 0 ? "Add tags..." : ""}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -257,9 +257,9 @@ export default function StudioSeoPage() {
               <Card>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex gap-3">
-                    <div className="w-40 h-24 bg-zinc-800 rounded flex-shrink-0 relative overflow-hidden">
+                    <div className="w-40 h-24 bg-zinc-800 rounded shrink-0 relative overflow-hidden">
                       {/* Thumbnail Placeholder */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 opacity-20" />
+                      <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-500 opacity-20" />
                       <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">12:34</span>
                     </div>
                     <div className="flex flex-col gap-1 min-w-0">

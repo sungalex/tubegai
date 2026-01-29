@@ -158,7 +158,7 @@ export default function StudioSubtitlesPage() {
             size="sm"
             onClick={handleAutoGenerate}
             disabled={isGenerating || subtitles.length > 0}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-md transition-all hover:scale-105"
+            className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-md transition-all hover:scale-105"
           >
             {isGenerating ? (
               <>
@@ -234,7 +234,7 @@ export default function StudioSubtitlesPage() {
                       <Textarea
                         value={sub.text}
                         onChange={(e) => handleTextChange(sub.id, e.target.value)}
-                        className="min-h-[60px] resize-none text-sm bg-background/50 focus:bg-background"
+                        className="min-h-15 resize-none text-sm bg-background/50 focus:bg-background"
                       />
                     </div>
                     <Button
@@ -273,7 +273,7 @@ export default function StudioSubtitlesPage() {
               </div>
 
               {/* Player Controls (Overlay) */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={() => setCurrentTime(Math.max(0, currentTime - 5))}>
                   <SkipBack className="h-5 w-5" />
                 </Button>

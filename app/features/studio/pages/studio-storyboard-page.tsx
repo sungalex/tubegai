@@ -182,7 +182,7 @@ export default function StudioStoryboardPage() {
             {segments.map((segment, index) => (
               <div key={segment.id} className="flex flex-col lg:flex-row gap-6 group">
                 {/* Script Content Column */}
-                <div className="lg:w-1/3 flex-shrink-0 space-y-3 lg:sticky lg:top-6 self-start">
+                <div className="lg:w-1/3 shrink-0 space-y-3 lg:sticky lg:top-6 self-start">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-inset ring-primary/20">
                       {index + 1}
@@ -218,10 +218,10 @@ export default function StudioStoryboardPage() {
                           key={scene.id}
                           scene={scene}
                           onRegenerateImage={handleRegenerateImage}
-                          className="min-h-[280px]"
+                          className="min-h-70"
                         />
                       ))}
-                      <div className="h-full min-h-[280px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/5 transition-colors hover:bg-muted/10 cursor-pointer">
+                      <div className="h-full min-h-70 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/5 transition-colors hover:bg-muted/10 cursor-pointer">
                         <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary">
                           <Plus className="h-6 w-6" />
                           Add Scene
@@ -229,12 +229,12 @@ export default function StudioStoryboardPage() {
                       </div>
                     </StoryboardGrid>
                   ) : (
-                    <div className="h-full min-h-[200px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center bg-muted/5">
+                    <div className="h-full min-h-50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center bg-muted/5">
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                         <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <h4 className="text-sm font-semibold mb-1">No scenes generated</h4>
-                      <p className="text-xs text-muted-foreground max-w-[250px] mb-4">
+                      <p className="text-xs text-muted-foreground max-w-62.5 mb-4">
                         Use the generator to visualize scenes for this script segment.
                       </p>
                       <Button onClick={() => handleGenerateSegment(segment.id)} size="sm" className="gap-2">

@@ -2,7 +2,7 @@ import { Button } from "~/common/components/ui/button";
 import { Badge } from "~/common/components/ui/badge";
 import { Link } from "react-router";
 import { Check, Clock, Sparkles, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "~/common/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/common/components/ui/card";
 
 export const meta = () => {
   return [
@@ -15,12 +15,12 @@ export default function TubeGaiPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 px-4 text-center bg-gradient-to-b from-background to-secondary/20">
+      <section className="py-20 px-4 text-center bg-linear-to-b from-background to-secondary/20">
         <div className="container mx-auto max-w-4xl space-y-6">
           <Badge variant="outline" className="px-4 py-1 text-sm border-primary/50 text-primary bg-primary/10">
             Free 2-Week Trial
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-pink-500">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary via-purple-500 to-pink-500">
             Experience the Future of Content Creation
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

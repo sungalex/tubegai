@@ -98,13 +98,13 @@ export function TrendAnalyzer() {
   return (
     <div className="space-y-8">
       {/* AI Recommendations Section */}
-      <section className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
+      <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border-purple-500/20 gap-1 px-3 py-1">
             <Zap className="h-3.5 w-3.5" fill="currentColor" />
             AI Recommended
           </Badge>
-          <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h3 className="text-lg font-semibold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             Top Ideation Picks for You
           </h3>
         </div>
@@ -147,7 +147,7 @@ export function TrendAnalyzer() {
           </p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
-          <div className="relative w-full md:w-[300px]">
+          <div className="relative w-full md:w-75">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -209,7 +209,7 @@ export function TrendAnalyzer() {
                           {trend.growth}
                         </div>
                       </div>
-                      <div className="p-4 space-y-3 flex-grow flex flex-col justify-between">
+                      <div className="p-4 space-y-3 grow flex flex-col justify-between">
                         <h4 className="font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                           {trend.title}
                         </h4>
