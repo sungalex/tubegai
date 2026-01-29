@@ -11,6 +11,7 @@ npm run start            # Run production server
 npm run typecheck        # Run type checking (generates route types first)
 npm run db:generate      # Generate Drizzle migrations from schema changes
 npm run db:migrate       # Apply migrations to database
+npm run db:seed          # Populate database with mock data for development
 ```
 
 ## Architecture Overview
