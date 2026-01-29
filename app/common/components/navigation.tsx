@@ -1,5 +1,24 @@
 import { Link, useParams } from "react-router";
-import { LayoutDashboard, Box, Sparkles, Crown, Trophy, FolderKanban, Radio, Tag, Clapperboard } from "lucide-react";
+import {
+  LayoutDashboard,
+  Box,
+  Sparkles,
+  Crown,
+  Trophy,
+  FolderKanban,
+  Radio,
+  Tag,
+  Clapperboard,
+  FileText,
+  Download,
+  Image,
+  Film,
+  Palette,
+  Captions,
+  Video,
+  Search,
+  Plus,
+} from "lucide-react";
 import { DesktopNavigation } from "./desktop-navigation";
 import { MobileNavigation } from "./mobile-navigation";
 import { UserNavigation } from "./user-navigation";
@@ -11,7 +30,13 @@ interface NavigationProps {
   hasMessages: boolean;
 }
 
-const getNavItems = (projectId: string) => [
+/**
+ * MVP Navigation Items
+ * - Products: TubeGAI only (Pro/Plus disabled)
+ * - Projects: Dashboard, All Projects, New Project (Channels/Labels disabled)
+ * - Studio: Dashboard, Script, Export (other features disabled)
+ */
+const getNavItems = (_projectId: string) => [
   {
     name: "Products",
     to: "/products",
@@ -24,21 +49,22 @@ const getNavItems = (projectId: string) => [
         icon: Sparkles,
         featured: true,
       },
+      // DISABLED: Phase 2+
       {
         name: "TubeGAI Pro",
-        description: "Advanced analytics and unlimited AI generation.",
+        description: "Coming soon - Advanced analytics.",
         to: "#",
         icon: Crown,
         disabled: true,
       },
       {
         name: "TubeGAI Plus",
-        description: "Enterprise solutions for teams and agencies.",
+        description: "Coming soon - Enterprise solutions.",
         to: "#",
         icon: Trophy,
         disabled: true,
       },
-    ]
+    ],
   },
 
   {
@@ -61,42 +87,105 @@ const getNavItems = (projectId: string) => [
         icon: FolderKanban,
       },
       {
-        name: "Channels",
-        description: "Manage your connected YouTube channels.",
-        to: "/projects/channels",
-        icon: Radio,
-      },
-      {
-        name: "Labels",
-        description: "Organize projects with custom labels.",
-        to: "/projects/labels",
-        icon: Tag,
-      },
-      {
         name: "New Project",
         description: "Start a new video project from scratch.",
         to: "/projects/new",
+        icon: Plus,
+      },
+      // DISABLED: Phase 2+
+      {
+        name: "Channels",
+        description: "Coming soon - YouTube channel management.",
+        to: "#",
+        icon: Radio,
+        disabled: true,
+      },
+      {
+        name: "Labels",
+        description: "Coming soon - Project organization.",
+        to: "#",
+        icon: Tag,
+        disabled: true,
       },
     ],
   },
   {
     name: "Studio",
-    to: "/studio/dashboard",
+    to: "/studio/script",
     icon: Clapperboard,
     items: [
-      { name: "Studio Dashboard", description: "Overview of your production pipeline.", to: "/studio/dashboard" },
-      { name: "Script", description: "Write and edit your video script.", to: "/studio/script" },
-      { name: "Storyboard", description: "Visualize scenes and shots.", to: "/studio/storyboard" },
-      { name: "Scene", description: "Set up environments and assets.", to: "/studio/scene" },
-      { name: "B-Roll", description: "Manage supplemental footage.", to: "/studio/b-roll" },
-      { name: "Subtitles", description: "Generate and edit captions.", to: "/studio/subtitles" },
-      { name: "Coloring", description: "Apply color grading and effects.", to: "/studio/coloring" },
-      { name: "Thumbnail", description: "Design eye-catching thumbnails.", to: "/studio/thumbnail" },
-      { name: "SEO", description: "Optimize for search visibility.", to: "/studio/seo" },
-      { name: "Export", description: "Render and download final video.", to: "/studio/export" },
+      // MVP Features
+      {
+        name: "Script",
+        description: "Write and edit your video script with AI.",
+        to: "/studio/script",
+        icon: FileText,
+        featured: true,
+      },
+      {
+        name: "Storyboard",
+        description: "Visualize scenes and shots.",
+        to: "/studio/storyboard",
+        icon: Image,
+        featured: true,
+      },
+      {
+        name: "Scene",
+        description: "Set up environments and assets.",
+        to: "/studio/scene",
+        icon: Film,
+      },
+      {
+        name: "Export",
+        description: "Render and download final video.",
+        to: "/studio/export",
+        icon: Download,
+      },
+      // DISABLED: Phase 2+ Features
+      {
+        name: "Studio Dashboard",
+        description: "Coming soon - Production pipeline overview.",
+        to: "#",
+        icon: LayoutDashboard,
+        disabled: true,
+      },
+      {
+        name: "B-Roll",
+        description: "Coming soon - Stock footage.",
+        to: "#",
+        icon: Video,
+        disabled: true,
+      },
+      {
+        name: "Subtitles",
+        description: "Coming soon - Caption generation.",
+        to: "#",
+        icon: Captions,
+        disabled: true,
+      },
+      {
+        name: "Coloring",
+        description: "Coming soon - Color grading.",
+        to: "#",
+        icon: Palette,
+        disabled: true,
+      },
+      {
+        name: "Thumbnail",
+        description: "Coming soon - Thumbnail designer.",
+        to: "#",
+        icon: Image,
+        disabled: true,
+      },
+      {
+        name: "SEO",
+        description: "Coming soon - Search optimization.",
+        to: "#",
+        icon: Search,
+        disabled: true,
+      },
     ],
   },
-
 ];
 
 export default function Navigation({ isLoggedIn, hasNotifications, hasMessages }: NavigationProps) {

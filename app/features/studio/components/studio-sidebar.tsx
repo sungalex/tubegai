@@ -35,18 +35,25 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
     return projectId ? `/studio/${segment}/${projectId}` : `/studio/${segment}`
   }
 
+  /**
+   * MVP Studio Items:
+   * - Script, Storyboard, Scene, Export: Active
+   * - Dashboard & Others: Disabled (Phase 2+)
+   */
   const items = [
-    { title: "Dashboard", href: "/studio/dashboard", icon: LayoutDashboard },
-    { title: "Script", href: getPath("script"), icon: FileText },
-    { title: "Storyboard", href: getPath("storyboard"), icon: Presentation },
-    { title: "Scene", href: getPath("scene"), icon: Clapperboard },
-    { title: "B-Roll", href: getPath("b-roll"), icon: Film },
-    { title: "Rough Cut", href: getPath("roughcut"), icon: Scissors },
-    { title: "Subtitles", href: getPath("subtitles"), icon: Captions },
-    { title: "Coloring", href: getPath("coloring"), icon: Palette },
-    { title: "Thumbnail", href: getPath("thumbnail"), icon: ImageIcon },
-    { title: "SEO", href: getPath("seo"), icon: LineChart },
-    { title: "Export & Publish", href: getPath("export"), icon: Download },
+    // MVP Features
+    { title: "Script", href: getPath("script"), icon: FileText, disabled: false },
+    { title: "Storyboard", href: getPath("storyboard"), icon: Presentation, disabled: false },
+    { title: "Scene", href: getPath("scene"), icon: Clapperboard, disabled: false },
+    { title: "Export & Publish", href: getPath("export"), icon: Download, disabled: false },
+    // Phase 2+ Features (Disabled)
+    { title: "Dashboard", href: "#", icon: LayoutDashboard, disabled: true },
+    { title: "B-Roll", href: "#", icon: Film, disabled: true },
+    { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
+    { title: "Subtitles", href: "#", icon: Captions, disabled: true },
+    { title: "Coloring", href: "#", icon: Palette, disabled: true },
+    { title: "Thumbnail", href: "#", icon: ImageIcon, disabled: true },
+    { title: "SEO", href: "#", icon: LineChart, disabled: true },
   ]
 
   return (
@@ -75,7 +82,25 @@ export function StudioSidebar({ className, isCollapsed, toggleSidebar, ...props 
       {/* Navigation Items */}
       <nav className="flex-1 py-4 space-y-1">
         {items.map((item) => {
-          const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
+          const isActive = !item.disabled && (location.pathname === item.href || location.pathname.startsWith(item.href + "/"));
+
+          if (item.disabled) {
+            return (
+              <div
+                key={item.title}
+                title={isCollapsed ? `${item.title} (Coming Soon)` : undefined}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "w-full justify-start cursor-not-allowed opacity-40",
+                  isCollapsed ? "px-2 justify-center" : "px-4"
+                )}
+              >
+                <item.icon className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                {!isCollapsed && <span>{item.title}</span>}
+              </div>
+            )
+          }
+
           return (
             <Link
               key={item.href}

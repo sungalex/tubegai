@@ -1,92 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/common/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  ReferenceLine
-} from "recharts";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
-} from "~/common/components/ui/chart";
-import {
-  Activity,
-  Users,
-  Video,
-  Clock,
-  Edit2,
-  FolderKanban,
-  Radio,
-  Tag,
-  Zap,
-  TrendingUp
-} from "lucide-react";
+import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
-import NumberTicker from "~/common/components/magicui/number-ticker";
 
-// Mock Data
-const data = [
-  { month: 'Jan', views: 4000, subs: 240 },
-  { month: 'Feb', views: 3000, subs: 139 },
-  { month: 'Mar', views: 2000, subs: 980 },
-  { month: 'Apr', views: 2780, subs: 390 },
-  { month: 'May', views: 1890, subs: 480 },
-  { month: 'Jun', views: 2390, subs: 380 },
-];
-
-const chartConfig = {
-  views: {
-    label: "Page Views",
-    color: "#2563eb", // Vibrant Blue
-  },
-  subs: {
-    label: "Subscribers",
-    color: "#7c3aed", // Vibrant Violet
-  },
-} satisfies ChartConfig;
-
-const performanceData = [
-  { topic: 'AI News', watchTime: 120, fill: "#f59e0b" }, // Amber
-  { topic: 'Tutorials', watchTime: 200, fill: "#10b981" }, // Emerald
-  { topic: 'Vlog', watchTime: 80, fill: "#ec4899" }, // Pink
-  { topic: 'Reviews', watchTime: 160, fill: "#06b6d4" }, // Cyan
-];
-
-const performanceConfig = {
-  watchTime: {
-    label: "Watch Time (h)",
-  },
-  ai: {
-    label: "AI News",
-    color: "#f59e0b",
-  },
-  tutorials: {
-    label: "Tutorials",
-    color: "#10b981",
-  },
-  vlog: {
-    label: "Vlog",
-    color: "#ec4899",
-  },
-  reviews: {
-    label: "Reviews",
-    color: "#06b6d4",
-  },
-} satisfies ChartConfig;
-
+// Mock Data - Projects only (MVP)
 const recentProjects = [
   { id: 1, name: "AI Revolution 2026", status: "In Progress", date: "2026-05-20", step: "Scripting" },
   { id: 2, name: "Tech Trends Q3", status: "Completed", date: "2026-05-18", step: "Done" },
@@ -110,190 +30,19 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Manage your creative workflow and production.</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full max-w-[600px] grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      {/* MVP: Only Trends and Projects tabs are active */}
+      <Tabs defaultValue="trends" className="space-y-6">
+        <TabsList className="grid w-full max-w-75 grid-cols-2">
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="active-projects">Projects</TabsTrigger>
+          {/* DISABLED: Phase 2+ tabs
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="channels">Channels</TabsTrigger>
           <TabsTrigger value="labels">Labels</TabsTrigger>
+          */}
         </TabsList>
 
-        {/* OVERVIEW TAB */}
-        <TabsContent value="overview" className="space-y-6">
-
-          {/* Stat Cards - Executive Summary */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <NumberTicker value={2.4} />M
-                </div>
-                <p className="text-xs text-muted-foreground">+12% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Subscribers</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <NumberTicker value={15200} />
-                </div>
-                <p className="text-xs text-muted-foreground">+5% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-                <Video className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">3</div>
-                <p className="text-xs text-muted-foreground">in progress</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
-                <Zap className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Top 5%</div>
-                <p className="text-xs text-muted-foreground">vs similar creators</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
-            {/* Main Chart area */}
-            <Card className="col-span-1 md:col-span-2 lg:col-span-5">
-              <CardHeader>
-                <CardTitle>Growth Analytics</CardTitle>
-                <CardDescription>
-                  Displaying views and subscriber growth for the first half of 2026.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="aspect-auto h-[350px] w-full">
-                  <AreaChart
-                    accessibilityLayer
-                    data={data}
-                    margin={{
-                      left: 12,
-                      right: 12,
-                    }}
-                  >
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      tickFormatter={(value) => value.slice(0, 3)}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      tickCount={3}
-                    />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Area
-                      dataKey="views"
-                      type="natural"
-                      fill="var(--color-views)"
-                      fillOpacity={0.4}
-                      stroke="var(--color-views)"
-                      stackId="a"
-                    />
-                    <Area
-                      dataKey="subs"
-                      type="natural"
-                      fill="var(--color-subs)"
-                      fillOpacity={0.4}
-                      stroke="var(--color-subs)"
-                      stackId="a"
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                  </AreaChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            {/* Side Widgets - Reorganized */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-2 space-y-4">
-              {/* Topic Performance Bar Chart */}
-              <Card className="flex flex-col">
-                <CardHeader className="items-center pb-0">
-                  <CardTitle>Topic Performance</CardTitle>
-                  <CardDescription>Watch time by category</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 pb-0">
-                  <ChartContainer
-                    config={performanceConfig}
-                    className="mx-auto aspect-square max-h-[250px]"
-                  >
-                    <BarChart data={performanceData}>
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="topic"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                      />
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel />}
-                      />
-                      <Bar
-                        dataKey="watchTime"
-                        strokeWidth={2}
-                        radius={8}
-                      >
-                        {/* We can optionally color each bar differently here if needed by config matching, 
-                              but simpler to let chart config handle unified color or map index */}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              {/* Recent Project Shortcut */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Continue Working</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {recentProjects.slice(0, 1).map(p => (
-                    <div key={p.id} className="space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium text-sm">{p.name}</div>
-                          <div className="text-xs text-muted-foreground">{p.step}</div>
-                        </div>
-                        <Badge variant="secondary">{p.status}</Badge>
-                      </div>
-                      <Button size="sm" className="w-full" asChild>
-                        <Link to={`/studio/dashboard/${p.id}`}>
-                          <Edit2 className="h-3 w-3 mr-2" /> Open Studio Dashboard
-                        </Link>
-                      </Button>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* TRENDS & IDEATION TAB - New Feature */}
+        {/* TRENDS & IDEATION TAB */}
         <TabsContent value="trends" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -306,7 +55,7 @@ export default function DashboardPage() {
           <TrendAnalyzer />
         </TabsContent>
 
-        {/* ACTIVE PROJECTS TAB (Renamed from Projects) */}
+        {/* ACTIVE PROJECTS TAB */}
         <TabsContent value="active-projects" className="space-y-6">
 
           {/* Status Summary */}
@@ -364,18 +113,11 @@ export default function DashboardPage() {
                   <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden mb-4">
                     <div className="bg-primary h-full rounded-full" style={{ width: '45%' }} />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 w-full">
-                    <Button variant="outline" className="w-full h-8 text-xs px-2" asChild>
-                      <Link to={`/projects/${project.id}`}>
-                        Details
-                      </Link>
-                    </Button>
-                    <Button className="w-full h-8 text-xs px-2" asChild>
-                      <Link to={`/studio/dashboard/${project.id}`}>
-                        <Edit2 className="h-3 w-3 mr-1.5" /> Studio
-                      </Link>
-                    </Button>
-                  </div>
+                  <Button className="w-full h-8 text-xs px-2" asChild>
+                    <Link to={`/studio/script/${project.id}`}>
+                      <Edit2 className="h-3 w-3 mr-1.5" /> Open Script
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -383,153 +125,11 @@ export default function DashboardPage() {
 
         </TabsContent>
 
-        {/* CHANNELS TAB */}
-        <TabsContent value="channels">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium">Channel Overview</h3>
-                <p className="text-sm text-muted-foreground">Monitor performance across connected channels.</p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/projects/channels">Manage Channels</Link>
-              </Button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Subscribers</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold flex items-center">
-                    <NumberTicker value={892400} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Channels</CardTitle>
-                  <Radio className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">2</div>
-                  <p className="text-xs text-muted-foreground">Both functioning normally</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Simultaneous Uploads</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                  <p className="text-xs text-muted-foreground">Max allowed by plan</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Channel Health</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: "TubeGAI Official", status: "Active", latency: "24ms" },
-                    { name: "Alex Vlogs", status: "Active", latency: "31ms" },
-                  ].map((channel, i) => (
-                    <div key={i} className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        <div className="font-medium">{channel.name}</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-4">
-                        <span>Latency: {channel.latency}</span>
-                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-200">
-                          {channel.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* LABELS TAB */}
-        <TabsContent value="labels">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium">Label Analysis</h3>
-                <p className="text-sm text-muted-foreground">See how you are categorizing your projects.</p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/projects/labels">Manage Labels</Link>
-              </Button>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Used Labels</CardTitle>
-                  <CardDescription>Most frequently applied tags across all projects.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-5">
-                    {[
-                      { name: "Tutorial", count: 12, percentage: 75, color: "bg-blue-500" },
-                      { name: "Vlog", count: 8, percentage: 50, color: "bg-green-500" },
-                      { name: "Review", count: 5, percentage: 30, color: "bg-yellow-500" },
-                      { name: "Shorts", count: 3, percentage: 15, color: "bg-purple-500" },
-                    ].map((label, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${label.color}`} />
-                            {label.name}
-                          </span>
-                          <span className="text-muted-foreground">{label.count} projects</span>
-                        </div>
-                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                          <div className={`h-full ${label.color}`} style={{ width: `${label.percentage}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Tagging Activity</CardTitle>
-                  <CardDescription>Recently labeled projects.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { project: "AI News Week 4", label: "News", date: "2 hours ago" },
-                      { project: "React Tutorial", label: "Tutorial", date: "5 hours ago" },
-                      { project: "Tokyo Trip", label: "Vlog", date: "1 day ago" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{item.project}</span>
-                          <span className="text-xs text-muted-foreground">{item.date}</span>
-                        </div>
-                        <Badge variant="secondary">{item.label}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
+        {/* DISABLED: Phase 2+ Tab Contents
+        <TabsContent value="overview">...</TabsContent>
+        <TabsContent value="channels">...</TabsContent>
+        <TabsContent value="labels">...</TabsContent>
+        */}
       </Tabs>
     </div>
   );

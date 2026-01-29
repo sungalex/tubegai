@@ -103,37 +103,30 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {/* DISABLED: Settings (Phase 2+) */}
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Settings</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/profile" className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </Link>
+            <DropdownMenuLabel className="text-muted-foreground">
+              Settings <span className="text-xs">(Coming Soon)</span>
+            </DropdownMenuLabel>
+            <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+              <User className="mr-2 h-4 w-4" />
+              Profile
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/account" className="cursor-pointer">
-                <CreditCard className="mr-2 h-4 w-4" />
-                Account
-              </Link>
+            <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+              <CreditCard className="mr-2 h-4 w-4" />
+              Account
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/appearance" className="cursor-pointer">
-                <Sun className="mr-2 h-4 w-4" />
-                Appearance
-              </Link>
+            <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+              <Sun className="mr-2 h-4 w-4" />
+              Appearance
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/notifications" className="cursor-pointer">
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </Link>
+            <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+              <Bell className="mr-2 h-4 w-4" />
+              Notifications
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/integrations" className="cursor-pointer">
-                <Plug className="mr-2 h-4 w-4" />
-                Integrations
-              </Link>
+            <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+              <Plug className="mr-2 h-4 w-4" />
+              Integrations
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
