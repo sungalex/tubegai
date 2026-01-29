@@ -25,9 +25,10 @@ import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import type { ScriptSegment } from "~/common/types/studio.types";
 import { getScriptSegments } from "~/common/data/studio.data";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import type { Route } from "./+types/studio-script-page";
+// import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
   if (!params.projectId) {
     return { segments: [] };
   }
@@ -42,9 +43,9 @@ export const meta = () => {
   ];
 };
 
-export default function StudioScriptPage() {
+export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
-  const { segments: initialSegments } = useLoaderData<typeof loader>();
+  const { segments: initialSegments } = loaderData;
   const [segments, setSegments] = useState<ScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState("");

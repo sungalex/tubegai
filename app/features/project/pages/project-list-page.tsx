@@ -13,8 +13,8 @@ import {
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
 import { ProjectCard } from "../components/project-card";
-// import type { Route } from "./+types.project-list-page"; // Removed for compatibility
-import { useLoaderData } from "react-router";
+import type { Route } from "./+types/project-list-page";
+// import { useLoaderData } from "react-router"; // Removing hook import
 import { getProjects } from "~/common/data/project.data";
 
 export async function loader() {
@@ -29,8 +29,8 @@ export const meta = () => {
   ];
 };
 
-export default function ProjectListPage() {
-  const { projects } = useLoaderData<typeof loader>();
+export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
+  const { projects } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredProjects = projects.filter((project) =>

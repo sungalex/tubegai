@@ -17,9 +17,8 @@ TubeGAI는 유튜버 및 콘텐츠 크리에이터를 위해 설계된 AI 기반
 - **스타일링**: Tailwind CSS
 - **UI 컴포넌트**: Shadcn UI
 - **아이콘**: Lucide React
-- **차트**: Recharts
 - **데이터베이스 ORM**: Drizzle ORM
-- **데이터베이스**: PostgreSQL
+- **데이터베이스**: Supabase
 
 ## 빌드 및 실행
 

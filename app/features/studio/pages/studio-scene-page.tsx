@@ -8,10 +8,11 @@ import { VideoGeneratorSidebar } from "../components/video-generator-sidebar";
 import { SceneVideoCard, type SceneVideo, type VideoPart } from "../components/scene-video-card";
 import { StoryboardGrid } from "../components/storyboard-grid";
 import { getSceneSegments } from "~/common/data/studio.data";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import type { Route } from "./+types/studio-scene-page";
+// import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { SceneScriptSegment } from "~/common/types/studio.types";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
   if (!params.projectId) {
     return { segments: [] };
   }
@@ -19,9 +20,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return { segments };
 }
 
-export default function StudioScenePage() {
+export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
-  const { segments: initialSegments } = useLoaderData<typeof loader>();
+  const { segments: initialSegments } = loaderData;
 
   const [segments, setSegments] = useState<SceneScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);

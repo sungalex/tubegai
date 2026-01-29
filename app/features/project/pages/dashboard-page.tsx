@@ -1,4 +1,5 @@
-import { useLoaderData } from "react-router";
+import type { Route } from "./+types/dashboard-page";
+// import { useLoaderData } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
@@ -24,8 +25,8 @@ export const meta = () => {
   ];
 };
 
-export default function DashboardPage() {
-  const { recentProjects, trends, recommendations } = useLoaderData<typeof loader>();
+export default function DashboardPage({ loaderData }: Route.ComponentProps) {
+  const { recentProjects, trends, recommendations } = loaderData;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">

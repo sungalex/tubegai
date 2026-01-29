@@ -67,7 +67,8 @@ const defaultValues: Partial<ProjectFormValues> = {
 };
 
 import { getChannels, getLabels } from "~/common/data/project.data";
-import { useLoaderData } from "react-router";
+import type { Route } from "./+types/new-project-page";
+// import { useLoaderData } from "react-router";
 
 export async function loader() {
   const [channels, labels] = await Promise.all([
@@ -77,8 +78,8 @@ export async function loader() {
   return { channels, labels };
 }
 
-export default function NewProjectPage() {
-  const { channels, labels } = useLoaderData<typeof loader>();
+export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
+  const { channels, labels } = loaderData;
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);

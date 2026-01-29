@@ -16,9 +16,10 @@ import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import type { StoryboardScriptSegment } from "~/common/types/studio.types";
 import { getStoryboardSegments, getStoryboardScenesPool } from "~/common/data/studio.data";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import type { Route } from "./+types/studio-storyboard-page";
+// import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
   if (!params.projectId) {
     return { segments: [], scenesPool: {} };
   }
@@ -36,9 +37,9 @@ export const meta = () => {
   ];
 };
 
-export default function StudioStoryboardPage() {
+export default function StudioStoryboardPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
-  const { segments: initialSegments, scenesPool: initialScenesPool } = useLoaderData<typeof loader>();
+  const { segments: initialSegments, scenesPool: initialScenesPool } = loaderData;
   const [segments, setSegments] = useState<StoryboardScriptSegment[]>(initialSegments);
   const [scenesPool, setScenesPool] = useState(initialScenesPool);
   const [isGenerating, setIsGenerating] = useState(false);
