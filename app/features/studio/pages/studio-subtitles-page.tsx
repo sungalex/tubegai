@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import {
   Captions, Play, Pause, SkipBack, SkipForward,
   Wand2, Download, Save, Clock, Trash2, Plus,
-  CheckCircle2, AlertCircle, Search
+  CheckCircle2, AlertCircle, Search, Sparkles, Pencil, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
@@ -22,23 +22,18 @@ import {
 } from "~/common/components/ui/table";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
+import type { SubtitleSegment } from "~/common/types/studio.types";
+import { getSubtitles } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-// --- Mock Data ---
-
-interface SubtitleSegment {
-  id: string;
-  startTime: number; // seconds
-  endTime: number; // seconds
-  text: string;
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { subtitles: [] };
+  }
+  const subtitles = await getSubtitles(params.projectId);
+  return { subtitles };
 }
 
-const MOCK_GENERATED_SUBTITLES: SubtitleSegment[] = [
-  { id: "sub-1", startTime: 0.5, endTime: 3.2, text: "In this video, we're going to explore the future of AI." },
-  { id: "sub-2", startTime: 3.5, endTime: 6.0, text: "It's not just about robots or sci-fi movies anymore." },
-  { id: "sub-3", startTime: 6.5, endTime: 9.8, text: "AI is transforming how we work, live, and create content." },
-  { id: "sub-4", startTime: 10.2, endTime: 13.5, text: "Let's dive into the practical applications available today." },
-  { id: "sub-5", startTime: 14.0, endTime: 17.0, text: "First, take a look at this generative model." },
-];
 
 export const meta = () => {
   return [
@@ -49,6 +44,7 @@ export const meta = () => {
 
 export default function StudioSubtitlesPage() {
   const { projectId } = useParams();
+  const { subtitles: initialSubtitles } = useLoaderData<typeof loader>();
 
   // State
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
@@ -95,7 +91,8 @@ export default function StudioSubtitlesPage() {
     toast.info("Analyzing Audio...", { description: "This will transcribe speech to text." });
 
     setTimeout(() => {
-      setSubtitles(MOCK_GENERATED_SUBTITLES);
+      // Use initialSubtitles as the generated result for simulation
+      setSubtitles(initialSubtitles);
       setIsGenerating(false);
       toast.success("Subtitles Generated", { description: "You can now edit the captions." });
     }, 2500);

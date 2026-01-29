@@ -40,6 +40,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/common/components/ui/avatar";
 import { Badge } from "~/common/components/ui/badge";
 import { Separator } from "~/common/components/ui/separator";
+import type { Channel } from "~/common/types/project.types";
+import { useLoaderData } from "react-router";
+import { getChannelsWithDetails } from "~/common/data/project.data";
+
+export async function loader() {
+  const channels = await getChannelsWithDetails();
+  return { channels };
+}
 
 export const meta = () => {
   return [
@@ -48,41 +56,8 @@ export const meta = () => {
   ];
 };
 
-interface Channel {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  subscribers: string;
-  videos: number;
-  status: "active" | "error";
-  lastSynced: string;
-}
-
-const initialChannels: Channel[] = [
-  {
-    id: "1",
-    name: "TubeGAI Official",
-    handle: "@tubegai_official",
-    avatar: "https://github.com/shadcn.png", // Placeholder
-    subscribers: "12.5K",
-    videos: 42,
-    status: "active",
-    lastSynced: "Just now",
-  },
-  {
-    id: "2",
-    name: "Alex's Vlog",
-    handle: "@alex_vlog_daily",
-    avatar: "https://github.com/sungalex.png",
-    subscribers: "1.2M",
-    videos: 156,
-    status: "error",
-    lastSynced: "2 days ago",
-  },
-];
-
 export default function ChannelsPage() {
+  const { channels: initialChannels } = useLoaderData<typeof loader>();
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);

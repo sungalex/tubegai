@@ -14,6 +14,20 @@ import { Plus, Download, FileText, Image as ImageIcon, Sparkles } from "lucide-r
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
+import type { StoryboardScriptSegment } from "~/common/types/studio.types";
+import { getStoryboardSegments, getStoryboardScenesPool } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { segments: [], scenesPool: {} };
+  }
+  const [segments, scenesPool] = await Promise.all([
+    getStoryboardSegments(params.projectId),
+    getStoryboardScenesPool(params.projectId)
+  ]);
+  return { segments, scenesPool };
+}
 
 export const meta = () => {
   return [
@@ -22,96 +36,11 @@ export const meta = () => {
   ];
 };
 
-interface ScriptSegment {
-  id: string;
-  order: number;
-  content: string;
-  scenes: StoryboardScene[]; // Can be empty initially
-}
-
-// Mock Data - Initial State (Empty Scenes)
-const INITIAL_SEGMENTS: ScriptSegment[] = [
-  {
-    id: "seg1",
-    order: 1,
-    content: "Welcome to the future. In this video, we're going to explore how AI is reshaping our skylines and our daily lives, starting from the very air we breathe.",
-    scenes: []
-  },
-  {
-    id: "seg2",
-    order: 2,
-    content: "It all starts with the hardware. The new neural chips are smaller, faster, and more efficient than anything we've seen before.",
-    scenes: []
-  },
-  {
-    id: "seg3",
-    order: 3,
-    content: "But it's not just about speed. It's about contrast. The difference between the old way and the new way is stark.",
-    scenes: []
-  }
-];
-
-// Mock Scenes Data (for generation simulation)
-const GENERATED_SCENES_POOL: Record<string, StoryboardScene[]> = {
-  "seg1": [
-    {
-      id: "s1",
-      sceneNumber: 1,
-      description: "Opening shot: A futuristic city skyline at glowing twilight.",
-      visualPrompt: "Cyberpunk city, neon lights, twilight, aerial view, cinematic lighting",
-      duration: 5,
-      imageUrl: "https://images.unsplash.com/photo-1480796927426-f609979314bd?q=80&w=600&auto=format&fit=crop"
-    },
-    {
-      id: "s2",
-      sceneNumber: 2,
-      description: "Host appears in a modern studio environment, smiling.",
-      visualPrompt: "Professional studio, young tech enthusiast host, soft lighting",
-      duration: 8,
-      imageUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=600&auto=format&fit=crop"
-    }
-  ],
-  "seg2": [
-    {
-      id: "s3",
-      sceneNumber: 3,
-      description: "Close up of a new AI microchip.",
-      visualPrompt: "Macro shot, futuristic microchip, robotic glove, blue glow",
-      duration: 4,
-      imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600&auto=format&fit=crop"
-    },
-    {
-      id: "s4",
-      sceneNumber: 4,
-      description: "Data visualization graphics overlay showing projected growth.",
-      visualPrompt: "Abstract data visualization, 3D charts, holographic interface",
-      duration: 6,
-      imageUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"
-    }
-  ],
-  "seg3": [
-    {
-      id: "s5",
-      sceneNumber: 5,
-      description: "Comparison split screen: Old technology vs New AI.",
-      visualPrompt: "Split screen, left side dusty old computer, right side glowing AI interface",
-      duration: 7,
-      imageUrl: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop"
-    },
-    {
-      id: "s6",
-      sceneNumber: 6,
-      description: "Host gestures to the side, highlighting a key point.",
-      visualPrompt: "Medium shot, host pointing right, excitement, dynamic pose",
-      duration: 5,
-      imageUrl: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=600&auto=format&fit=crop"
-    }
-  ]
-};
-
 export default function StudioStoryboardPage() {
   const { projectId } = useParams();
-  const [segments, setSegments] = useState<ScriptSegment[]>(INITIAL_SEGMENTS);
+  const { segments: initialSegments, scenesPool: initialScenesPool } = useLoaderData<typeof loader>();
+  const [segments, setSegments] = useState<StoryboardScriptSegment[]>(initialSegments);
+  const [scenesPool, setScenesPool] = useState(initialScenesPool);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Handle No Project
@@ -136,7 +65,7 @@ export default function StudioStoryboardPage() {
     // Update state with generated scenes
     const newSegments = segments.map(seg => ({
       ...seg,
-      scenes: GENERATED_SCENES_POOL[seg.id] || []
+      scenes: scenesPool[seg.id] || []
     }));
 
     setSegments(newSegments);
@@ -152,7 +81,7 @@ export default function StudioStoryboardPage() {
 
     setSegments(prev => prev.map(seg => {
       if (seg.id === segmentId) {
-        return { ...seg, scenes: GENERATED_SCENES_POOL[seg.id] || [] };
+        return { ...seg, scenes: scenesPool[seg.id] || [] };
       }
       return seg;
     }));

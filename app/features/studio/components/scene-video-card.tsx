@@ -47,7 +47,7 @@ export function SceneVideoCard({
         <div className="flex justify-between items-start gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="h-5 px-1.5 min-w-[2rem] justify-center">
+              <Badge variant="outline" className="h-5 px-1.5 min-w-8 justify-center">
                 #{scene.sceneNumber}
               </Badge>
               <h4 className="font-medium text-sm line-clamp-1">{scene.description}</h4>

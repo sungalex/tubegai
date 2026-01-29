@@ -14,24 +14,15 @@ import { Badge } from "~/common/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
+import type { ColorPreset } from "~/common/types/studio.types";
+import { getColorPresets } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-// --- Mock Data ---
-
-interface ColorPreset {
-  id: string;
-  name: string;
-  filter: string; // CSS filter string
-  previewColor: string;
+export async function loader({ params }: LoaderFunctionArgs) {
+  // Color presets might be global, but following pattern
+  const colorPresets = getColorPresets();
+  return { colorPresets };
 }
-
-const COLOR_PRESETS: ColorPreset[] = [
-  { id: "none", name: "Original", filter: "none", previewColor: "bg-zinc-500" },
-  { id: "cinematic", name: "Cinematic", filter: "contrast(1.2) saturate(1.1) brightness(0.9) sepia(0.2)", previewColor: "bg-blue-900" },
-  { id: "vibrant", name: "Vibrant", filter: "saturate(1.5) contrast(1.1)", previewColor: "bg-orange-500" },
-  { id: "vintage", name: "Vintage", filter: "sepia(0.6) contrast(0.9) brightness(1.1)", previewColor: "bg-yellow-700" },
-  { id: "bnw", name: "Noir", filter: "grayscale(1) contrast(1.2)", previewColor: "bg-black" },
-  { id: "cool", name: "Cool Blues", filter: "hue-rotate(180deg) opacity(0.9)", previewColor: "bg-cyan-600" },
-];
 
 export const meta = () => {
   return [
@@ -42,6 +33,7 @@ export const meta = () => {
 
 export default function StudioColoringPage() {
   const { projectId } = useParams();
+  const { colorPresets } = useLoaderData<typeof loader>();
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,7 +63,7 @@ export default function StudioColoringPage() {
   const getComputedFilter = (isOriginal = false) => {
     if (isOriginal) return "none";
 
-    const preset = COLOR_PRESETS.find(p => p.id === selectedPresetId);
+    const preset = colorPresets.find(p => p.id === selectedPresetId);
     if (!preset) return "none";
 
     // Start with preset (if not 'none')
@@ -153,7 +145,7 @@ export default function StudioColoringPage() {
               {/* Tab: Presets */}
               <TabsContent value="presets" className="m-0 p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  {COLOR_PRESETS.map(preset => (
+                  {colorPresets.map(preset => (
                     <div
                       key={preset.id}
                       className={cn(

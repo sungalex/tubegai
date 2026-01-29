@@ -66,24 +66,29 @@ const defaultValues: Partial<ProjectFormValues> = {
   labels: [],
 };
 
-// Mock Data from "YouTube API" & Labels
-const MOCK_CHANNELS = [
-  { id: "1", name: "TubeGAI Official", handle: "@tubegai_official" },
-  { id: "2", name: "Alex's Vlog", handle: "@alex_vlog_daily" },
-  { id: "3", name: "Tech Reviews", handle: "@tech_reviews_2024" },
-];
+import { getChannels, getLabels } from "~/common/data/project.data";
+import { useLoaderData } from "react-router";
 
-const MOCK_LABELS = [
-  { id: "l1", name: "Urgent", color: "bg-red-500" },
-  { id: "l2", name: "In Progress", color: "bg-blue-500" },
-  { id: "l3", name: "Marketing", color: "bg-purple-500" },
-  { id: "l4", name: "Tutorial", color: "bg-green-500" },
-];
+export async function loader() {
+  const [channels, labels] = await Promise.all([
+    getChannels(),
+    getLabels()
+  ]);
+  return { channels, labels };
+}
 
 export default function NewProjectPage() {
+  const { channels, labels } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+
+  // ... (rest of the component)
+
+  // Usage in Select (channels) - Replace CHANNELS with channels
+  // ...
+  // Usage in Labels (labels) - Replace LABELS with labels
+
 
   // Get topic from navigation state if available
   const initialTopic = location.state?.topic || "";
@@ -175,7 +180,7 @@ export default function NewProjectPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MOCK_CHANNELS.map((channel) => (
+                          {channels.map((channel) => (
                             <SelectItem key={channel.id} value={channel.id}>
                               {channel.name} <span className="text-muted-foreground ml-1">({channel.handle})</span>
                             </SelectItem>
@@ -260,7 +265,7 @@ export default function NewProjectPage() {
                   <FormItem>
                     <FormLabel>Project Labels</FormLabel>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {MOCK_LABELS.map((label) => {
+                      {labels.map((label) => {
                         const isSelected = field.value.includes(label.id);
                         return (
                           <Badge

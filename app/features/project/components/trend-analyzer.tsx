@@ -11,86 +11,17 @@ import {
   CarouselContent,
   CarouselItem,
 } from "~/common/components/ui/carousel";
+import type { TrendItem, AIRecommendation } from "~/common/types/project.types";
 
-const TRENDS_DATA = [
-  {
-    id: 1,
-    title: "AI Automation in 2026: What Changed?",
-    category: "Tech & Science",
-    views: "1.2M",
-    growth: "+145%",
-    thumbnail: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=500&q=80",
-    tags: ["AI", "Future", "Automation"],
-  },
-  {
-    id: 2,
-    title: "Minimalist Desk Setup Tour",
-    category: "Lifestyle",
-    views: "850K",
-    growth: "+89%",
-    thumbnail: "https://images.unsplash.com/photo-1486946255434-2466348c2166?w=500&q=80",
-    tags: ["Setup", "Productivity", "Desk"],
-  },
-  {
-    id: 3,
-    title: "Top 10 Hidden Gems in Japan",
-    category: "Travel",
-    views: "2.5M",
-    growth: "+210%",
-    thumbnail: "https://images.unsplash.com/photo-1480796927426-f609979314bd?w=500&q=80",
-    tags: ["Travel", "Japan", "Vlog"],
-  },
-  {
-    id: 4,
-    title: "How to Cook the Perfect Steak",
-    category: "Food",
-    views: "5.1M",
-    growth: "+30%",
-    thumbnail: "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=500&q=80",
-    tags: ["Cooking", "Foodie", "Recipe"],
-  },
-  {
-    id: 5,
-    title: "Beginner Guide to React 19",
-    category: "Coding",
-    views: "320K",
-    growth: "+120%",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&q=80",
-    tags: ["React", "Code", "WebDev"],
-  },
-  {
-    id: 6,
-    title: "5 Minute Morning Yoga Routine",
-    category: "Health",
-    views: "1.8M",
-    growth: "+65%",
-    thumbnail: "https://images.unsplash.com/photo-1544367563-12123d8959bd?w=500&q=80",
-    tags: ["Yoga", "Wellness", "Morning"],
-  },
-  {
-    id: 7,
-    title: "Galaxy S30 Ultra Review",
-    category: "Tech",
-    views: "4.2M",
-    growth: "+310%",
-    thumbnail: "https://images.unsplash.com/photo-1610945265078-38584e274352?w=500&q=80",
-    tags: ["Tech", "Mobile", "Review"],
-  },
-  {
-    id: 8,
-    title: "Street Photography Tips",
-    category: "Photography",
-    views: "750K",
-    growth: "+40%",
-    thumbnail: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=500&q=80",
-    tags: ["Photo", "Art", "Street"],
-  },
-];
+interface TrendAnalyzerProps {
+  trends: TrendItem[];
+  recommendations: AIRecommendation[];
+}
 
-export function TrendAnalyzer() {
+export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredTrends = TRENDS_DATA.filter(trend =>
+  const filteredTrends = trends.filter(trend =>
     trend.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trend.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -109,11 +40,7 @@ export function TrendAnalyzer() {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { title: "Day in the Life: AI Engineer", reason: "Matches your tech audience", growth: "+210%" },
-            { title: "Home Office Makeover 2026", reason: "Highly requested topic", growth: "+85%" },
-            { title: "React vs Vue: The Final Battle", reason: "Trending in Dev Community", growth: "+340%" },
-          ].map((item, idx) => (
+          {recommendations.map((item, idx) => (
             <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
               <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
                 <div>

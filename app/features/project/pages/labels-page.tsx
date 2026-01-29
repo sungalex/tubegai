@@ -38,6 +38,17 @@ import {
 import { Badge } from "~/common/components/ui/badge";
 import { Label as UILabel } from "~/common/components/ui/label";
 import { cn } from "~/lib/utils";
+import type { Label } from "~/common/types/project.types";
+import { useLoaderData } from "react-router";
+import { getLabelsWithDetails, getLabelColors } from "~/common/data/project.data";
+
+export async function loader() {
+  const [initialLabels, labelColors] = await Promise.all([
+    getLabelsWithDetails(),
+    Promise.resolve(getLabelColors()), // Ensure it's treated as promise if needed, or just call it.
+  ]);
+  return { initialLabels, labelColors };
+}
 
 export const meta = () => {
   return [
@@ -46,34 +57,8 @@ export const meta = () => {
   ];
 };
 
-interface Label {
-  id: string;
-  name: string;
-  color: string;
-  description: string;
-  projectCount: number;
-}
-
-const COLORS = [
-  { name: "Red", value: "bg-red-500" },
-  { name: "Orange", value: "bg-orange-500" },
-  { name: "Amber", value: "bg-amber-500" },
-  { name: "Green", value: "bg-green-500" },
-  { name: "Blue", value: "bg-blue-500" },
-  { name: "Indigo", value: "bg-indigo-500" },
-  { name: "Purple", value: "bg-purple-500" },
-  { name: "Pink", value: "bg-pink-500" },
-  { name: "Slate", value: "bg-slate-500" },
-];
-
-const initialLabels: Label[] = [
-  { id: "1", name: "Urgent", color: "bg-red-500", description: "High priority tasks", projectCount: 5 },
-  { id: "2", name: "In Progress", color: "bg-blue-500", description: "Currently working on", projectCount: 12 },
-  { id: "3", name: "Review", color: "bg-amber-500", description: "Needs review", projectCount: 3 },
-  { id: "4", name: "Marketing", color: "bg-purple-500", description: "Related to marketing campaigns", projectCount: 8 },
-];
-
 export default function LabelsPage() {
+  const { initialLabels, labelColors } = useLoaderData<typeof loader>();
   const [labels, setLabels] = useState<Label[]>(initialLabels);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -82,7 +67,7 @@ export default function LabelsPage() {
 
   const filteredLabels = labels.filter(label =>
     label.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    label.description.toLowerCase().includes(searchQuery.toLowerCase())
+    (label.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   const handleCreate = () => {
@@ -249,7 +234,7 @@ export default function LabelsPage() {
             <div className="grid gap-2">
               <UILabel>Color</UILabel>
               <div className="flex flex-wrap gap-2">
-                {COLORS.map((color) => (
+                {labelColors.map((color) => (
                   <button
                     key={color.name}
                     onClick={() => setCurrentLabel({ ...currentLabel, color: color.value })}

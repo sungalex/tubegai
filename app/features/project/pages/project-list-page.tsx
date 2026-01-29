@@ -13,58 +13,14 @@ import {
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
 import { ProjectCard } from "../components/project-card";
+// import type { Route } from "./+types.project-list-page"; // Removed for compatibility
+import { useLoaderData } from "react-router";
+import { getProjects } from "~/common/data/project.data";
 
-// Mock Data
-const MOCK_PROJECTS = [
-  {
-    id: "1",
-    title: "AI Revolution 2026",
-    status: "In Progress" as const,
-    lastModified: "2026-05-20",
-    progress: 45,
-    thumbnail: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "2",
-    title: "Tech Trends Q3 Review",
-    status: "Completed" as const,
-    lastModified: "2026-05-18",
-    progress: 100,
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "3",
-    title: "Product Unboxing: X1",
-    status: "Draft" as const,
-    lastModified: "2026-05-15",
-    progress: 10,
-    thumbnail: undefined,
-  },
-  {
-    id: "4",
-    title: "Weekly Vlog #42: My Setup",
-    status: "In Progress" as const,
-    lastModified: "2026-05-12",
-    progress: 75,
-    thumbnail: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "5",
-    title: "How to Code in 2026",
-    status: "Processing" as const,
-    lastModified: "2026-05-10",
-    progress: 90,
-    thumbnail: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "6",
-    title: "Travel Diary: Tokyo",
-    status: "Draft" as const,
-    lastModified: "2026-05-01",
-    progress: 5,
-    thumbnail: undefined,
-  },
-];
+export async function loader() {
+  const projects = await getProjects();
+  return { projects };
+}
 
 export const meta = () => {
   return [
@@ -74,9 +30,10 @@ export const meta = () => {
 };
 
 export default function ProjectListPage() {
+  const { projects } = useLoaderData<typeof loader>();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredProjects = MOCK_PROJECTS.filter(project =>
+  const filteredProjects = projects.filter((project) =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

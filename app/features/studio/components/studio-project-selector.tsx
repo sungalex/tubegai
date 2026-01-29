@@ -68,27 +68,9 @@ const QUICK_ACCESS_STEPS = [
   { id: "export", icon: Download, label: "Export" },
 ];
 
-// Extended Mock Data with Channel and Labels
-const RECENT_PROJECTS = [
-  { id: "1", title: "AI Revolution 2026", status: "In Progress", lastEdited: "2 hours ago", progress: 45, channel: "TechInsider", labels: ["AI", "Future"] },
-  { id: "2", title: "Tech Trends Q3 Review", status: "Completed", lastEdited: "1 day ago", progress: 100, channel: "GadgetGuru", labels: ["Reviews", "Tech"] },
-  { id: "3", title: "Product Unboxing: X1", status: "Draft", lastEdited: "3 days ago", progress: 10, channel: "GadgetGuru", labels: ["Unboxing"] },
-  { id: "4", title: "Travel Vlog: Tokyo", status: "In Progress", lastEdited: "5 hours ago", progress: 60, channel: "Wanderlust", labels: ["Travel", "Vlog"] },
-  { id: "5", title: "Cooking Masterclass", status: "Draft", lastEdited: "1 day ago", progress: 20, channel: "ChefAlex", labels: ["Cooking", "Tutorial"] },
-];
+import { SELECTOR_RECENT_PROJECTS, SELECTOR_ALL_PROJECTS } from "~/common/mocks/studio-mock";
 
-const ALL_PROJECTS = [
-  ...RECENT_PROJECTS,
-  { id: "6", title: "Morning Routine", status: "In Progress", lastEdited: "2 days ago", progress: 30, channel: "LifestyleHub", labels: ["Vlog", "Routine"] },
-  { id: "7", title: "Fitness Challenge 30 Days", status: "Completed", lastEdited: "3 days ago", progress: 100, channel: "FitLife", labels: ["Fitness", "Challenge"] },
-  { id: "8", title: "Coding Tutorial: React", status: "Draft", lastEdited: "4 days ago", progress: 5, channel: "CodeMasters", labels: ["Education", "React"] },
-  { id: "9", title: "Book Review: Atomic Habits", status: "In Progress", lastEdited: "5 days ago", progress: 50, channel: "BookWorm", labels: ["Review", "Books"] },
-  { id: "10", title: "Gaming Highlight Reel", status: "Completed", lastEdited: "1 week ago", progress: 100, channel: "GameZone", labels: ["Gaming", "Highlights"] },
-  { id: "11", title: "Podcast Ep. 42", status: "Draft", lastEdited: "1 week ago", progress: 0, channel: "TalkShow", labels: ["Podcast"] },
-  { id: "12", title: "Startup Pitch Deck", status: "In Progress", lastEdited: "2 weeks ago", progress: 80, channel: "BizTips", labels: ["Business", "Startup"] },
-];
-
-const UNIQUE_CHANNELS = Array.from(new Set(ALL_PROJECTS.map(p => p.channel))).sort();
+const UNIQUE_CHANNELS = Array.from(new Set(SELECTOR_ALL_PROJECTS.map(p => p.channel))).sort();
 
 const ITEMS_PER_PAGE = 6;
 
@@ -142,7 +124,7 @@ export function StudioProjectSelector({
   const { label: primaryLabel, segment: primarySegment } = getPrimaryAction();
 
   // Filter & Sort Logic
-  const filteredAndSortedProjects = ALL_PROJECTS
+  const filteredAndSortedProjects = SELECTOR_ALL_PROJECTS
     .filter(project => {
       // 1. Search Logic based on Scope (Title or Labels)
       const term = searchTerm.toLowerCase();
@@ -288,7 +270,7 @@ export function StudioProjectSelector({
               ]}
             >
               <CarouselContent className="-ml-4">
-                {RECENT_PROJECTS.map((project) => (
+                {SELECTOR_RECENT_PROJECTS.map((project) => (
                   <CarouselItem key={project.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                     <ProjectCard project={project} primaryLabel={primaryLabel} primarySegment={primarySegment} />
                   </CarouselItem>

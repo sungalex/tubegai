@@ -16,20 +16,20 @@ import { Progress } from "~/common/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
+import { getSEOTitles, getSEOTags } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-// --- Mock Data ---
-
-const MOCK_TITLES = [
-  "Future of AI: 5 Things You Didn't Know",
-  "Why AI is Changing Everything in 2024",
-  "Artificial Intelligence Explained simply",
-  "The AI Revolution: What comes next?",
-];
-
-const MOCK_TAGS = [
-  "Artificial Intelligence", "Tech Trends", "Machine Learning",
-  "Future Tech", "OpenAI", "Generative AI", "Coding", "Automation"
-];
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    // Return defaults if needed
+    return { seoTitles: [], seoTags: [] };
+  }
+  const [seoTitles, seoTags] = await Promise.all([
+    getSEOTitles(params.projectId),
+    getSEOTags(params.projectId)
+  ]);
+  return { seoTitles, seoTags };
+}
 
 export const meta = () => {
   return [
@@ -40,6 +40,7 @@ export const meta = () => {
 
 export default function StudioSeoPage() {
   const { projectId } = useParams();
+  const { seoTitles, seoTags } = useLoaderData<typeof loader>();
 
   // State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -72,14 +73,14 @@ export default function StudioSeoPage() {
       setIsAnalyzing(false);
       setSeoScore(85);
       setRecommendations({
-        titles: MOCK_TITLES,
-        tags: MOCK_TAGS
+        titles: seoTitles,
+        tags: seoTags
       });
 
       // Auto-fill if empty for demo
-      if (!metadata.title) setMetadata(prev => ({ ...prev, title: MOCK_TITLES[0] }));
+      if (!metadata.title) setMetadata(prev => ({ ...prev, title: seoTitles[0] }));
       if (!metadata.description) setMetadata(prev => ({ ...prev, description: "In this video, we explore the rapid evolution of Artificial Intelligence and what it means for the future of work and creativity. #AI #Tech" }));
-      if (metadata.tags.length === 0) setMetadata(prev => ({ ...prev, tags: MOCK_TAGS.slice(0, 5) }));
+      if (metadata.tags.length === 0) setMetadata(prev => ({ ...prev, tags: seoTags.slice(0, 5) }));
 
       toast.success("Analysis Complete", { description: "Optimization suggestions ready." });
     }, 2000);

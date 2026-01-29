@@ -1,3 +1,4 @@
+import { useLoaderData } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
@@ -5,14 +6,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui
 import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
+import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data";
 
-// Mock Data - Projects only (MVP)
-const recentProjects = [
-  { id: 1, name: "AI Revolution 2026", status: "In Progress", date: "2026-05-20", step: "Scripting" },
-  { id: 2, name: "Tech Trends Q3", status: "Completed", date: "2026-05-18", step: "Done" },
-  { id: 3, name: "Product Review: X1", status: "Draft", date: "2026-05-15", step: "Idea" },
-  { id: 4, name: "Weekly Vlog #42", status: "In Progress", date: "2026-05-12", step: "Editing" },
-];
+export async function loader() {
+  const [recentProjects, trends, recommendations] = await Promise.all([
+    getRecentProjects(),
+    getTrends(),
+    getAIRecommendations(),
+  ]);
+  return { recentProjects, trends, recommendations };
+}
 
 export const meta = () => {
   return [
@@ -22,6 +25,8 @@ export const meta = () => {
 };
 
 export default function DashboardPage() {
+  const { recentProjects, trends, recommendations } = useLoaderData<typeof loader>();
+
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
@@ -52,7 +57,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Full Trend Analyzer Component */}
-          <TrendAnalyzer />
+          <TrendAnalyzer trends={trends} recommendations={recommendations} />
         </TabsContent>
 
         {/* ACTIVE PROJECTS TAB */}

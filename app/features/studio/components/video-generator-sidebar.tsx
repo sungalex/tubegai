@@ -156,7 +156,6 @@ export function VideoGeneratorSidebar({
                     max={10}
                     step={1}
                     min={1}
-                    className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
                   />
                 </div>
               </div>

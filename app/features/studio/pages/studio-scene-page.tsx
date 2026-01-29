@@ -7,65 +7,23 @@ import { StudioProjectSelector } from "../components/studio-project-selector";
 import { VideoGeneratorSidebar } from "../components/video-generator-sidebar";
 import { SceneVideoCard, type SceneVideo, type VideoPart } from "../components/scene-video-card";
 import { StoryboardGrid } from "../components/storyboard-grid";
+import { getSceneSegments } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import type { SceneScriptSegment } from "~/common/types/studio.types";
 
-// --- Mock Data Types ---
-interface ScriptSegment {
-  id: string;
-  order: number;
-  content: string;
-  scenes: SceneVideo[];
-}
-
-// --- Mock Data ---
-const INITIAL_SEGMENTS: ScriptSegment[] = [
-  {
-    id: "seg1",
-    order: 1,
-    content: "Welcome to the future. In this video, we're going to explore how AI is reshaping our skylines...",
-    scenes: [
-      {
-        sceneId: "s1",
-        sceneNumber: 1,
-        description: "Opening shot: A futuristic city skyline at glowing twilight.",
-        thumbnailUrl: "https://images.unsplash.com/photo-1480796927426-f609979314bd?q=80&w=600&auto=format&fit=crop",
-        totalDuration: 5,
-        parts: [
-          { id: "p1", duration: 5, status: "pending" }
-        ]
-      },
-      {
-        sceneId: "s2",
-        sceneNumber: 2,
-        description: "Host appears in a modern studio environment, smiling.",
-        thumbnailUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=600&auto=format&fit=crop",
-        totalDuration: 8,
-        parts: [
-          // Long scene will be split
-          { id: "p1", duration: 8, status: "pending" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "seg2",
-    order: 2,
-    content: "It all starts with the hardware. The new neural chips are smaller, faster...",
-    scenes: [
-      {
-        sceneId: "s3",
-        sceneNumber: 3,
-        description: "Close up of a new AI microchip.",
-        thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600&auto=format&fit=crop",
-        totalDuration: 4,
-        parts: [{ id: "p1", duration: 4, status: "pending" }]
-      }
-    ]
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { segments: [] };
   }
-];
+  const segments = await getSceneSegments(params.projectId);
+  return { segments };
+}
 
 export default function StudioScenePage() {
   const { projectId } = useParams();
-  const [segments, setSegments] = useState<ScriptSegment[]>(INITIAL_SEGMENTS);
+  const { segments: initialSegments } = useLoaderData<typeof loader>();
+
+  const [segments, setSegments] = useState<SceneScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Handle No Project
@@ -161,7 +119,6 @@ export default function StudioScenePage() {
     setIsGenerating(true);
     toast.info("Generating videos for all scenes...", { description: "Applying AI split logic for long scenes." });
 
-    // 1. Process Logic: Split scenes > 5s into multiple parts (assuming 4s limit)
     const MAX_DURATION = 4;
 
     // Optimistic Update: Apply "Generating" status and Split logic

@@ -15,15 +15,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui
 import { Card } from "~/common/components/ui/card";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
+import { getThumbnailImages } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-// --- Mock Data ---
-
-const MOCK_GENERATED_IMAGES = [
-  "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=400&q=80",
-  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
-  "https://images.unsplash.com/photo-1614728853901-aac4137c4d51?auto=format&fit=crop&w=400&q=80",
-  "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=80",
-];
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { images: [] };
+  }
+  const images = await getThumbnailImages(params.projectId);
+  return { images };
+}
 
 export const meta = () => {
   return [
@@ -34,6 +35,7 @@ export const meta = () => {
 
 export default function StudioThumbnailPage() {
   const { projectId } = useParams();
+  const { images: initialImages } = useLoaderData<typeof loader>();
 
   // State
   const [activeTab, setActiveTab] = useState("generator");
@@ -66,7 +68,8 @@ export default function StudioThumbnailPage() {
     toast.info("Generating Images...", { description: "AI is imagining your thumbnail." });
 
     setTimeout(() => {
-      setGeneratedImages(MOCK_GENERATED_IMAGES);
+      // Use initialImages as generated images for simulation
+      setGeneratedImages(initialImages);
       setIsGenerating(false);
       toast.success("Generation Complete", { description: "Select an image to use as base." });
     }, 2500);

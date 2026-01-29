@@ -16,60 +16,21 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
+import type { StockVideo, BRollSceneContext } from "~/common/types/studio.types";
+import { getStockVideos, getBRollScenes, getBRollColors } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
-// --- Mock Data ---
-
-interface StockVideo {
-  id: string;
-  thumbnail: string;
-  duration: number;
-  provider: "Pexels" | "Pixabay" | "Unsplash" | "Custom";
-  title: string;
-  url: string;
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { stockVideos: [], scenes: [], colors: [] };
+  }
+  const [stockVideos, scenes, colors] = await Promise.all([
+    getStockVideos(),
+    getBRollScenes(params.projectId),
+    Promise.resolve(getBRollColors())
+  ]);
+  return { stockVideos, scenes, colors };
 }
-
-const MOCK_RESULTS: StockVideo[] = [
-  { id: "v1", title: "City Sunset Timelapse", provider: "Pexels", duration: 15, thumbnail: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v2", title: "Busy Office Workers", provider: "Pixabay", duration: 10, thumbnail: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v3", title: "Nature River Flow", provider: "Pexels", duration: 25, thumbnail: "https://images.unsplash.com/photo-1437482078695-73f5ca6c96e2?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v4", title: "Tech Circuit Board", provider: "Unsplash", duration: 8, thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v5", title: "Coffee Shop Vibe", provider: "Pexels", duration: 42, thumbnail: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v6", title: "Drone Mountain View", provider: "Pixabay", duration: 30, thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v7", title: "Digital Abstract Waves", provider: "Unsplash", duration: 12, thumbnail: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v8", title: "Writing in Notebook", provider: "Pexels", duration: 18, thumbnail: "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v9", title: "Ocean Waves", provider: "Pexels", duration: 20, thumbnail: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v10", title: "Forest Path", provider: "Pixabay", duration: 14, thumbnail: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v11", title: "Coding Setup", provider: "Unsplash", duration: 10, thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v12", title: "Meeting Room", provider: "Pexels", duration: 35, thumbnail: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v13", title: "Mountain Peak", provider: "Pixabay", duration: 22, thumbnail: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v14", title: "Subway Train", provider: "Unsplash", duration: 8, thumbnail: "https://images.unsplash.com/photo-1470219556762-1771e7f9427d?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v15", title: "Library Silence", provider: "Pexels", duration: 40, thumbnail: "https://images.unsplash.com/photo-1507842217121-9e93ca0a50b0?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v16", title: "Aerial City View", provider: "Pixabay", duration: 18, thumbnail: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v17", title: "Desert Dunes", provider: "Unsplash", duration: 25, thumbnail: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v18", title: "Rainy Window", provider: "Pexels", duration: 12, thumbnail: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v19", title: "Conference Call", provider: "Pixabay", duration: 15, thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v20", title: "Teamwork High Five", provider: "Unsplash", duration: 5, thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v21", title: "Keyboard Typing", provider: "Pexels", duration: 8, thumbnail: "https://images.unsplash.com/photo-1587614382346-4ec70e388b28?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v22", title: "Modern Architecture", provider: "Pixabay", duration: 20, thumbnail: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v23", title: "Galaxy Stars", provider: "Unsplash", duration: 30, thumbnail: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v24", title: "Crowd Walking", provider: "Pexels", duration: 15, thumbnail: "https://images.unsplash.com/photo-1473186578172-c141e6798cf4?q=80&w=600&auto=format&fit=crop", url: "#" },
-  { id: "v25", title: "Traffic Lights", provider: "Pixabay", duration: 10, thumbnail: "https://images.unsplash.com/photo-1494783367193-149034c05e8f?q=80&w=600&auto=format&fit=crop", url: "#" },
-];
-
-interface SceneContext {
-  id: string;
-  order: number;
-  content: string;
-  keyword: string;
-  assignedVideo?: StockVideo;
-}
-
-const INITIAL_SCENES: SceneContext[] = [
-  { id: "s1", order: 1, content: "Intro: Futuristic cityscape at dusk.", keyword: "futuristic city", assignedVideo: undefined },
-  { id: "s2", order: 2, content: "Host talking about AI trends.", keyword: "technology office", assignedVideo: undefined },
-  { id: "s3", order: 3, content: "Close up of microchips.", keyword: "microchip", assignedVideo: undefined },
-  { id: "s4", order: 4, content: "Outro: Logo animation.", keyword: "abstract digital", assignedVideo: undefined },
-];
 
 export const meta = () => {
   return [
@@ -81,12 +42,13 @@ export const meta = () => {
 export default function StudioBRollPage() {
   const { projectId } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { stockVideos, scenes: initialScenes, colors: brColors } = useLoaderData<typeof loader>();
 
   // States
   const [searchTerm, setSearchTerm] = useState("");
-  const [scenes, setScenes] = useState<SceneContext[]>(INITIAL_SCENES);
-  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(INITIAL_SCENES[0].id);
-  const [results, setResults] = useState<StockVideo[]>(MOCK_RESULTS);
+  const [scenes, setScenes] = useState<BRollSceneContext[]>(initialScenes);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(initialScenes[0]?.id || null);
+  const [results, setResults] = useState<StockVideo[]>(stockVideos);
   const [isSearching, setIsSearching] = useState(false);
 
   // Pagination
@@ -155,7 +117,7 @@ export default function StudioBRollPage() {
     // Simulate API search
     setTimeout(() => {
       // Shuffle results to simulate change
-      setResults([...MOCK_RESULTS].sort(() => Math.random() - 0.5));
+      setResults([...stockVideos].sort(() => Math.random() - 0.5));
       setIsSearching(false);
 
       const filterSummary = [
@@ -181,26 +143,13 @@ export default function StudioBRollPage() {
         : scene
     ));
     toast.success("B-Roll assigned to scene", {
-      description: `Added "${video.title}" to Scene ${INITIAL_SCENES.find(s => s.id === selectedSceneId)?.order}`
+      description: `Added "${video.title}" to Scene ${scenes.find(s => s.id === selectedSceneId)?.order}`
     });
   };
 
   const selectedScene = scenes.find(s => s.id === selectedSceneId);
 
-  const COLORS = [
-    { name: "red", class: "bg-red-500" },
-    { name: "orange", class: "bg-orange-500" },
-    { name: "yellow", class: "bg-yellow-500" },
-    { name: "green", class: "bg-green-500" },
-    { name: "turquoise", class: "bg-cyan-400" },
-    { name: "blue", class: "bg-blue-500" },
-    { name: "violet", class: "bg-violet-500" },
-    { name: "pink", class: "bg-pink-500" },
-    { name: "brown", class: "bg-amber-800" },
-    { name: "black", class: "bg-black" },
-    { name: "gray", class: "bg-gray-500" },
-    { name: "white", class: "bg-white border" },
-  ];
+
 
   return (
     <div className="flex flex-col h-screen lg:h-[calc(100vh-4rem)] max-w-full overflow-hidden">
@@ -350,7 +299,7 @@ export default function StudioBRollPage() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-muted-foreground mr-1">Color:</span>
                 <div className="flex gap-1">
-                  {COLORS.map((c) => (
+                  {brColors.map((c) => (
                     <button
                       key={c.name}
                       type="button"

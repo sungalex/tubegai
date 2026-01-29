@@ -23,6 +23,17 @@ import { Label } from "~/common/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/common/components/ui/select";
 import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
+import type { ScriptSegment } from "~/common/types/studio.types";
+import { getScriptSegments } from "~/common/data/studio.data";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  if (!params.projectId) {
+    return { segments: [] };
+  }
+  const segments = await getScriptSegments(params.projectId);
+  return { segments };
+}
 
 export const meta = () => {
   return [
@@ -31,25 +42,10 @@ export const meta = () => {
   ];
 };
 
-// Mock Data Types
-type Segment = {
-  id: string;
-  type: "hook" | "intro" | "body" | "cta" | "outro";
-  content: string;
-  duration: number; // seconds
-};
-
-const MOCK_SCRIPT: Segment[] = [
-  { id: "1", type: "hook", content: "Did you know that 80% of jobs might be affected by AI in the next 5 years? But don't panic...", duration: 15 },
-  { id: "2", type: "intro", content: "Hi everyone, welcome back to the channel. Today we are diving deep into the future of work...", duration: 30 },
-  { id: "3", type: "body", content: "First, let's talk about automation. It's not just about robots in factories anymore...", duration: 120 },
-  { id: "4", type: "cta", content: "If you're finding this useful, don't forget to like and subscribe for more tech insights.", duration: 10 },
-  { id: "5", type: "outro", content: "Thanks for watching. See you in the next video!", duration: 15 },
-];
-
 export default function StudioScriptPage() {
   const { projectId } = useParams();
-  const [segments, setSegments] = useState<Segment[]>(MOCK_SCRIPT);
+  const { segments: initialSegments } = useLoaderData<typeof loader>();
+  const [segments, setSegments] = useState<ScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState("");
 
@@ -73,7 +69,7 @@ export default function StudioScriptPage() {
   };
 
   const handleAddSegment = () => {
-    const newSegment: Segment = {
+    const newSegment: ScriptSegment = {
       id: Date.now().toString(),
       type: "body",
       content: "",
