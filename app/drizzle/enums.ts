@@ -72,6 +72,7 @@ export const scriptSegmentTypeEnum = tubegaiSchema.enum("script_segment_type", [
 ]);
 
 export const sceneVideoStatusEnum = tubegaiSchema.enum("scene_video_status", [
+  "pending",
   "generating",
   "completed",
   "failed",
@@ -84,9 +85,11 @@ export const sceneVideoStatusEnum = tubegaiSchema.enum("scene_video_status", [
 export const exportFormatEnum = tubegaiSchema.enum("export_format", [
   "mp4",
   "mov",
+  "webm", // Phase 2: Added webm format
 ]);
 
 export const exportResolutionEnum = tubegaiSchema.enum("export_resolution", [
+  "720p", // Phase 2: Added 720p resolution
   "1080p",
   "4k",
 ]);
@@ -103,8 +106,14 @@ export const uploadStatusEnum = tubegaiSchema.enum("upload_status", [
 ]);
 
 // ============================================
-// MVP Enums: Trend
+// Phase 1 Enums (MVP Critical)
 // ============================================
+
+export const channelStatusEnum = tubegaiSchema.enum("channel_status", [
+  "active",
+  "error",
+  "syncing",
+]);
 
 export const trendSourceEnum = tubegaiSchema.enum("trend_source", [
   "youtube_api",

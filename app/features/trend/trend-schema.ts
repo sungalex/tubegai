@@ -1,18 +1,20 @@
 /**
  * ============================================
- * Trend Schema - MVP Version
+ * Trend Schema - MVP Version (Phase 3.1 Enhanced)
  * ============================================
  *
  * Tables:
  * - trend: YouTube/AI-generated trending video topics
+ * - ai_recommendation: AI-generated project recommendations (Phase 3.1)
  *
  * Purpose:
  * - Store trending topics from YouTube API or AI generation
  * - Allow users to select trends for project creation
  * - Track which trends were used for projects
+ * - Store AI recommendations for better user experience (Phase 3.1)
  */
 
-import { uuid, text, timestamp, bigint } from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, bigint, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { trendSourceEnum } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
@@ -70,13 +72,64 @@ export const trends = tubegaiSchema.table("trend", {
 // Relations
 // ============================================
 
-export const trendsRelations = relations(trends, ({ one }) => ({
+export const trendsRelations = relations(trends, ({ one, many }) => ({
   user: one(users, {
     fields: [trends.userId],
     references: [users.id],
   }),
   usedForProject: one(projects, {
     fields: [trends.usedForProjectId],
+    references: [projects.id],
+  }),
+  // Phase 3.1: AI Recommendations that reference this trend
+  recommendations: many(aiRecommendations),
+}));
+
+// ============================================
+// Phase 3.1: AI Recommendation Table
+// ============================================
+
+export const aiRecommendations = tubegaiSchema.table("ai_recommendation", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  // User association
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+
+  // Recommendation content
+  title: text("title").notNull(),
+  reason: text("reason").notNull(),
+  category: text("category"),
+  growthRate: text("growth_rate"),
+
+  // Scoring
+  score: integer("score"), // Relevance score 0-100
+
+  // References
+  trendId: uuid("trend_id").references(() => trends.id, { onDelete: "set null" }),
+  usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Auto-expire old recommendations
+});
+
+// ============================================
+// Phase 3.1: AI Recommendation Relations
+// ============================================
+
+export const aiRecommendationsRelations = relations(aiRecommendations, ({ one }) => ({
+  user: one(users, {
+    fields: [aiRecommendations.userId],
+    references: [users.id],
+  }),
+  trend: one(trends, {
+    fields: [aiRecommendations.trendId],
+    references: [trends.id],
+  }),
+  usedForProject: one(projects, {
+    fields: [aiRecommendations.usedForProjectId],
     references: [projects.id],
   }),
 }));
