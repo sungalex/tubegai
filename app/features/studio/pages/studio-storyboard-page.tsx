@@ -221,7 +221,7 @@ export default function StudioStoryboardPage() {
                           className="min-h-70"
                         />
                       ))}
-                      <div className="h-full min-h-70 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/5 transition-colors hover:bg-muted/10 cursor-pointer">
+                      <div className="h-full min-h-70 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/20 transition-colors hover:bg-muted/30 cursor-pointer">
                         <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary">
                           <Plus className="h-6 w-6" />
                           Add Scene
@@ -229,7 +229,7 @@ export default function StudioStoryboardPage() {
                       </div>
                     </StoryboardGrid>
                   ) : (
-                    <div className="h-full min-h-50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center bg-muted/5">
+                    <div className="h-full min-h-50 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center bg-muted/20">
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                         <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>

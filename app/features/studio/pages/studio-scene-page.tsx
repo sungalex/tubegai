@@ -206,7 +206,7 @@ export default function StudioScenePage() {
     <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-4rem)] max-w-full overflow-visible lg:overflow-hidden">
 
       {/* Main Content (Video Timeline/Grid) */}
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 dark:bg-black/20">
+      <div className="flex-1 overflow-y-auto no-scrollbar bg-background/50">
         <div className="p-4 pb-20 max-w-full px-6 space-y-8">
 
           <div className="flex justify-between items-center">

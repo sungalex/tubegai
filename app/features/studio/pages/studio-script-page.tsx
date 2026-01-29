@@ -126,13 +126,14 @@ export default function StudioScriptPage() {
         <div className="lg:col-span-2 flex flex-col min-h-0 bg-background rounded-lg border shadow-sm">
           <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
             <h2 className="font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-yellow-500" />
+              <div className="w-2 h-2 rounded-full bg-yellow-500" /> {/* Keep yellow for "script" semantic if desired, or change to accent-foreground */}
               Script Segments
             </h2>
             <Button variant="ghost" size="sm" onClick={handleAddSegment}>
               <Plus className="w-4 h-4 mr-1" /> Add Segment
             </Button>
           </div>
+
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {segments.map((segment, index) => (
@@ -178,9 +179,9 @@ export default function StudioScriptPage() {
         <div className="lg:col-span-1 flex flex-col gap-6 min-h-0">
 
           {/* AI Generate Card */}
-          <Card className="bg-linear-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900">
+          <Card className="bg-muted/50 border-primary/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+              <CardTitle className="flex items-center gap-2 text-primary">
                 <Sparkles className="w-5 h-5" /> AI Writer
               </CardTitle>
               <CardDescription>
@@ -220,7 +221,7 @@ export default function StudioScriptPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleGenerateScript} disabled={isGenerating}>
+              <Button className="w-full" onClick={handleGenerateScript} disabled={isGenerating}>
                 {isGenerating ? (
                   <>
                     <Wand2 className="w-4 h-4 mr-2 animate-spin" /> Generating...

@@ -52,42 +52,42 @@ export default function TubeGaiPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                  <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle>AI Automation Scripts</CardTitle>
                 <CardDescription>Full access to AI script writer</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> AI Topic Generator</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Script & Storyboard AI</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Scene Generation</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> AI Topic Generator</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> Script & Storyboard AI</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> Scene Generation</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-4">
-                  <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center mb-4">
+                  <Clock className="h-6 w-6 text-secondary-foreground" />
                 </div>
                 <CardTitle>Usage Limits (Trial)</CardTitle>
                 <CardDescription>Generous limits to test the waters</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 5 Projects / Month</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 1 Connected Channel</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 720p Export</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> 5 Projects / Month</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> 1 Connected Channel</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> 720p Export</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card className="border-muted bg-muted/30">
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-800 flex items-center justify-center mb-4">
-                  <X className="h-6 w-6 text-gray-500" />
+                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-4">
+                  <X className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <CardTitle>What's restricted?</CardTitle>
                 <CardDescription>Unlock these with a full Pro sub</CardDescription>

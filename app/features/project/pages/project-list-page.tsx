@@ -81,9 +81,9 @@ export default function ProjectListPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-8">
+    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Your Projects</h1>
           <p className="text-muted-foreground">Manage and organize your video creations.</p>

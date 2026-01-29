@@ -221,7 +221,7 @@ export default function StudioExportPage() {
             <Card className={cn(!renderComplete && "opacity-50 pointer-events-none")}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Youtube className="h-5 w-5 text-red-600" /> Publish to YouTube
+                  <Youtube className="h-5 w-5 text-destructive" /> Publish to YouTube
                 </CardTitle>
                 <CardDescription>Directly upload your video to your channel.</CardDescription>
               </CardHeader>
@@ -235,7 +235,7 @@ export default function StudioExportPage() {
                 ) : (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4 p-3 bg-muted rounded-md border">
-                      <div className="h-10 w-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">T</div>
+                      <div className="h-10 w-10 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground font-bold">T</div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">TubeGAI Official</p>
                         <p className="text-xs text-muted-foreground">Connected</p>
@@ -308,7 +308,7 @@ export default function StudioExportPage() {
                 )}
               </CardContent>
               <CardFooter>
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!uploadConnected || !renderComplete} onClick={handlePublish}>
+                <Button className="w-full" variant="destructive" disabled={!uploadConnected || !renderComplete} onClick={handlePublish}>
                   <Upload className="mr-2 h-4 w-4" /> Publish Video
                 </Button>
               </CardFooter>
