@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles } from "lucide-react";
+import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, RefreshCw, ExternalLink, Lightbulb } from "lucide-react";
 import { Link } from "react-router";
 import AutoScroll from "embla-carousel-auto-scroll";
+import { toast } from "sonner";
 import { Input } from "~/common/components/ui/input";
 import { Button } from "~/common/components/ui/button";
 import { Card, CardContent } from "~/common/components/ui/card";
@@ -19,15 +20,17 @@ import {
 } from "~/common/components/ui/popover";
 import { Label } from "~/common/components/ui/label";
 import type { TrendItem, AIRecommendation } from "~/common/types/project.types";
+import type { SavedIdea } from "~/common/types/ideation.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 import { useTranslation } from "~/i18n/context";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
   recommendations: AIRecommendation[];
+  onSaveIdea?: (idea: SavedIdea) => void;
 }
 
-export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
@@ -85,59 +88,72 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
     setIsIdeaDialogOpen(true);
   };
 
+  // Handle opening YouTube video in new tab
+  const handleOpenVideo = (trend: TrendItem) => {
+    if (trend.videoUrl) {
+      window.open(trend.videoUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  // Save recommendation as idea to Supabase
+  const handleSaveRecommendation = async (recommendation: AIRecommendation) => {
+    try {
+      const idea = {
+        id: crypto.randomUUID(),
+        title: recommendation.title,
+        description: `AI 추천 아이디어: ${recommendation.reason}`,
+        hooks: [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
+        targetAudience: "일반 시청자",
+        estimatedViews: "10K-50K",
+        difficulty: "medium" as const,
+        basedOnTrend: recommendation.title,
+      };
+
+      const response = await fetch("/api/saved-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
+        return;
+      }
+
+      // Notify parent component of saved idea
+      if (data.idea && onSaveIdea) {
+        onSaveIdea(data.idea);
+      }
+
+      toast.success("아이디어가 저장되었습니다!", {
+        description: "저장된 아이디어 탭에서 확인하세요.",
+      });
+    } catch (error) {
+      toast.error("아이디어 저장 실패");
+    }
+  };
+
+  // Open idea generator without a specific trend (for new idea creation)
+  const handleOpenIdeaGenerator = () => {
+    const defaultTrend: TrendItem = {
+      id: Date.now(),
+      title: "새 아이디어",
+      category: "일반",
+      views: "N/A",
+      growth: "N/A",
+      thumbnail: "",
+      tags: [],
+    };
+    setSelectedTrend(defaultTrend);
+    setIsIdeaDialogOpen(true);
+  };
+
   return (
     <div className="space-y-8">
-      {/* AI Recommendations Section */}
-      <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border-purple-500/20 gap-1 px-3 py-1">
-            <Zap className="h-3.5 w-3.5" fill="currentColor" />
-            {t("trends.aiRecommended")}
-          </Badge>
-          <h3 className="text-lg font-semibold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            {t("trends.topPicks")}
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {recommendations.map((item, idx) => (
-            <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
-              <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
-                      {item.reason}
-                    </Badge>
-                    <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
-                      <TrendingUp className="h-3 w-3" /> {item.growth}
-                    </span>
-                  </div>
-                  <h4 className="font-medium group-hover:text-purple-400 transition-colors">{item.title}</h4>
-                </div>
-                <div className="flex gap-2 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 bg-background/80 hover:bg-background"
-                    onClick={() => handleGenerateIdeasFromRecommendation(item)}
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Ideas
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
-                    asChild
-                  >
-                    <Link to="/projects/new" state={{ topic: item.title }}>Use</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center pt-2">
+      {/* Real-time Trends Section - Now on TOP */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-red-500" />
@@ -238,17 +254,35 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                 <div className="p-1">
                   <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-none bg-secondary/20 h-full">
                     <CardContent className="p-0 h-full flex flex-col">
-                      <div className="relative aspect-video w-full overflow-hidden shrink-0">
+                      <div
+                        className="relative aspect-video w-full overflow-hidden shrink-0 cursor-pointer"
+                        onClick={() => handleOpenVideo(trend)}
+                      >
                         <img
                           src={trend.thumbnail}
                           alt={trend.title}
                           className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+                          {trend.videoUrl && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="w-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenVideo(trend);
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              {t("trends.watchVideo")}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             className="w-full bg-red-600 hover:bg-red-700 text-white"
                             asChild
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Link to="/projects/new" state={{ topic: trend.title }}>
                               {t("trends.useTheme")}
@@ -258,7 +292,10 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                             size="sm"
                             variant="secondary"
                             className="w-full"
-                            onClick={() => handleGenerateIdeas(trend)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateIdeas(trend);
+                            }}
                           >
                             <Sparkles className="h-3 w-3 mr-1" />
                             {t("trends.generateIdeas")}
@@ -296,12 +333,91 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
         </Carousel>
       </div>
 
+      {/* Idea Hub Section - Now on BOTTOM */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Lightbulb className="h-6 w-6 text-yellow-500" />
+            {t("trends.ideaHubTitle")}
+          </h2>
+          <p className="text-muted-foreground">{t("trends.ideaHubSubtitle")}</p>
+        </div>
+        <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border-purple-500/20 gap-1 px-3 py-1">
+                <Zap className="h-3.5 w-3.5" fill="currentColor" />
+                {t("trends.aiRecommended")}
+              </Badge>
+              <h3 className="text-lg font-semibold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                {t("trends.topPicks")}
+              </h3>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-background/80 hover:bg-background"
+              onClick={handleOpenIdeaGenerator}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              {t("trends.newIdea")}
+            </Button>
+          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {recommendations.map((item, idx) => (
+            <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
+              <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
+                      {item.reason}
+                    </Badge>
+                    <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
+                      <TrendingUp className="h-3 w-3" /> {item.growth}
+                    </span>
+                  </div>
+                  <h4 className="font-medium group-hover:text-purple-400 transition-colors">{item.title}</h4>
+                </div>
+                <div className="flex gap-2 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 bg-background/80 hover:bg-background"
+                    onClick={() => handleGenerateIdeasFromRecommendation(item)}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    {t("trends.regeneration")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="bg-background/80 hover:bg-background"
+                    onClick={() => handleSaveRecommendation(item)}
+                  >
+                    <Bookmark className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                    asChild
+                  >
+                    <Link to="/projects/new" state={{ topic: item.title }}>{t("trends.useIdea")}</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        </section>
+      </div>
+
       {/* Idea Generator Dialog */}
       {selectedTrend && (
         <IdeaGeneratorDialog
           open={isIdeaDialogOpen}
           onOpenChange={setIsIdeaDialogOpen}
           trend={selectedTrend}
+          onSaveIdea={onSaveIdea}
         />
       )}
     </div>

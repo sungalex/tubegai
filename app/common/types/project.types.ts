@@ -54,6 +54,7 @@ export interface TrendItem {
   growth: string;
   thumbnail: string;
   tags: string[];
+  videoUrl?: string;
 }
 
 export interface ProjectDetail {

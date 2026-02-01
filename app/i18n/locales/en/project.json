@@ -100,12 +100,18 @@
   "trends": {
     "title": "Real-time Trends",
     "subtitle": "Discover rising topics and create content instantly.",
+    "ideaHubTitle": "Idea Hub",
+    "ideaHubSubtitle": "Discover winning topics and start creating instantly.",
     "aiRecommended": "AI Recommended",
     "topPicks": "Top Ideation Picks for You",
     "searchPlaceholder": "Search trends or topics...",
     "filterByCategory": "Filter by Category",
     "useTheme": "Use Theme",
-    "generateIdeas": "Generate Ideas"
+    "generateIdeas": "Generate Ideas",
+    "watchVideo": "Watch Video",
+    "newIdea": "New Idea",
+    "regeneration": "Re-Generation",
+    "useIdea": "Use Idea"
   },
   "ideaGenerator": {
     "title": "AI Idea Generator",

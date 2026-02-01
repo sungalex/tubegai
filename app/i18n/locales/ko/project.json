@@ -100,12 +100,18 @@
   "trends": {
     "title": "실시간 트렌드",
     "subtitle": "인기 상승 주제를 발견하고 바로 콘텐츠를 만들어보세요.",
+    "ideaHubTitle": "아이디어 허브",
+    "ideaHubSubtitle": "인기 있는 주제를 발견하고 바로 콘텐츠를 만들어보세요.",
     "aiRecommended": "AI 추천",
     "topPicks": "당신을 위한 TOP 아이디어 추천",
     "searchPlaceholder": "트렌드 또는 주제 검색...",
     "filterByCategory": "카테고리 필터",
     "useTheme": "주제 사용",
-    "generateIdeas": "아이디어 생성"
+    "generateIdeas": "아이디어 생성",
+    "watchVideo": "영상 보기",
+    "newIdea": "아이디어 생성",
+    "regeneration": "Re-Generation",
+    "useIdea": "Use Idea"
   },
   "ideaGenerator": {
     "title": "AI 아이디어 생성기",

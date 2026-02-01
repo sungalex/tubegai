@@ -256,6 +256,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=500&q=80",
     tags: ["AI", "Future", "Automation"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 2,
@@ -266,6 +267,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1486946255434-2466348c2166?w=500&q=80",
     tags: ["Setup", "Productivity", "Desk"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 3,
@@ -276,6 +278,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1480796927426-f609979314bd?w=500&q=80",
     tags: ["Travel", "Japan", "Vlog"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 4,
@@ -286,6 +289,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=500&q=80",
     tags: ["Cooking", "Foodie", "Recipe"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 5,
@@ -296,6 +300,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&q=80",
     tags: ["React", "Code", "WebDev"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 6,
@@ -306,6 +311,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1544367563-12123d8959bd?w=500&q=80",
     tags: ["Yoga", "Wellness", "Morning"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 7,
@@ -316,6 +322,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1610945265078-38584e274352?w=500&q=80",
     tags: ["Tech", "Mobile", "Review"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
   {
     id: 8,
@@ -326,6 +333,7 @@ export const TRENDS_DATA: TrendItem[] = [
     thumbnail:
       "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=500&q=80",
     tags: ["Photo", "Art", "Street"],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   },
 ];
 

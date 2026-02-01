@@ -20,6 +20,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { ideas };
 }
 
+// PostgreSQL integer max value
+const MAX_INT = 2147483647;
+
 export async function action({ request }: Route.ActionArgs) {
   const userId = await requireAuth(request);
 
@@ -31,7 +34,15 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: "Missing idea data" };
       }
 
-      const savedIdea = await saveIdea(userId, body.idea);
+      // Sanitize trendId - set to undefined if it exceeds PostgreSQL integer range
+      const sanitizedIdea = {
+        ...body.idea,
+        trendId: body.idea.trendId && body.idea.trendId <= MAX_INT
+          ? body.idea.trendId
+          : undefined,
+      };
+
+      const savedIdea = await saveIdea(userId, sanitizedIdea);
       return { success: true, idea: savedIdea };
     } catch (error) {
       console.error("Failed to save idea:", error);

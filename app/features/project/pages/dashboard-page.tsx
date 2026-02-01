@@ -42,6 +42,10 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
     setSavedIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
   };
 
+  const handleSaveIdea = (idea: SavedIdea) => {
+    setSavedIdeas((prev) => [idea, ...prev]);
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
@@ -72,15 +76,8 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
         {/* TRENDS & IDEATION TAB */}
         <TabsContent value="trends" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{t("dashboard.ideationHub.title")}</h2>
-              <p className="text-muted-foreground">{t("dashboard.ideationHub.subtitle")}</p>
-            </div>
-          </div>
-
           {/* Full Trend Analyzer Component */}
-          <TrendAnalyzer trends={trends} recommendations={recommendations} />
+          <TrendAnalyzer trends={trends} recommendations={recommendations} onSaveIdea={handleSaveIdea} />
         </TabsContent>
 
         {/* SAVED IDEAS TAB */}

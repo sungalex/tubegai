@@ -48,6 +48,7 @@ import type { TrendItem } from "~/common/types/project.types";
 import type {
   GeneratedIdea,
   IdeationOptions,
+  SavedIdea,
 } from "~/common/types/ideation.types";
 import {
   CONTENT_TONES,
@@ -61,12 +62,14 @@ interface IdeaGeneratorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trend: TrendItem;
+  onSaveIdea?: (idea: SavedIdea) => void;
 }
 
 export function IdeaGeneratorDialog({
   open,
   onOpenChange,
   trend,
+  onSaveIdea,
 }: IdeaGeneratorDialogProps) {
   const [ideas, setIdeas] = useState<GeneratedIdea[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,6 +131,12 @@ export function IdeaGeneratorDialog({
       }
 
       setSavedIdeaIds((prev) => new Set([...prev, idea.id]));
+
+      // Notify parent component of saved idea
+      if (data.idea && onSaveIdea) {
+        onSaveIdea(data.idea);
+      }
+
       toast.success("Idea saved!", {
         description: "View it in your Saved Ideas tab",
       });
@@ -155,6 +164,10 @@ export function IdeaGeneratorDialog({
         const data = await response.json();
         if (!data.error) {
           setSavedIdeaIds((prev) => new Set([...prev, idea.id]));
+          // Notify parent component of saved idea
+          if (data.idea && onSaveIdea) {
+            onSaveIdea(data.idea);
+          }
           savedCount++;
         }
       } catch (error) {
