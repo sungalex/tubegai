@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Link } from "react-router";
-import { LogOut, LogIn, UserPlus, Bell, MessageCircle, User, CreditCard, Sun, Plug } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { LogOut, LogIn, UserPlus, Bell, MessageCircle, User, CreditCard, Sun, Plug, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
 import {
   DropdownMenu,
@@ -13,15 +14,19 @@ import {
 } from "~/common/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "~/common/components/ui/avatar";
 import { useTranslation } from "~/i18n/context";
+import { signOut } from "~/lib/auth.client";
+import type { UserInfo } from "~/root";
 
 interface UserNavigationProps {
-  isLoggedIn: boolean;
+  user: UserInfo | null;
   hasNotifications: boolean;
   hasMessages: boolean;
 }
 
-export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: UserNavigationProps) {
+export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavigationProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { t } = useTranslation("navigation");
 
@@ -42,7 +47,30 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
     }, 150);
   };
 
-  if (!isLoggedIn) {
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      const result = await signOut();
+
+      if (result.success) {
+        toast.success("로그아웃되었습니다.");
+        navigate(result.redirectTo || "/");
+        // Force page reload to clear all state
+        window.location.href = "/";
+      } else {
+        toast.error("로그아웃 실패", {
+          description: result.error,
+        });
+      }
+    } catch (error) {
+      toast.error("로그아웃 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
+
+  // Not logged in - show login/join buttons
+  if (!user) {
     return (
       <>
         <Button variant="ghost" asChild className="hidden sm:inline-flex">
@@ -60,6 +88,21 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
       </>
     );
   }
+
+  // Get user initials for avatar fallback
+  const getInitials = (name: string | null, email: string | null): string => {
+    if (name) {
+      return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    }
+    if (email) {
+      return email[0].toUpperCase();
+    }
+    return "U";
+  };
+
+  // Get display name
+  const displayName = user.name || user.email?.split("@")[0] || "User";
+  const displayEmail = user.email || "";
 
   return (
     <>
@@ -84,8 +127,8 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
             onMouseLeave={handleMouseLeave}
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://github.com/sungalex.png" alt="@sungalex" />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage src={user.avatarUrl ?? undefined} alt={displayName} />
+              <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -98,10 +141,15 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
         >
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">Alex</p>
+              <p className="text-sm font-medium leading-none">{displayName}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                alex@sungalex
+                {displayEmail}
               </p>
+              {user.provider && (
+                <p className="text-xs leading-none text-muted-foreground capitalize">
+                  via {user.provider}
+                </p>
+              )}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -132,9 +180,17 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
-            {t("user.logout")}
+          <DropdownMenuItem
+            className="text-destructive cursor-pointer"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="mr-2 h-4 w-4" />
+            )}
+            {isLoggingOut ? "로그아웃 중..." : t("user.logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

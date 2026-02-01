@@ -25,9 +25,10 @@ import { UserNavigation } from "./user-navigation";
 import { LanguageSelector } from "./language-selector";
 import { useState } from "react";
 import { useTranslation } from "~/i18n/context";
+import type { UserInfo } from "~/root";
 
 interface NavigationProps {
-  isLoggedIn: boolean;
+  user: UserInfo | null;
   hasNotifications: boolean;
   hasMessages: boolean;
 }
@@ -182,7 +183,7 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
   },
 ];
 
-export default function Navigation({ isLoggedIn, hasNotifications, hasMessages }: NavigationProps) {
+export default function Navigation({ user, hasNotifications, hasMessages }: NavigationProps) {
   const params = useParams();
   const projectId = params.projectId || "1";
   const { t } = useTranslation("navigation");
@@ -208,7 +209,7 @@ export default function Navigation({ isLoggedIn, hasNotifications, hasMessages }
           <div className="flex items-center space-x-2">
             <LanguageSelector />
             <UserNavigation
-              isLoggedIn={isLoggedIn}
+              user={user}
               hasNotifications={hasNotifications}
               hasMessages={hasMessages}
             />

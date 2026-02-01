@@ -33,6 +33,9 @@ export default [
   // Auth (MVP)
   route("auth/login", "features/auth/pages/login-page.tsx"),
   route("auth/join", "features/auth/pages/join-page.tsx"),
+  route("auth/callback", "features/auth/pages/auth-callback-page.tsx"),
+  route("auth/forgot-password", "features/auth/pages/forgot-password-page.tsx"),
+  route("auth/reset-password", "features/auth/pages/reset-password-page.tsx"),
 
   // Products (MVP - only main product page)
   ...prefix("products", [

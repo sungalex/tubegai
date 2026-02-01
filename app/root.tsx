@@ -13,23 +13,70 @@ import { Toaster } from "~/common/components/ui/sonner";
 import { LanguageProvider } from "~/i18n/context";
 import { getLocaleFromRequest } from "~/i18n/server";
 import { initI18n, type Locale } from "~/i18n/config";
+import { createSupabaseServerClient } from "~/lib/auth.server";
 import "./app.css";
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface UserInfo {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  provider: string | null;
+}
 
 // Server-side locale for SSR
 let ssrLocale: Locale = "ko";
+
+// =============================================================================
+// Loader
+// =============================================================================
 
 export async function loader({ request }: Route.LoaderArgs) {
   const locale = getLocaleFromRequest(request);
   ssrLocale = locale;
   initI18n(locale);
+
+  // Get current user from session
+  let user: UserInfo | null = null;
+
+  try {
+    const { supabase } = createSupabaseServerClient(request);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+
+    if (authUser) {
+      const provider = authUser.app_metadata?.provider ||
+        authUser.identities?.[0]?.provider ||
+        "email";
+
+      user = {
+        id: authUser.id,
+        email: authUser.email ?? null,
+        name: authUser.user_metadata?.full_name ?? authUser.user_metadata?.name ?? null,
+        avatarUrl: authUser.user_metadata?.avatar_url ?? null,
+        provider,
+      };
+    }
+  } catch (error) {
+    console.error("[Root] Error getting user:", error);
+  }
+
   return {
     locale,
+    user,
     ENV: {
       SUPABASE_URL: process.env.SUPABASE_URL!,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
     },
   };
 }
+
+// =============================================================================
+// Links
+// =============================================================================
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -48,6 +95,10 @@ export const links: Route.LinksFunction = () => [
     href: "/favicon.png",
   },
 ];
+
+// =============================================================================
+// Layout
+// =============================================================================
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -68,8 +119,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+// =============================================================================
+// App Component
+// =============================================================================
+
 export default function App({ loaderData }: Route.ComponentProps) {
-  const { locale, ENV } = loaderData;
+  const { locale, user, ENV } = loaderData;
 
   return (
     <LanguageProvider initialLocale={locale}>
@@ -81,15 +136,19 @@ export default function App({ loaderData }: Route.ComponentProps) {
       />
       <div className="py-20">
         <Navigation
-          isLoggedIn={true}
-          hasNotifications={true}
-          hasMessages={true}
+          user={user}
+          hasNotifications={false}
+          hasMessages={false}
         />
         <Outlet />
       </div>
     </LanguageProvider>
   );
 }
+
+// =============================================================================
+// Error Boundary
+// =============================================================================
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   // Use ssrLocale for error boundary translations
