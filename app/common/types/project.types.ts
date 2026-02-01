@@ -85,4 +85,8 @@ export interface AIRecommendation {
   title: string;
   reason: string;
   growth: string;
+  description?: string;
+  hooks?: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
 }

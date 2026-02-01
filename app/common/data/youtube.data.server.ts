@@ -80,6 +80,7 @@ async function getCachedTrends(): Promise<TrendItem[] | null> {
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
     tags: trend.tags ?? [],
+    videoUrl: trend.externalUrl ?? undefined,
   }));
 }
 
@@ -172,6 +173,7 @@ function mapVideoToTrendItem(video: YouTubeVideoItem, index: number): TrendItem 
     growth: "+NEW",
     thumbnail: video.snippet.thumbnails.high?.url ?? video.snippet.thumbnails.medium?.url ?? video.snippet.thumbnails.default.url,
     tags: tags.length > 0 ? tags : [categoryName],
+    videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
   };
 }
 

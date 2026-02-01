@@ -346,15 +346,39 @@ export const AI_RECOMMENDATIONS = [
     title: "Day in the Life: AI Engineer",
     reason: "Matches your tech audience",
     growth: "+210%",
+    description: "AI 엔지니어의 하루 일과를 따라가며 실제 업무 환경, 사용하는 도구들, 그리고 AI 개발의 현실적인 모습을 보여주는 콘텐츠입니다.",
+    hooks: [
+      "AI 엔지니어가 되고 싶은데 현실이 궁금하다면?",
+      "ChatGPT 만드는 사람들은 하루를 어떻게 보낼까요?",
+      "연봉 1억 AI 개발자의 24시간 밀착 취재"
+    ],
+    targetAudience: "개발자 지망생, IT 취준생",
+    estimatedViews: "50K-100K",
   },
   {
     title: "Home Office Makeover 2026",
     reason: "Highly requested topic",
     growth: "+85%",
+    description: "2026년 최신 트렌드를 반영한 홈 오피스 인테리어 가이드. 생산성을 높이는 데스크 셋업과 필수 가젯을 소개합니다.",
+    hooks: [
+      "재택근무 3년차가 알려주는 최적의 홈오피스 셋업",
+      "100만원으로 완성하는 프로 유튜버급 데스크 환경",
+      "집중력 200% 올리는 홈오피스 필수템 TOP 10"
+    ],
+    targetAudience: "재택근무자, 프리랜서",
+    estimatedViews: "30K-70K",
   },
   {
     title: "React vs Vue: The Final Battle",
     reason: "Trending in Dev Community",
     growth: "+340%",
+    description: "2026년 기준으로 React와 Vue를 철저하게 비교 분석합니다. 성능, 생태계, 취업시장, 학습 곡선까지 모든 것을 다룹니다.",
+    hooks: [
+      "React 개발자들이 Vue를 무시하는 진짜 이유",
+      "2026년 프론트엔드 프레임워크 최종 승자는?",
+      "3년차 개발자가 말하는 React vs Vue 현실 비교"
+    ],
+    targetAudience: "웹 개발자, 프론트엔드 입문자",
+    estimatedViews: "80K-150K",
   },
 ];

@@ -98,20 +98,32 @@ export const aiRecommendations = tubegaiSchema.table("ai_recommendation", {
   // Recommendation content
   title: text("title").notNull(),
   reason: text("reason").notNull(),
+  description: text("description"),
   category: text("category"),
   growthRate: text("growth_rate"),
+
+  // YouTube content parameters
+  hooks: text("hooks").array().default([]),
+  targetAudience: text("target_audience"),
+  estimatedViews: text("estimated_views"),
+  difficulty: text("difficulty"), // easy, medium, hard
+  videoType: text("video_type"), // short, medium, long
+  contentTone: text("content_tone"), // informative, funny, dramatic, casual, professional
 
   // Scoring
   score: integer("score"), // Relevance score 0-100
 
   // References
   trendId: uuid("trend_id").references(() => trends.id, { onDelete: "set null" }),
+  basedOnTrends: text("based_on_trends").array().default([]), // Trend titles used for generation
   usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
     onDelete: "set null",
   }),
+  isUsed: integer("is_used").default(0), // 0 = not used, 1 = used
 
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Auto-expire old recommendations
 });
 

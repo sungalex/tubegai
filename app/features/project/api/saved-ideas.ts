@@ -3,6 +3,7 @@
 // =============================================================================
 // GET: Fetch saved ideas for the current user
 // POST: Save a new idea
+// PATCH: Update an existing idea
 // DELETE: Delete a saved idea
 
 import type { Route } from "./+types/saved-ideas";
@@ -10,6 +11,8 @@ import {
   saveIdea,
   getSavedIdeas,
   deleteSavedIdea,
+  updateSavedIdea,
+  type UpdateIdeaInput,
 } from "~/common/data/ideation.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { GeneratedIdea } from "~/common/types/ideation.types";
@@ -47,6 +50,31 @@ export async function action({ request }: Route.ActionArgs) {
     } catch (error) {
       console.error("Failed to save idea:", error);
       return { error: "Failed to save idea" };
+    }
+  }
+
+  if (request.method === "PATCH") {
+    try {
+      const body = (await request.json()) as { ideaId: string; updates: UpdateIdeaInput };
+
+      if (!body.ideaId) {
+        return { error: "Missing ideaId" };
+      }
+
+      if (!body.updates) {
+        return { error: "Missing updates" };
+      }
+
+      const updatedIdea = await updateSavedIdea(userId, body.ideaId, body.updates);
+
+      if (!updatedIdea) {
+        return { error: "Idea not found" };
+      }
+
+      return { success: true, idea: updatedIdea };
+    } catch (error) {
+      console.error("Failed to update idea:", error);
+      return { error: "Failed to update idea" };
     }
   }
 

@@ -1,0 +1,230 @@
+// =============================================================================
+// AI Service (Google Gemini API Integration)
+// =============================================================================
+// Server-side AI service for generating YouTube content ideas
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { TrendItem } from "~/common/types/project.types";
+
+// Initialize Gemini client
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface AIGeneratedRecommendation {
+  title: string;
+  reason: string;
+  description: string;
+  hooks: string[];
+  targetAudience: string;
+  estimatedViews: string;
+  difficulty: "easy" | "medium" | "hard";
+  videoType: "short" | "medium" | "long";
+  contentTone: string;
+  growthRate: string;
+  score: number;
+  basedOnTrends: string[];
+}
+
+export interface GenerateRecommendationsInput {
+  trends: TrendItem[];
+  userPreferences?: {
+    preferredCategories?: string[];
+    channelDescription?: string;
+    targetAudienceType?: string;
+  };
+  count?: number;
+  language?: "ko" | "en";
+}
+
+// =============================================================================
+// Prompts
+// =============================================================================
+
+const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략 전문가입니다. 현재 트렌드를 분석하고 유튜버에게 매력적인 콘텐츠 아이디어를 추천합니다.
+
+응답은 반드시 유효한 JSON 배열 형식이어야 합니다. 다른 텍스트 없이 JSON만 반환하세요.
+
+각 추천은 다음 필드를 포함해야 합니다:
+- title: 매력적인 영상 제목 (클릭을 유도하는 제목)
+- reason: 추천 이유 (왜 이 주제가 좋은지, 10-20자)
+- description: 영상 컨셉 설명 (50-100자)
+- hooks: 오프닝 훅 아이디어 3개 (배열)
+- targetAudience: 타겟 시청자 (예: "IT 취준생", "20대 직장인")
+- estimatedViews: 예상 조회수 범위 (예: "50K-100K", "100K-300K")
+- difficulty: 제작 난이도 ("easy", "medium", "hard")
+- videoType: 영상 길이 타입 ("short": 60초 이하, "medium": 2-10분, "long": 10분+)
+- contentTone: 콘텐츠 톤 ("informative", "funny", "dramatic", "casual", "professional")
+- growthRate: 예상 성장률 (예: "+85%", "+120%")
+- score: 추천 점수 0-100
+- basedOnTrends: 참고한 트렌드 제목들 (배열)`;
+
+const SYSTEM_PROMPT_EN = `You are a YouTube content strategy expert. Analyze current trends and recommend engaging content ideas for YouTubers.
+
+Your response must be a valid JSON array only. Do not include any other text.
+
+Each recommendation must include these fields:
+- title: Engaging video title (click-worthy)
+- reason: Recommendation reason (why this topic is good, 10-20 chars)
+- description: Video concept description (50-100 chars)
+- hooks: 3 opening hook ideas (array)
+- targetAudience: Target audience (e.g., "Tech enthusiasts", "College students")
+- estimatedViews: Expected view range (e.g., "50K-100K", "100K-300K")
+- difficulty: Production difficulty ("easy", "medium", "hard")
+- videoType: Video length type ("short": under 60s, "medium": 2-10min, "long": 10min+)
+- contentTone: Content tone ("informative", "funny", "dramatic", "casual", "professional")
+- growthRate: Expected growth rate (e.g., "+85%", "+120%")
+- score: Recommendation score 0-100
+- basedOnTrends: Referenced trend titles (array)`;
+
+// =============================================================================
+// Main Function
+// =============================================================================
+
+export async function generateAIRecommendations(
+  input: GenerateRecommendationsInput
+): Promise<AIGeneratedRecommendation[]> {
+  const { trends, userPreferences, count = 3, language = "ko" } = input;
+
+  if (!genAI) {
+    console.warn("GEMINI_API_KEY not set, returning empty recommendations");
+    return [];
+  }
+
+  // Build trend context
+  const trendContext = trends
+    .slice(0, 10) // Limit to top 10 trends
+    .map(
+      (t, i) =>
+        `${i + 1}. "${t.title}" (카테고리: ${t.category}, 조회수: ${t.views}, 성장률: ${t.growth})`
+    )
+    .join("\n");
+
+  // Build user context
+  let userContext = "";
+  if (userPreferences) {
+    if (userPreferences.preferredCategories?.length) {
+      userContext += `\n선호 카테고리: ${userPreferences.preferredCategories.join(", ")}`;
+    }
+    if (userPreferences.channelDescription) {
+      userContext += `\n채널 설명: ${userPreferences.channelDescription}`;
+    }
+    if (userPreferences.targetAudienceType) {
+      userContext += `\n타겟 오디언스: ${userPreferences.targetAudienceType}`;
+    }
+  }
+
+  const systemPrompt = language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
+
+  const userPrompt =
+    language === "ko"
+      ? `다음 실시간 트렌드를 분석하고, 유튜버에게 ${count}개의 콘텐츠 아이디어를 추천해주세요.
+
+현재 트렌드:
+${trendContext}
+${userContext}
+
+중요:
+1. 트렌드를 창의적으로 재해석하거나 여러 트렌드를 조합해주세요
+2. 다양한 콘텐츠 톤과 난이도를 섞어주세요
+3. 구체적이고 실행 가능한 아이디어를 제안해주세요
+4. 예상 조회수와 성장률은 현실적으로 산정해주세요
+5. JSON 배열만 반환하세요`
+      : `Analyze the following real-time trends and recommend ${count} content ideas for YouTubers.
+
+Current Trends:
+${trendContext}
+${userContext}
+
+Important:
+1. Creatively reinterpret trends or combine multiple trends
+2. Mix different content tones and difficulty levels
+3. Suggest specific, actionable ideas
+4. Estimate views and growth rates realistically
+5. Return only a JSON array`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 4096,
+      },
+    });
+
+    const response = result.response;
+    const text = response.text();
+
+    if (!text) {
+      console.error("No text content in Gemini response");
+      return [];
+    }
+
+    // Parse JSON response
+    const jsonText = text.trim();
+
+    // Try to extract JSON array from response
+    let recommendations: AIGeneratedRecommendation[];
+    try {
+      // Try direct parse first
+      recommendations = JSON.parse(jsonText);
+    } catch {
+      // Try to find JSON array in response
+      const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        recommendations = JSON.parse(jsonMatch[0]);
+      } else {
+        console.error("Failed to parse Gemini response as JSON:", jsonText);
+        return [];
+      }
+    }
+
+    // Validate and normalize recommendations
+    return recommendations.map((rec) => ({
+      title: rec.title || "Untitled",
+      reason: rec.reason || "AI 추천",
+      description: rec.description || "",
+      hooks: Array.isArray(rec.hooks) ? rec.hooks : [],
+      targetAudience: rec.targetAudience || "일반 시청자",
+      estimatedViews: rec.estimatedViews || "10K-50K",
+      difficulty: validateDifficulty(rec.difficulty),
+      videoType: validateVideoType(rec.videoType),
+      contentTone: rec.contentTone || "informative",
+      growthRate: rec.growthRate || "+50%",
+      score: typeof rec.score === "number" ? Math.min(100, Math.max(0, rec.score)) : 75,
+      basedOnTrends: Array.isArray(rec.basedOnTrends) ? rec.basedOnTrends : [],
+    }));
+  } catch (error) {
+    console.error("Failed to generate AI recommendations:", error);
+    return [];
+  }
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function validateDifficulty(value: unknown): "easy" | "medium" | "hard" {
+  if (value === "easy" || value === "medium" || value === "hard") {
+    return value;
+  }
+  return "medium";
+}
+
+function validateVideoType(value: unknown): "short" | "medium" | "long" {
+  if (value === "short" || value === "medium" || value === "long") {
+    return value;
+  }
+  return "medium";
+}

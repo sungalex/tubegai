@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, RefreshCw, ExternalLink, Lightbulb } from "lucide-react";
-import { Link } from "react-router";
+import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, RefreshCw, ExternalLink, Lightbulb, Loader2, Eye, Target } from "lucide-react";
+import { useNavigate } from "react-router";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { toast } from "sonner";
 import { Input } from "~/common/components/ui/input";
@@ -28,13 +28,18 @@ interface TrendAnalyzerProps {
   trends: TrendItem[];
   recommendations: AIRecommendation[];
   onSaveIdea?: (idea: SavedIdea) => void;
+  onRefreshRecommendations?: (newRecommendations: AIRecommendation[]) => void;
 }
 
-export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRecommendations }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
+  const [savingTrendId, setSavingTrendId] = useState<number | null>(null);
+  const [savingRecommendationIdx, setSavingRecommendationIdx] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigate = useNavigate();
   const { t } = useTranslation("project");
   const { t: tc } = useTranslation("common");
 
@@ -101,10 +106,10 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
       const idea = {
         id: crypto.randomUUID(),
         title: recommendation.title,
-        description: `AI 추천 아이디어: ${recommendation.reason}`,
-        hooks: [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
-        targetAudience: "일반 시청자",
-        estimatedViews: "10K-50K",
+        description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
+        hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
+        targetAudience: recommendation.targetAudience || "일반 시청자",
+        estimatedViews: recommendation.estimatedViews || "10K-50K",
         difficulty: "medium" as const,
         basedOnTrend: recommendation.title,
       };
@@ -148,6 +153,119 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
     };
     setSelectedTrend(defaultTrend);
     setIsIdeaDialogOpen(true);
+  };
+
+  // Refresh AI recommendations
+  const handleRefreshRecommendations = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch("/api/ai-recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: "ko" }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("추천 새로고침 실패", { description: data.error });
+        return;
+      }
+
+      if (data.recommendations && onRefreshRecommendations) {
+        onRefreshRecommendations(data.recommendations);
+        toast.success("AI 추천이 새로고침 되었습니다!");
+      }
+    } catch (error) {
+      toast.error("추천 새로고침 실패");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Save trend as idea and navigate to new project page
+  const handleUseTheme = async (trend: TrendItem) => {
+    setSavingTrendId(trend.id);
+    try {
+      const idea = {
+        id: crypto.randomUUID(),
+        title: trend.title,
+        description: `트렌드 기반 아이디어: ${trend.category}`,
+        hooks: [`${trend.title}에 대한 흥미로운 시작`, `왜 ${trend.title}이 중요한지`, `${trend.title}의 핵심 포인트`],
+        targetAudience: "일반 시청자",
+        estimatedViews: trend.views,
+        difficulty: "medium" as const,
+        basedOnTrend: trend.title,
+        trendId: trend.id,
+      };
+
+      const response = await fetch("/api/saved-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
+        return;
+      }
+
+      // Notify parent component of saved idea
+      if (data.idea && onSaveIdea) {
+        onSaveIdea(data.idea);
+      }
+
+      toast.success("아이디어가 저장되었습니다!");
+      navigate("/projects/new", { state: { topic: trend.title } });
+    } catch (error) {
+      toast.error("아이디어 저장 실패");
+    } finally {
+      setSavingTrendId(null);
+    }
+  };
+
+  // Save recommendation as idea and navigate to new project page
+  const handleUseIdea = async (recommendation: AIRecommendation, idx: number) => {
+    setSavingRecommendationIdx(idx);
+    try {
+      const idea = {
+        id: crypto.randomUUID(),
+        title: recommendation.title,
+        description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
+        hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
+        targetAudience: recommendation.targetAudience || "일반 시청자",
+        estimatedViews: recommendation.estimatedViews || "10K-50K",
+        difficulty: "medium" as const,
+        basedOnTrend: recommendation.title,
+      };
+
+      const response = await fetch("/api/saved-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
+        return;
+      }
+
+      // Notify parent component of saved idea
+      if (data.idea && onSaveIdea) {
+        onSaveIdea(data.idea);
+      }
+
+      toast.success("아이디어가 저장되었습니다!");
+      navigate("/projects/new", { state: { topic: recommendation.title } });
+    } catch (error) {
+      toast.error("아이디어 저장 실패");
+    } finally {
+      setSavingRecommendationIdx(null);
+    }
   };
 
   return (
@@ -281,12 +399,16 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
                           <Button
                             size="sm"
                             className="w-full bg-red-600 hover:bg-red-700 text-white"
-                            asChild
-                            onClick={(e) => e.stopPropagation()}
+                            disabled={savingTrendId === trend.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUseTheme(trend);
+                            }}
                           >
-                            <Link to="/projects/new" state={{ topic: trend.title }}>
-                              {t("trends.useTheme")}
-                            </Link>
+                            {savingTrendId === trend.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : null}
+                            {t("trends.useTheme")}
                           </Button>
                           <Button
                             size="sm"
@@ -336,11 +458,11 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
       {/* Idea Hub Section - Now on BOTTOM */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Lightbulb className="h-6 w-6 text-yellow-500" />
+          <h3 className="text-xl font-semibold flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-yellow-500" />
             {t("trends.ideaHubTitle")}
-          </h2>
-          <p className="text-muted-foreground">{t("trends.ideaHubSubtitle")}</p>
+          </h3>
+          <p className="text-muted-foreground text-sm">{t("trends.ideaHubSubtitle")}</p>
         </div>
         <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
@@ -353,32 +475,76 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
                 {t("trends.topPicks")}
               </h3>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-background/80 hover:bg-background"
-              onClick={handleOpenIdeaGenerator}
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              {t("trends.newIdea")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/80 hover:bg-background"
+                onClick={handleRefreshRecommendations}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
+                {t("trends.refreshIdeas")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/80 hover:bg-background"
+                onClick={handleOpenIdeaGenerator}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                {t("trends.newIdea")}
+              </Button>
+            </div>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {recommendations.map((item, idx) => (
             <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
-              <CardContent className="p-4 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
-                      {item.reason}
-                    </Badge>
-                    <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
-                      <TrendingUp className="h-3 w-3" /> {item.growth}
-                    </span>
-                  </div>
-                  <h4 className="font-medium group-hover:text-purple-400 transition-colors">{item.title}</h4>
+              <CardContent className="p-4 flex flex-col h-full gap-3">
+                {/* Header: Badge + Growth */}
+                <div className="flex justify-between items-start">
+                  <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
+                    {item.reason}
+                  </Badge>
+                  <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
+                    <TrendingUp className="h-3 w-3" /> {item.growth}
+                  </span>
                 </div>
-                <div className="flex gap-2 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+
+                {/* Title */}
+                <h4 className="font-medium group-hover:text-purple-400 transition-colors line-clamp-2">{item.title}</h4>
+
+                {/* Description */}
+                {item.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                )}
+
+                {/* Hook Preview */}
+                {item.hooks && item.hooks.length > 0 && (
+                  <div className="text-xs bg-purple-500/5 rounded-md p-2 border border-purple-500/10">
+                    <span className="font-medium text-purple-400">Hook: </span>
+                    <span className="text-muted-foreground line-clamp-1">{item.hooks[0]}</span>
+                  </div>
+                )}
+
+                {/* Stats: Audience + Views */}
+                <div className="flex flex-wrap gap-3 text-xs">
+                  {item.targetAudience && (
+                    <div className="flex items-center gap-1">
+                      <Target className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground truncate max-w-24">{item.targetAudience}</span>
+                    </div>
+                  )}
+                  {item.estimatedViews && (
+                    <div className="flex items-center gap-1">
+                      <Eye className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-green-500 font-medium">{item.estimatedViews}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 mt-auto pt-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -399,9 +565,13 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea }: TrendAnal
                   <Button
                     size="sm"
                     className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
-                    asChild
+                    disabled={savingRecommendationIdx === idx}
+                    onClick={() => handleUseIdea(item, idx)}
                   >
-                    <Link to="/projects/new" state={{ topic: item.title }}>{t("trends.useIdea")}</Link>
+                    {savingRecommendationIdx === idx ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : null}
+                    {t("trends.useIdea")}
                   </Button>
                 </div>
               </CardContent>

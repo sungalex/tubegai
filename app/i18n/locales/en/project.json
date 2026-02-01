@@ -111,7 +111,8 @@
     "watchVideo": "Watch Video",
     "newIdea": "New Idea",
     "regeneration": "Re-Generation",
-    "useIdea": "Use Idea"
+    "useIdea": "Use Idea",
+    "refreshIdeas": "Refresh AI"
   },
   "ideaGenerator": {
     "title": "AI Idea Generator",
@@ -157,5 +158,45 @@
     "professionals": "Professionals",
     "parents": "Parents",
     "seniors": "Seniors"
+  },
+  "savedIdeas": {
+    "title": "Saved Ideas",
+    "count": "{{count}} idea(s) saved",
+    "noIdeas": "No saved ideas yet",
+    "noIdeasDescription": "Browse the Trends tab and use the AI Idea Generator to create and save content ideas for later.",
+    "exploreTrends": "Explore Trends",
+    "useIdea": "Use Idea",
+    "deleteTitle": "Delete saved idea?",
+    "deleteDescription": "This will permanently delete \"{{title}}\" from your saved ideas. This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "pagination": {
+      "showing": "Showing {{start}}-{{end}} of {{total}}",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "edit": {
+      "title": "Edit Idea",
+      "description": "Modify your saved idea details.",
+      "ideaTitle": "Title",
+      "titlePlaceholder": "Enter idea title",
+      "titleRequired": "Title is required",
+      "ideaDescription": "Description",
+      "descriptionPlaceholder": "Enter idea description",
+      "hooks": "Hook Ideas",
+      "addHook": "Add Hook",
+      "hookPlaceholder": "Enter a hook idea",
+      "noHooks": "No hooks yet. Add some hooks.",
+      "targetAudience": "Target Audience",
+      "audiencePlaceholder": "Enter target audience",
+      "estimatedViews": "Estimated Views",
+      "difficulty": "Difficulty",
+      "difficultyEasy": "Easy",
+      "difficultyMedium": "Medium",
+      "difficultyHard": "Hard",
+      "save": "Save",
+      "saveSuccess": "Idea updated successfully",
+      "saveFailed": "Failed to update idea"
+    }
   }
 }

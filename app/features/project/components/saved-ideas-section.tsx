@@ -6,10 +6,13 @@ import {
   ExternalLink,
   Target,
   Eye,
+  ChevronLeft,
   ChevronRight,
   Lightbulb,
   CheckCircle2,
+  Pencil,
 } from "lucide-react";
+import { useTranslation } from "~/i18n/context";
 import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
 import { Badge } from "~/common/components/ui/badge";
@@ -33,14 +36,42 @@ import {
 } from "~/common/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import type { SavedIdea } from "~/common/types/ideation.types";
+import { EditIdeaDialog } from "./edit-idea-dialog";
 
 interface SavedIdeasSectionProps {
   ideas: SavedIdea[];
   onDelete?: (ideaId: string) => void;
+  onEdit?: (updatedIdea: SavedIdea) => void;
 }
 
-export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
+const ITEMS_PER_PAGE = 6;
+
+export function SavedIdeasSection({ ideas, onDelete, onEdit }: SavedIdeasSectionProps) {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [editingIdea, setEditingIdea] = useState<SavedIdea | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { t } = useTranslation("project");
+
+  const handleEditClick = (idea: SavedIdea) => {
+    setEditingIdea(idea);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSave = (updatedIdea: SavedIdea) => {
+    onEdit?.(updatedIdea);
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(ideas.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedIdeas = ideas.slice(startIndex, endIndex);
+
+  // Reset to page 1 if current page exceeds total pages (e.g., after deletion)
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  }
 
   const handleDelete = async (ideaId: string) => {
     setDeletingIds((prev) => new Set([...prev, ideaId]));
@@ -89,15 +120,14 @@ export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
         <div className="rounded-full bg-muted p-4 mb-4">
           <Lightbulb className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium mb-2">No saved ideas yet</h3>
+        <h3 className="text-lg font-medium mb-2">{t("savedIdeas.noIdeas")}</h3>
         <p className="text-muted-foreground text-sm max-w-md mb-4">
-          Browse the Trends tab and use the AI Idea Generator to create and save
-          content ideas for later.
+          {t("savedIdeas.noIdeasDescription")}
         </p>
         <Button variant="outline" asChild>
           <Link to="/projects">
             <ExternalLink className="h-4 w-4 mr-2" />
-            Explore Trends
+            {t("savedIdeas.exploreTrends")}
           </Link>
         </Button>
       </div>
@@ -108,18 +138,18 @@ export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            <Bookmark className="h-5 w-5" />
-            Saved Ideas
+          <h3 className="text-xl font-semibold flex items-center gap-2">
+            <Bookmark className="h-5 w-5 text-blue-500" />
+            {t("savedIdeas.title")}
           </h3>
-          <p className="text-sm text-muted-foreground">
-            {ideas.length} idea{ideas.length !== 1 ? "s" : ""} saved
+          <p className="text-muted-foreground text-sm">
+            {t("dashboard.savedIdeasSection.subtitle")} · {t("savedIdeas.count", { count: ideas.length })}
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {ideas.map((idea) => (
+        {paginatedIdeas.map((idea) => (
           <Card
             key={idea.id}
             className={idea.isUsed ? "opacity-60" : ""}
@@ -202,8 +232,15 @@ export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
                     to="/projects/new"
                     state={{ topic: idea.title, hooks: idea.hooks }}
                   >
-                    Use Idea
+                    {t("savedIdeas.useIdea")}
                   </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleEditClick(idea)}
+                >
+                  <Pencil className="h-3 w-3" />
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -218,19 +255,18 @@ export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete saved idea?</AlertDialogTitle>
+                      <AlertDialogTitle>{t("savedIdeas.deleteTitle")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete "{idea.title}" from your
-                        saved ideas. This action cannot be undone.
+                        {t("savedIdeas.deleteDescription", { title: idea.title })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{t("savedIdeas.cancel")}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => handleDelete(idea.id)}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete
+                        {t("savedIdeas.delete")}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -240,6 +276,60 @@ export function SavedIdeasSection({ ideas, onDelete }: SavedIdeasSectionProps) {
           </Card>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <p className="text-sm text-muted-foreground">
+            {t("savedIdeas.pagination.showing", {
+              start: startIndex + 1,
+              end: Math.min(endIndex, ideas.length),
+              total: ideas.length,
+            })}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t("savedIdeas.pagination.prev")}
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              {t("savedIdeas.pagination.next")}
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <EditIdeaDialog
+        idea={editingIdea}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleEditSave}
+      />
     </div>
   );
 }

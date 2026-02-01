@@ -110,8 +110,9 @@
     "generateIdeas": "아이디어 생성",
     "watchVideo": "영상 보기",
     "newIdea": "아이디어 생성",
-    "regeneration": "Re-Generation",
-    "useIdea": "Use Idea"
+    "regeneration": "재생성",
+    "useIdea": "아이디어 사용",
+    "refreshIdeas": "AI 새로고침"
   },
   "ideaGenerator": {
     "title": "AI 아이디어 생성기",
@@ -157,5 +158,45 @@
     "professionals": "전문가",
     "parents": "부모",
     "seniors": "시니어"
+  },
+  "savedIdeas": {
+    "title": "저장된 아이디어",
+    "count": "{{count}}개 아이디어 저장됨",
+    "noIdeas": "저장된 아이디어가 없습니다",
+    "noIdeasDescription": "트렌드 탭에서 AI 아이디어 생성기를 사용하여 콘텐츠 아이디어를 만들고 저장하세요.",
+    "exploreTrends": "트렌드 탐색",
+    "useIdea": "아이디어 사용",
+    "deleteTitle": "저장된 아이디어를 삭제하시겠습니까?",
+    "deleteDescription": "\"{{title}}\"을(를) 저장된 아이디어에서 영구적으로 삭제합니다. 이 작업은 취소할 수 없습니다.",
+    "cancel": "취소",
+    "delete": "삭제",
+    "pagination": {
+      "showing": "{{total}}개 중 {{start}}-{{end}}개 표시",
+      "prev": "이전",
+      "next": "다음"
+    },
+    "edit": {
+      "title": "아이디어 편집",
+      "description": "저장된 아이디어의 내용을 수정합니다.",
+      "ideaTitle": "제목",
+      "titlePlaceholder": "아이디어 제목을 입력하세요",
+      "titleRequired": "제목을 입력해주세요",
+      "ideaDescription": "설명",
+      "descriptionPlaceholder": "아이디어에 대한 설명을 입력하세요",
+      "hooks": "훅 아이디어",
+      "addHook": "훅 추가",
+      "hookPlaceholder": "훅 아이디어를 입력하세요",
+      "noHooks": "훅이 없습니다. 훅을 추가해보세요.",
+      "targetAudience": "타겟 오디언스",
+      "audiencePlaceholder": "타겟 오디언스를 입력하세요",
+      "estimatedViews": "예상 조회수",
+      "difficulty": "난이도",
+      "difficultyEasy": "쉬움",
+      "difficultyMedium": "보통",
+      "difficultyHard": "어려움",
+      "save": "저장",
+      "saveSuccess": "아이디어가 수정되었습니다",
+      "saveFailed": "아이디어 수정에 실패했습니다"
+    }
   }
 }

@@ -465,3 +465,51 @@ export async function markIdeaAsUsed(
 
   return result.length > 0;
 }
+
+/**
+ * Update a saved idea
+ */
+export interface UpdateIdeaInput {
+  title?: string;
+  description?: string;
+  hooks?: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: "easy" | "medium" | "hard";
+}
+
+export async function updateSavedIdea(
+  userId: string,
+  ideaId: string,
+  updates: UpdateIdeaInput
+): Promise<SavedIdea | null> {
+  const [updatedIdea] = await db
+    .update(schema.savedIdeas)
+    .set({
+      ...updates,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(schema.savedIdeas.id, ideaId), eq(schema.savedIdeas.userId, userId))
+    )
+    .returning();
+
+  if (!updatedIdea) return null;
+
+  return {
+    id: updatedIdea.id,
+    userId: updatedIdea.userId,
+    title: updatedIdea.title,
+    description: updatedIdea.description,
+    hooks: updatedIdea.hooks,
+    targetAudience: updatedIdea.targetAudience,
+    estimatedViews: updatedIdea.estimatedViews,
+    difficulty: updatedIdea.difficulty as SavedIdea["difficulty"],
+    basedOnTrend: updatedIdea.basedOnTrend,
+    trendId: updatedIdea.trendId ?? undefined,
+    usedForProjectId: updatedIdea.usedForProjectId ?? undefined,
+    isUsed: updatedIdea.isUsed,
+    createdAt: updatedIdea.createdAt,
+    updatedAt: updatedIdea.updatedAt,
+  };
+}

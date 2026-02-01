@@ -8,8 +8,9 @@ import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
 import { SavedIdeasSection } from "../components/saved-ideas-section";
-import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data.server";
+import { getRecentProjects, getTrends } from "~/common/data/project.data.server";
 import { getSavedIdeas } from "~/common/data/ideation.data.server";
+import { getAIRecommendationsForUser } from "~/common/data/ai-recommendation.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { SavedIdea } from "~/common/types/ideation.types";
 import { useTranslation } from "~/i18n/context";
@@ -17,12 +18,19 @@ import { useTranslation } from "~/i18n/context";
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
 
-  const [recentProjects, trends, recommendations, savedIdeas] = await Promise.all([
+  // First get trends, then use them for AI recommendations
+  const [recentProjects, trends, savedIdeas] = await Promise.all([
     getRecentProjects(userId),
     getTrends(),
-    getAIRecommendations(),
     getSavedIdeas(userId),
   ]);
+
+  // Generate AI recommendations based on current trends
+  const recommendations = await getAIRecommendationsForUser(userId, trends, {
+    count: 3,
+    language: "ko",
+  });
+
   return { recentProjects, trends, recommendations, savedIdeas };
 }
 
@@ -34,8 +42,9 @@ export const meta = () => {
 };
 
 export default function DashboardPage({ loaderData }: Route.ComponentProps) {
-  const { recentProjects, trends, recommendations, savedIdeas: initialSavedIdeas } = loaderData;
+  const { recentProjects, trends, recommendations: initialRecommendations, savedIdeas: initialSavedIdeas } = loaderData;
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(initialSavedIdeas);
+  const [recommendations, setRecommendations] = useState(initialRecommendations);
   const { t } = useTranslation("project");
 
   const handleDeleteIdea = (ideaId: string) => {
@@ -44,6 +53,16 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
   const handleSaveIdea = (idea: SavedIdea) => {
     setSavedIdeas((prev) => [idea, ...prev]);
+  };
+
+  const handleEditIdea = (updatedIdea: SavedIdea) => {
+    setSavedIdeas((prev) =>
+      prev.map((idea) => (idea.id === updatedIdea.id ? updatedIdea : idea))
+    );
+  };
+
+  const handleRefreshRecommendations = (newRecommendations: typeof recommendations) => {
+    setRecommendations(newRecommendations);
   };
 
   return (
@@ -77,19 +96,12 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         {/* TRENDS & IDEATION TAB */}
         <TabsContent value="trends" className="space-y-6">
           {/* Full Trend Analyzer Component */}
-          <TrendAnalyzer trends={trends} recommendations={recommendations} onSaveIdea={handleSaveIdea} />
+          <TrendAnalyzer trends={trends} recommendations={recommendations} onSaveIdea={handleSaveIdea} onRefreshRecommendations={handleRefreshRecommendations} />
         </TabsContent>
 
         {/* SAVED IDEAS TAB */}
         <TabsContent value="saved-ideas" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{t("dashboard.savedIdeasSection.title")}</h2>
-              <p className="text-muted-foreground">{t("dashboard.savedIdeasSection.subtitle")}</p>
-            </div>
-          </div>
-
-          <SavedIdeasSection ideas={savedIdeas} onDelete={handleDeleteIdea} />
+          <SavedIdeasSection ideas={savedIdeas} onDelete={handleDeleteIdea} onEdit={handleEditIdea} />
         </TabsContent>
 
         {/* ACTIVE PROJECTS TAB */}
