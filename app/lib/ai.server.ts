@@ -148,7 +148,7 @@ Important:
 5. Return only a JSON array`;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent({
       contents: [
@@ -206,7 +206,10 @@ Important:
       basedOnTrends: Array.isArray(rec.basedOnTrends) ? rec.basedOnTrends : [],
     }));
   } catch (error) {
-    console.error("Failed to generate AI recommendations:", error);
+    console.error("Failed to generate AI recommendations:", error instanceof Error ? error.message : error);
+    if (error instanceof Error && error.stack) {
+      console.error("Stack:", error.stack);
+    }
     return [];
   }
 }

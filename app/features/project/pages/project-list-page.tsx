@@ -60,17 +60,17 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
   // Handle search submit (reset to page 1)
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/projects/lists${buildUrl({ q: searchQuery, sort })}`);
+    navigate(`/projects?tab=active-projects${buildUrl({ q: searchQuery, sort })}`);
   }
 
   // Handle sort change (reset to page 1)
   function handleSortChange(newSort: ProjectSortOption) {
-    navigate(`/projects/lists${buildUrl({ q: search, sort: newSort })}`);
+    navigate(`/projects?tab=active-projects${buildUrl({ q: search, sort: newSort })}`);
   }
 
   // Handle page change
   function handlePageChange(page: number) {
-    navigate(`/projects/lists${buildUrl({ q: search, sort, page })}`);
+    navigate(`/projects?tab=active-projects${buildUrl({ q: search, sort, page })}`);
   }
 
   // Get current sort label
@@ -220,7 +220,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 : t("list.empty.noProjects")}
             </p>
             {search ? (
-              <Button variant="outline" onClick={() => navigate("/projects/lists")}>
+              <Button variant="outline" onClick={() => navigate("/projects?tab=active-projects")}>
                 {tc("button.clearSearch")}
               </Button>
             ) : (

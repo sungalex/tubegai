@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/common/c
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
 import { Link } from "react-router";
-import { Clock, MoreHorizontal, Play, Edit2 } from "lucide-react";
+import { Clock, MoreHorizontal, Play, Edit2, Info } from "lucide-react";
 
 interface Project {
   id: string;
@@ -63,11 +63,17 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <span className="text-xs text-muted-foreground">{project.progress}% completed</span>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-2">
-        <Button asChild className="w-full text-xs h-9 px-2">
+      <CardFooter className="p-4 pt-2 gap-2">
+        <Button asChild variant="outline" className="flex-1 text-xs h-9 px-2">
+          <Link to={`/projects/${project.id}`}>
+            <Info className="w-3.5 h-3.5 mr-1.5" />
+            상세
+          </Link>
+        </Button>
+        <Button asChild className="flex-1 text-xs h-9 px-2">
           <Link to={`/studio/script/${project.id}`}>
             <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-            Open in Studio
+            스튜디오
           </Link>
         </Button>
       </CardFooter>

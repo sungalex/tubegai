@@ -218,7 +218,15 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
       }
 
       toast.success("아이디어가 저장되었습니다!");
-      navigate("/projects/new", { state: { topic: trend.title } });
+      // Pass full idea data to new project page
+      navigate("/projects/new", {
+        state: {
+          idea: data.idea,
+          topic: trend.title,
+          fromTrend: true,
+          trendId: trend.id,
+        }
+      });
     } catch (error) {
       toast.error("아이디어 저장 실패");
     } finally {
@@ -260,7 +268,17 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
       }
 
       toast.success("아이디어가 저장되었습니다!");
-      navigate("/projects/new", { state: { topic: recommendation.title } });
+      // Pass full idea data to new project page
+      navigate("/projects/new", {
+        state: {
+          idea: data.idea,
+          topic: recommendation.title,
+          hooks: recommendation.hooks,
+          targetAudience: recommendation.targetAudience,
+          estimatedViews: recommendation.estimatedViews,
+          description: recommendation.description,
+        }
+      });
     } catch (error) {
       toast.error("아이디어 저장 실패");
     } finally {

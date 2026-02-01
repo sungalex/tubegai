@@ -14,7 +14,7 @@
  * - channel_video, project_pipeline, project_seo, ai_generation_cache
  */
 
-import { uuid, text, timestamp, integer, bigint, primaryKey, boolean } from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, integer, bigint, primaryKey, boolean, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import {
   mediaTypeEnum,
@@ -25,6 +25,8 @@ import {
   projectStatusEnum,
   channelStatusEnum,
   ideaDifficultyEnum,
+  contentToneEnum,
+  videoLengthEnum,
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
@@ -71,6 +73,39 @@ export const projects = tubegaiSchema.table("project", {
   progress: integer("progress").default(0).notNull(),
   currentStep: text("current_step"),
   thumbnailUrl: text("thumbnail_url"),
+
+  // ============================================
+  // AI Context Fields (for Studio AI generation)
+  // ============================================
+  // Opening hooks for the video (AI-generated or user-provided)
+  hooks: text("hooks").array(),
+  // Target audience description
+  targetAudience: text("target_audience"),
+  // Expected view range (e.g., "50K-100K")
+  estimatedViews: text("estimated_views"),
+  // Production difficulty
+  difficulty: ideaDifficultyEnum("difficulty"),
+  // Content tone (more flexible than tone enum)
+  contentTone: contentToneEnum("content_tone"),
+  // Video length type
+  videoLength: videoLengthEnum("video_length"),
+  // Source trend title (if based on trend)
+  basedOnTrend: text("based_on_trend"),
+  // Source trend ID (for reference)
+  basedOnTrendId: integer("based_on_trend_id"),
+  // Source saved idea ID (if created from saved idea)
+  sourceIdeaId: uuid("source_idea_id"),
+  // Additional AI context data (flexible JSON for studio use)
+  aiContext: jsonb("ai_context").$type<{
+    keywords?: string[];
+    competitors?: string[];
+    references?: string[];
+    styleNotes?: string;
+    scriptGuidelines?: string;
+    targetLength?: string;
+    callToAction?: string;
+    additionalNotes?: string;
+  }>(),
 });
 
 // ============================================
@@ -99,6 +134,10 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   mediaAssets: many(mediaAssets),
   labels: many(projectLabels),
+  sourceIdea: one(savedIdeas, {
+    fields: [projects.sourceIdeaId],
+    references: [savedIdeas.id],
+  }),
   // Note: trend relation is defined in trend-schema.ts
 }));
 

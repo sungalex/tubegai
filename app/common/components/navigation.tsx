@@ -82,13 +82,6 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
         icon: LayoutDashboard,
       },
       {
-        name: t("projects.allProjects.name"),
-        description: t("projects.allProjects.description"),
-        to: "/projects/lists",
-        featured: true,
-        icon: FolderKanban,
-      },
-      {
         name: t("projects.newProject.name"),
         description: t("projects.newProject.description"),
         to: "/projects/new",

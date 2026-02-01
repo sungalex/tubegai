@@ -54,8 +54,129 @@ const STATUS_DISPLAY_MAP: Record<string, string> = {
 };
 
 // =============================================================================
+// Project Creation Types
+// =============================================================================
+
+export interface CreateProjectInput {
+  title: string;
+  description?: string;
+  type: "short" | "long";
+  tone?: "informative" | "funny" | "cinematic" | "vlog";
+  visibility: "public" | "private";
+  topic?: string;
+  channelId?: string;
+  labels?: string[];
+  // AI Context fields
+  hooks?: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
+  videoLength?: "short" | "medium" | "long";
+  basedOnTrend?: string;
+  basedOnTrendId?: number;
+  sourceIdeaId?: string;
+  aiContext?: {
+    keywords?: string[];
+    competitors?: string[];
+    references?: string[];
+    styleNotes?: string;
+    scriptGuidelines?: string;
+    targetLength?: string;
+    callToAction?: string;
+    additionalNotes?: string;
+  };
+}
+
+// =============================================================================
 // Project Data Functions
 // =============================================================================
+
+/**
+ * Create a new project with AI context
+ */
+export async function createProject(
+  userId: string,
+  input: CreateProjectInput
+): Promise<{ id: string }> {
+  // Helper to convert empty strings to undefined (for enum fields)
+  const emptyToNull = <T>(value: T | string | undefined): T | undefined => {
+    if (value === "" || value === undefined || value === null) return undefined;
+    return value as T;
+  };
+
+  const [project] = await db
+    .insert(schema.projects)
+    .values({
+      ownerId: userId,
+      title: input.title,
+      description: emptyToNull(input.description),
+      type: input.type,
+      tone: emptyToNull(input.tone),
+      visibility: input.visibility,
+      topic: emptyToNull(input.topic),
+      channelId: emptyToNull(input.channelId),
+      status: "draft",
+      progress: 0,
+      currentStep: "Script",
+      // AI Context fields
+      hooks: input.hooks,
+      targetAudience: emptyToNull(input.targetAudience),
+      estimatedViews: emptyToNull(input.estimatedViews),
+      difficulty: emptyToNull(input.difficulty),
+      contentTone: emptyToNull(input.contentTone),
+      videoLength: emptyToNull(input.videoLength),
+      basedOnTrend: emptyToNull(input.basedOnTrend),
+      basedOnTrendId: input.basedOnTrendId,
+      sourceIdeaId: emptyToNull(input.sourceIdeaId),
+      aiContext: input.aiContext,
+    })
+    .returning({ id: schema.projects.id });
+
+  // Add labels if provided
+  if (input.labels && input.labels.length > 0) {
+    await db.insert(schema.projectLabels).values(
+      input.labels.map((labelId) => ({
+        projectId: project.id,
+        labelId,
+      }))
+    );
+  }
+
+  // Mark source idea as used if provided
+  if (input.sourceIdeaId) {
+    await db
+      .update(schema.savedIdeas)
+      .set({
+        isUsed: true,
+        usedForProjectId: project.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.savedIdeas.id, input.sourceIdeaId));
+  }
+
+  return { id: project.id };
+}
+
+/**
+ * Fetch project statistics by status for dashboard
+ */
+export async function getProjectStats(userId: string): Promise<{
+  inProgress: number;
+  completed: number;
+  drafts: number;
+}> {
+  const projects = await db.query.projects.findMany({
+    where: eq(schema.projects.ownerId, userId),
+    columns: { status: true },
+  });
+
+  return {
+    inProgress: projects.filter((p) => p.status === "in_progress").length,
+    completed: projects.filter((p) => p.status === "completed").length,
+    drafts: projects.filter((p) => p.status === "draft").length,
+  };
+}
 
 /**
  * Fetch recent projects for dashboard (max 4, ordered by updatedAt)
@@ -74,6 +195,15 @@ export async function getRecentProjects(userId: string): Promise<RecentProject[]
     date: formatDistanceToNow(project.updatedAt, { addSuffix: true }),
     step: project.currentStep ?? "Script",
     progress: project.progress,
+    // AI Context fields
+    topic: project.topic ?? undefined,
+    targetAudience: project.targetAudience ?? undefined,
+    estimatedViews: project.estimatedViews ?? undefined,
+    contentTone: project.contentTone ?? undefined,
+    videoLength: project.videoLength ?? undefined,
+    difficulty: project.difficulty ?? undefined,
+    basedOnTrend: project.basedOnTrend ?? undefined,
+    thumbnailUrl: project.thumbnailUrl ?? undefined,
   }));
 }
 
@@ -142,16 +272,120 @@ export async function getProjects(
 }
 
 /**
- * Fetch a single project by ID
- * TODO: Replace with API call
+ * Full project data for detail page
+ */
+export interface ProjectFullDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  progress: number;
+  currentStep: string | null;
+  thumbnailUrl: string | null;
+  type: string;
+  tone: string | null;
+  visibility: string;
+  topic: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // AI Context fields
+  hooks: string[] | null;
+  targetAudience: string | null;
+  estimatedViews: string | null;
+  difficulty: string | null;
+  contentTone: string | null;
+  videoLength: string | null;
+  basedOnTrend: string | null;
+  basedOnTrendId: number | null;
+  sourceIdeaId: string | null;
+  aiContext: {
+    keywords?: string[];
+    competitors?: string[];
+    references?: string[];
+    styleNotes?: string;
+    scriptGuidelines?: string;
+    targetLength?: string;
+    callToAction?: string;
+    additionalNotes?: string;
+  } | null;
+  // Relations
+  channel: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+  labels: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
+}
+
+/**
+ * Fetch a single project by ID with full details
  */
 export async function getProjectById(
   id: string,
-): Promise<ProjectDetail | null> {
-  if (PROJECT_DETAIL.id === id) {
-    return PROJECT_DETAIL;
-  }
-  return null;
+  userId: string
+): Promise<ProjectFullDetail | null> {
+  const project = await db.query.projects.findFirst({
+    where: and(
+      eq(schema.projects.id, id),
+      eq(schema.projects.ownerId, userId)
+    ),
+    with: {
+      channel: {
+        columns: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+        },
+      },
+      labels: {
+        with: {
+          label: {
+            columns: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project) return null;
+
+  return {
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    status: STATUS_DISPLAY_MAP[project.status] ?? project.status,
+    progress: project.progress,
+    currentStep: project.currentStep,
+    thumbnailUrl: project.thumbnailUrl,
+    type: project.type,
+    tone: project.tone,
+    visibility: project.visibility,
+    topic: project.topic,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+    // AI Context fields
+    hooks: project.hooks,
+    targetAudience: project.targetAudience,
+    estimatedViews: project.estimatedViews,
+    difficulty: project.difficulty,
+    contentTone: project.contentTone,
+    videoLength: project.videoLength,
+    basedOnTrend: project.basedOnTrend,
+    basedOnTrendId: project.basedOnTrendId,
+    sourceIdeaId: project.sourceIdeaId,
+    aiContext: project.aiContext as ProjectFullDetail["aiContext"],
+    // Relations
+    channel: project.channel,
+    labels: project.labels.map((pl) => pl.label),
+  };
 }
 
 // =============================================================================

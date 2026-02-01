@@ -147,3 +147,19 @@ export const ideaDifficultyEnum = tubegaiSchema.enum("idea_difficulty", [
   "medium",
   "hard",
 ]);
+
+// Content Tone (more flexible than project_tone)
+export const contentToneEnum = tubegaiSchema.enum("content_tone", [
+  "informative",
+  "funny",
+  "dramatic",
+  "casual",
+  "professional",
+]);
+
+// Video Length Type
+export const videoLengthEnum = tubegaiSchema.enum("video_length", [
+  "short",   // < 60s (Shorts/Reels)
+  "medium",  // 2-10 min
+  "long",    // 10+ min
+]);

@@ -45,12 +45,11 @@ export default [
   // Projects (MVP - core project management)
   ...prefix("projects", [
     index("features/project/pages/dashboard-page.tsx"),
-    route("lists", "features/project/pages/project-list-page.tsx"),
     route("new", "features/project/pages/new-project-page.tsx"),
-    // DISABLED: Channels, Labels, Project Detail (Phase 2)
+    route(":projectId", "features/project/pages/project-detail-page.tsx"),
+    // DISABLED: Channels, Labels (Phase 2)
     // route("channels", "features/project/pages/channels-page.tsx"),
     // route("labels", "features/project/pages/labels-page.tsx"),
-    // route(":projectId", "features/project/pages/project-detail-page.tsx"),
   ]),
 
   // API Routes (Ideation Hub)

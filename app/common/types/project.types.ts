@@ -9,6 +9,15 @@ export interface RecentProject {
   date: string;
   step: string;
   progress: number;
+  // AI Context fields
+  topic?: string;
+  targetAudience?: string;
+  estimatedViews?: string;
+  contentTone?: string;
+  videoLength?: string;
+  difficulty?: string;
+  basedOnTrend?: string;
+  thumbnailUrl?: string;
 }
 
 export interface Project {
