@@ -38,7 +38,7 @@ import {
 } from "~/common/components/ui/accordion";
 import { Separator } from "~/common/components/ui/separator";
 
-import { getChannels, getLabels, createProject } from "~/common/data/project.data.server";
+import { getChannelsForSelect, getLabels, createProject } from "~/common/data/project.data.server";
 import { getSavedIdeas } from "~/common/data/ideation.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { Route } from "./+types/new-project-page";
@@ -112,7 +112,7 @@ const defaultValues: Partial<ProjectFormValues> = {
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
   const [channels, labels, savedIdeas] = await Promise.all([
-    getChannels(),
+    getChannelsForSelect(userId),
     getLabels(),
     getSavedIdeas(userId),
   ]);

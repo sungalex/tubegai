@@ -145,17 +145,32 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 // Phase 1 Tables (Enabled)
 // ============================================
 
+/**
+ * Channel - YouTube 채널 정보
+ * 1 User : N Channels (1:N 관계)
+ * 사용자는 여러 유튜브 계정의 여러 채널을 관리할 수 있음
+ */
 export const channels = tubegaiSchema.table("channel", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
+  // YouTube 채널 정보
   youtubeChannelId: text("youtube_channel_id").unique().notNull(),
   name: text("name").notNull(),
   handle: text("handle"),
+  description: text("description"),
   avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
+  // 채널 통계 (YouTube API에서 동기화)
+  subscriberCount: integer("subscriber_count"),
+  videoCount: integer("video_count"),
+  viewCount: bigint("view_count", { mode: "number" }),
+  // OAuth 토큰 (동기화/업로드 시 임시 저장, 세션 종료 시 삭제 가능)
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  // 상태 관리
   status: channelStatusEnum("status").default("active").notNull(),
   lastSyncedAt: timestamp("last_synced_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

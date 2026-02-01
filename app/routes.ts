@@ -46,9 +46,10 @@ export default [
   ...prefix("projects", [
     index("features/project/pages/dashboard-page.tsx"),
     route("new", "features/project/pages/new-project-page.tsx"),
+    route("channels", "features/project/pages/channels-page.tsx"),
+    route("channels/callback", "features/project/pages/channels-callback-page.tsx"),
     route(":projectId", "features/project/pages/project-detail-page.tsx"),
-    // DISABLED: Channels, Labels (Phase 2)
-    // route("channels", "features/project/pages/channels-page.tsx"),
+    // DISABLED: Labels (Phase 2)
     // route("labels", "features/project/pages/labels-page.tsx"),
   ]),
 
@@ -57,6 +58,7 @@ export default [
     route("generate-ideas", "features/project/api/generate-ideas.ts"),
     route("saved-ideas", "features/project/api/saved-ideas.ts"),
     route("ai-recommendations", "features/project/api/ai-recommendations.ts"),
+    route("channels", "features/project/pages/channels-api.tsx"),
   ]),
 
   // Studio (MVP - core video creation workflow)

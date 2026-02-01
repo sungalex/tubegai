@@ -22,7 +22,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const locale = getLocaleFromRequest(request);
   ssrLocale = locale;
   initI18n(locale);
-  return { locale };
+  return {
+    locale,
+    ENV: {
+      SUPABASE_URL: process.env.SUPABASE_URL!,
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
+    },
+  };
 }
 
 export const links: Route.LinksFunction = () => [
@@ -63,10 +69,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
-  const { locale } = loaderData;
+  const { locale, ENV } = loaderData;
 
   return (
     <LanguageProvider initialLocale={locale}>
+      {/* Expose ENV to client-side JavaScript */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `window.ENV = ${JSON.stringify(ENV)}`,
+        }}
+      />
       <div className="py-20">
         <Navigation
           isLoggedIn={true}

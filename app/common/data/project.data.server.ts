@@ -393,11 +393,20 @@ export async function getProjectById(
 // =============================================================================
 
 /**
- * Fetch channels for dropdown/selector
- * TODO: Replace with API call
+ * Fetch channels for dropdown/selector (simple list for forms)
  */
-export async function getChannels(): Promise<Channel[]> {
-  return CHANNELS;
+export async function getChannelsForSelect(userId: string): Promise<Channel[]> {
+  const channelList = await db.query.channels.findMany({
+    where: eq(schema.channels.userId, userId),
+    orderBy: [desc(schema.channels.createdAt)],
+  });
+
+  return channelList.map((channel) => ({
+    id: channel.id,
+    name: channel.name,
+    handle: channel.handle ?? "",
+    avatar: channel.avatarUrl ?? undefined,
+  }));
 }
 
 /**

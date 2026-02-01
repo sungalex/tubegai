@@ -87,14 +87,13 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
         to: "/projects/new",
         icon: Plus,
       },
-      // DISABLED: Phase 2+
       {
         name: t("projects.channels.name"),
         description: t("projects.channels.description"),
-        to: "#",
+        to: "/projects/channels",
         icon: Radio,
-        disabled: true,
       },
+      // DISABLED: Phase 2+
       {
         name: t("projects.labels.name"),
         description: t("projects.labels.description"),

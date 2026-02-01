@@ -95,6 +95,7 @@ async function seed() {
 
     // Step 2.5: Create Channels
     console.log("\n2.5️⃣  Creating channels...");
+
     const channelIds: Record<string, string> = {};
 
     for (const mockChannel of CHANNELS) {
