@@ -10,11 +10,148 @@ import type {
   GeneratedIdea,
   SavedIdea,
   GenerateIdeasRequest,
+  IdeationOptions,
 } from "../types/ideation.types";
+import { DEFAULT_IDEATION_OPTIONS } from "../types/ideation.types";
 
 // =============================================================================
 // AI Idea Generation (Mock)
 // =============================================================================
+
+// Idea templates based on content tone
+const IDEA_TEMPLATES: Record<string, Array<{
+  titleTemplate: string;
+  descTemplate: string;
+  hooksTemplate: string[];
+  difficulty: "easy" | "medium" | "hard";
+}>> = {
+  informative: [
+    {
+      titleTemplate: "{trend} - Complete Guide & Analysis",
+      descTemplate: "A comprehensive breakdown of {trend}, covering everything you need to know with facts, data, and expert insights.",
+      hooksTemplate: [
+        "Everything you need to know about {trend} in one video",
+        "The definitive guide to {trend} that experts recommend",
+        "I researched {trend} for 20 hours - here's what I found",
+      ],
+      difficulty: "medium",
+    },
+    {
+      titleTemplate: "Why {trend} Is Changing Everything",
+      descTemplate: "An educational deep-dive into the impact and implications of {trend}. Perfect for viewers who want to understand the bigger picture.",
+      hooksTemplate: [
+        "The real reason {trend} matters more than you think",
+        "How {trend} is reshaping the {category} landscape",
+        "What experts are saying about {trend}",
+      ],
+      difficulty: "hard",
+    },
+  ],
+  funny: [
+    {
+      titleTemplate: "{trend} but Make It Funny",
+      descTemplate: "A hilarious take on {trend} with comedic commentary, memes, and unexpected twists that will have your audience laughing.",
+      hooksTemplate: [
+        "I tried {trend} and it was a disaster...",
+        "POV: You just discovered {trend}",
+        "Nobody: ... Me with {trend}:",
+      ],
+      difficulty: "easy",
+    },
+    {
+      titleTemplate: "Roasting {trend} for 10 Minutes",
+      descTemplate: "A comedic roast session covering {trend}. Sharp wit, funny observations, and entertaining commentary throughout.",
+      hooksTemplate: [
+        "We need to talk about {trend}...",
+        "I have some thoughts about {trend}",
+        "{trend} is wild and here's why",
+      ],
+      difficulty: "medium",
+    },
+  ],
+  dramatic: [
+    {
+      titleTemplate: "The Dark Truth About {trend}",
+      descTemplate: "A dramatic investigation into {trend}, uncovering hidden stories and shocking revelations that mainstream coverage missed.",
+      hooksTemplate: [
+        "What they don't want you to know about {trend}",
+        "The untold story behind {trend}",
+        "I exposed the truth about {trend}...",
+      ],
+      difficulty: "hard",
+    },
+    {
+      titleTemplate: "{trend}: The Rise and Fall",
+      descTemplate: "An epic storytelling piece about {trend}, covering the journey from beginning to now with dramatic narration and compelling visuals.",
+      hooksTemplate: [
+        "The incredible story of {trend}",
+        "How {trend} changed everything",
+        "From zero to viral: The {trend} story",
+      ],
+      difficulty: "medium",
+    },
+  ],
+  casual: [
+    {
+      titleTemplate: "Let's Talk About {trend}",
+      descTemplate: "A relaxed, conversational video about {trend}. Share your thoughts, react in real-time, and connect with your audience authentically.",
+      hooksTemplate: [
+        "So {trend} happened and I have thoughts",
+        "Chatting about {trend} while I chill",
+        "My honest take on {trend}",
+      ],
+      difficulty: "easy",
+    },
+    {
+      titleTemplate: "Reacting to {trend}",
+      descTemplate: "A genuine reaction video with live commentary on {trend}. Perfect for building engagement and sparking discussion.",
+      hooksTemplate: [
+        "First time seeing {trend}!",
+        "I finally checked out {trend}",
+        "Watching {trend} for the first time",
+      ],
+      difficulty: "easy",
+    },
+  ],
+  professional: [
+    {
+      titleTemplate: "{trend}: Industry Expert Analysis",
+      descTemplate: "A polished, authoritative breakdown of {trend} with professional production quality and expert-level insights.",
+      hooksTemplate: [
+        "Professional analysis of {trend}",
+        "What {category} experts think about {trend}",
+        "Breaking down {trend} from a professional perspective",
+      ],
+      difficulty: "hard",
+    },
+    {
+      titleTemplate: "{trend} - What You Need to Know",
+      descTemplate: "A well-structured, informative piece covering {trend} with clear explanations and actionable takeaways for your audience.",
+      hooksTemplate: [
+        "The key things to understand about {trend}",
+        "Your complete briefing on {trend}",
+        "Everything professionals know about {trend}",
+      ],
+      difficulty: "medium",
+    },
+  ],
+};
+
+// Audience descriptions based on target type
+const AUDIENCE_DESCRIPTIONS: Record<string, string> = {
+  general: "General audience seeking quality content",
+  young: "Gen Z and young millennials (13-24)",
+  adult: "Working professionals and adults (25-44)",
+  mature: "Experienced viewers (45+)",
+  niche: "Dedicated enthusiasts and experts",
+};
+
+// View estimates based on video type
+const VIEW_ESTIMATES: Record<string, Record<string, string>> = {
+  short: { easy: "100K-500K", medium: "50K-200K", hard: "30K-100K" },
+  medium: { easy: "30K-80K", medium: "50K-150K", hard: "80K-200K" },
+  long: { easy: "20K-50K", medium: "40K-120K", hard: "100K-300K" },
+};
 
 /**
  * Generate content ideas from a trend
@@ -23,57 +160,59 @@ import type {
 export async function generateIdeasFromTrend(
   request: GenerateIdeasRequest
 ): Promise<GeneratedIdea[]> {
+  const options: IdeationOptions = {
+    ...DEFAULT_IDEATION_OPTIONS,
+    ...request.options,
+  };
+
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  // Mock AI-generated ideas based on trend
-  const ideas: GeneratedIdea[] = [
-    {
+  const templates = IDEA_TEMPLATES[options.contentTone] || IDEA_TEMPLATES.informative;
+  const audienceDesc = AUDIENCE_DESCRIPTIONS[options.targetAudienceType] || AUDIENCE_DESCRIPTIONS.general;
+  const viewEstimates = VIEW_ESTIMATES[options.videoType] || VIEW_ESTIMATES.medium;
+
+  // Generate ideas based on templates and options
+  const ideas: GeneratedIdea[] = [];
+  const numIdeas = Math.min(options.ideaCount, templates.length * 2);
+
+  for (let i = 0; i < numIdeas; i++) {
+    const template = templates[i % templates.length];
+    const variation = Math.floor(i / templates.length);
+
+    const title = template.titleTemplate
+      .replace("{trend}", request.trendTitle)
+      .replace("{category}", request.trendCategory);
+
+    const description = template.descTemplate
+      .replace(/{trend}/g, request.trendTitle)
+      .replace(/{category}/g, request.trendCategory);
+
+    const hooks = template.hooksTemplate.map((hook) =>
+      hook.replace(/{trend}/g, request.trendTitle).replace(/{category}/g, request.trendCategory)
+    );
+
+    // Add custom prompt influence if provided
+    let finalDescription = description;
+    if (options.customPrompt) {
+      finalDescription += ` Focus: ${options.customPrompt}`;
+    }
+
+    // Add variation suffix for duplicates
+    const finalTitle = variation > 0 ? `${title} (Part ${variation + 1})` : title;
+
+    ideas.push({
       id: crypto.randomUUID(),
-      title: `${request.trendTitle} - Deep Dive Analysis`,
-      description: `A comprehensive breakdown of ${request.trendTitle}, exploring the key moments, hidden details, and what makes it trending right now.`,
-      hooks: [
-        `Everyone's talking about ${request.trendTitle}, but here's what they're missing...`,
-        `I spent 10 hours analyzing ${request.trendTitle} so you don't have to`,
-        `The truth about ${request.trendTitle} that no one is telling you`,
-      ],
-      targetAudience: `${request.trendCategory} enthusiasts aged 18-35`,
-      estimatedViews: "50K-150K",
-      difficulty: "medium",
+      title: finalTitle,
+      description: finalDescription,
+      hooks,
+      targetAudience: `${audienceDesc} interested in ${request.trendCategory}`,
+      estimatedViews: viewEstimates[template.difficulty],
+      difficulty: template.difficulty,
       basedOnTrend: request.trendTitle,
       trendId: request.trendId,
-    },
-    {
-      id: crypto.randomUUID(),
-      title: `Reacting to ${request.trendTitle}`,
-      description: `A reaction video with live commentary and hot takes on ${request.trendTitle}. Perfect for engagement and comments.`,
-      hooks: [
-        `My honest reaction to ${request.trendTitle}`,
-        `I can't believe what I just saw in ${request.trendTitle}`,
-        `Reacting to the most viral ${request.trendCategory} content`,
-      ],
-      targetAudience: "General audience seeking entertainment",
-      estimatedViews: "30K-80K",
-      difficulty: "easy",
-      basedOnTrend: request.trendTitle,
-      trendId: request.trendId,
-    },
-    {
-      id: crypto.randomUUID(),
-      title: `${request.trendTitle}: Behind the Scenes`,
-      description: `Explore the untold story behind ${request.trendTitle}. Research, interviews, and exclusive insights.`,
-      hooks: [
-        `What really happened behind ${request.trendTitle}`,
-        `The story they don't want you to know about ${request.trendTitle}`,
-        `How ${request.trendTitle} actually came together`,
-      ],
-      targetAudience: `Deep-dive viewers interested in ${request.trendCategory}`,
-      estimatedViews: "80K-200K",
-      difficulty: "hard",
-      basedOnTrend: request.trendTitle,
-      trendId: request.trendId,
-    },
-  ];
+    });
+  }
 
   return ideas;
 }

@@ -67,6 +67,21 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
     setIsIdeaDialogOpen(true);
   };
 
+  // Convert AI recommendation to TrendItem for idea generation
+  const handleGenerateIdeasFromRecommendation = (recommendation: AIRecommendation) => {
+    const mockTrend: TrendItem = {
+      id: Date.now(),
+      title: recommendation.title,
+      category: recommendation.reason,
+      views: "N/A",
+      growth: recommendation.growth,
+      thumbnail: "",
+      tags: [],
+    };
+    setSelectedTrend(mockTrend);
+    setIsIdeaDialogOpen(true);
+  };
+
   return (
     <div className="space-y-8">
       {/* AI Recommendations Section */}
@@ -95,13 +110,24 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                   </div>
                   <h4 className="font-medium group-hover:text-purple-400 transition-colors">{item.title}</h4>
                 </div>
-                <Button
-                  size="sm"
-                  className="w-full bg-purple-500 hover:bg-purple-600 text-white transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
-                  asChild
-                >
-                  <Link to="/projects/new" state={{ topic: item.title }}>Use Idea</Link>
-                </Button>
+                <div className="flex gap-2 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 bg-background/80 hover:bg-background"
+                    onClick={() => handleGenerateIdeasFromRecommendation(item)}
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Ideas
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                    asChild
+                  >
+                    <Link to="/projects/new" state={{ topic: item.title }}>Use</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

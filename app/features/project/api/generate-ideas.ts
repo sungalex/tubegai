@@ -24,6 +24,7 @@ export async function action({ request }: Route.ActionArgs) {
       trendCategory: body.trendCategory,
       trendTags: body.trendTags || [],
       trendId: body.trendId,
+      options: body.options,
     });
 
     return { ideas };
