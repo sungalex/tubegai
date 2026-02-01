@@ -658,3 +658,7 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
 
 - 분석 결과, 계획 수립 등 보고서는 항상 한글로 작성해줘
 - 보고서는 /docs 폴더에 저장해줘
+
+## Language
+
+- 모든 페이지에 한국어, 한글을 기본으로 적용해줘

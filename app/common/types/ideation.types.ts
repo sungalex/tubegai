@@ -41,12 +41,20 @@ export interface SavedIdea {
  * Ideation generation options/prompts
  */
 export interface IdeationOptions {
+  language: IdeationLanguage;
   contentTone: ContentTone;
   videoType: VideoType;
   targetAudienceType: TargetAudienceType;
   ideaCount: number;
   customPrompt?: string;
 }
+
+export const IDEATION_LANGUAGES = [
+  { value: "ko", label: "한국어", description: "Korean" },
+  { value: "en", label: "English", description: "영어" },
+] as const;
+
+export type IdeationLanguage = (typeof IDEATION_LANGUAGES)[number]["value"];
 
 export const CONTENT_TONES = [
   { value: "informative", label: "Informative", description: "Educational and fact-based content" },
@@ -77,6 +85,7 @@ export const TARGET_AUDIENCE_TYPES = [
 export type TargetAudienceType = (typeof TARGET_AUDIENCE_TYPES)[number]["value"];
 
 export const DEFAULT_IDEATION_OPTIONS: IdeationOptions = {
+  language: "ko",
   contentTone: "informative",
   videoType: "medium",
   targetAudienceType: "general",

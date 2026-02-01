@@ -40,9 +40,10 @@ import {
   INITIAL_CHANNELS,
   LABEL_COLORS,
   INITIAL_LABELS,
-  TRENDS_DATA,
   AI_RECOMMENDATIONS,
 } from "../mocks/project-mock";
+
+import { getYouTubeTrends } from "./youtube.data.server";
 
 // Status mapping: DB enum -> UI display
 const STATUS_DISPLAY_MAP: Record<string, string> = {
@@ -205,11 +206,12 @@ export function getLabelColors(): LabelColor[] {
 // =============================================================================
 
 /**
- * Fetch trending topics
- * TODO: Replace with API call
+ * Fetch trending topics from YouTube Data API v3
+ * Uses 15-minute cache to manage API quota
+ * Falls back to mock data on error or missing API key
  */
 export async function getTrends(): Promise<TrendItem[]> {
-  return TRENDS_DATA;
+  return getYouTubeTrends("KR");
 }
 
 /**

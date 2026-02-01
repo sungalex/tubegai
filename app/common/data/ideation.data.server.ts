@@ -18,13 +18,16 @@ import { DEFAULT_IDEATION_OPTIONS } from "../types/ideation.types";
 // AI Idea Generation (Mock)
 // =============================================================================
 
-// Idea templates based on content tone
-const IDEA_TEMPLATES: Record<string, Array<{
+// Template type definition
+type IdeaTemplate = {
   titleTemplate: string;
   descTemplate: string;
   hooksTemplate: string[];
   difficulty: "easy" | "medium" | "hard";
-}>> = {
+};
+
+// Idea templates based on content tone - English
+const IDEA_TEMPLATES_EN: Record<string, IdeaTemplate[]> = {
   informative: [
     {
       titleTemplate: "{trend} - Complete Guide & Analysis",
@@ -137,13 +140,136 @@ const IDEA_TEMPLATES: Record<string, Array<{
   ],
 };
 
-// Audience descriptions based on target type
-const AUDIENCE_DESCRIPTIONS: Record<string, string> = {
+// Idea templates based on content tone - Korean
+const IDEA_TEMPLATES_KO: Record<string, IdeaTemplate[]> = {
+  informative: [
+    {
+      titleTemplate: "{trend} 완벽 가이드 & 분석",
+      descTemplate: "{trend}에 대해 알아야 할 모든 것을 팩트, 데이터, 전문가 인사이트와 함께 종합적으로 분석합니다.",
+      hooksTemplate: [
+        "{trend}에 대해 알아야 할 모든 것, 이 영상 하나로 정리",
+        "전문가들이 추천하는 {trend} 완벽 가이드",
+        "{trend}를 20시간 동안 연구한 결과를 공개합니다",
+      ],
+      difficulty: "medium",
+    },
+    {
+      titleTemplate: "{trend}가 모든 것을 바꾸고 있는 이유",
+      descTemplate: "{trend}의 영향력과 의미에 대한 심층 교육 콘텐츠. 큰 그림을 이해하고 싶은 시청자에게 완벽한 영상입니다.",
+      hooksTemplate: [
+        "{trend}가 생각보다 중요한 진짜 이유",
+        "{trend}가 {category} 분야를 어떻게 재편하고 있는가",
+        "전문가들이 {trend}에 대해 말하는 것들",
+      ],
+      difficulty: "hard",
+    },
+  ],
+  funny: [
+    {
+      titleTemplate: "{trend} 웃기게 만들어봤습니다",
+      descTemplate: "{trend}에 대한 코믹한 해석. 웃긴 코멘터리, 밈, 예상치 못한 반전으로 시청자들을 웃게 만듭니다.",
+      hooksTemplate: [
+        "{trend} 해봤는데 대참사였습니다...",
+        "POV: {trend}를 방금 발견한 당신",
+        "아무도: ... 나: {trend} 하는 중",
+      ],
+      difficulty: "easy",
+    },
+    {
+      titleTemplate: "{trend} 10분간 까기",
+      descTemplate: "{trend}에 대한 코미디 로스트 세션. 날카로운 위트, 재미있는 관찰, 엔터테이닝한 코멘터리.",
+      hooksTemplate: [
+        "{trend}에 대해 할 말이 있습니다...",
+        "{trend}에 대한 제 생각을 말씀드리겠습니다",
+        "{trend} 진짜 미쳤는데 이유가 있음",
+      ],
+      difficulty: "medium",
+    },
+  ],
+  dramatic: [
+    {
+      titleTemplate: "{trend}의 숨겨진 진실",
+      descTemplate: "{trend}에 대한 드라마틱한 조사. 주류 언론이 놓친 숨겨진 이야기와 충격적인 폭로를 다룹니다.",
+      hooksTemplate: [
+        "그들이 당신에게 알려주지 않는 {trend}의 진실",
+        "{trend} 뒤에 숨겨진 이야기",
+        "{trend}의 진실을 폭로합니다...",
+      ],
+      difficulty: "hard",
+    },
+    {
+      titleTemplate: "{trend}: 흥망성쇠",
+      descTemplate: "{trend}에 대한 서사적 스토리텔링. 시작부터 현재까지의 여정을 드라마틱한 내레이션과 멋진 비주얼로 담습니다.",
+      hooksTemplate: [
+        "{trend}의 놀라운 이야기",
+        "{trend}가 모든 것을 바꾼 방법",
+        "무명에서 바이럴까지: {trend} 스토리",
+      ],
+      difficulty: "medium",
+    },
+  ],
+  casual: [
+    {
+      titleTemplate: "{trend}에 대해 이야기해봐요",
+      descTemplate: "{trend}에 대한 편안하고 대화하듯한 영상. 생각을 공유하고, 실시간으로 반응하며, 시청자들과 진정성 있게 소통합니다.",
+      hooksTemplate: [
+        "{trend} 생겼는데 할 말이 있어요",
+        "쉬면서 {trend}에 대해 수다 떨기",
+        "{trend}에 대한 솔직한 내 생각",
+      ],
+      difficulty: "easy",
+    },
+    {
+      titleTemplate: "{trend} 리액션",
+      descTemplate: "{trend}에 대한 진솔한 리액션 영상. 라이브 코멘터리로 참여를 이끌고 토론을 유도하기에 완벽합니다.",
+      hooksTemplate: [
+        "{trend} 처음 봅니다!",
+        "드디어 {trend} 확인해봤습니다",
+        "{trend} 처음 보는 리액션",
+      ],
+      difficulty: "easy",
+    },
+  ],
+  professional: [
+    {
+      titleTemplate: "{trend}: 전문가 분석",
+      descTemplate: "프로페셔널한 제작 퀄리티와 전문가 수준의 인사이트로 {trend}를 권위 있게 분석합니다.",
+      hooksTemplate: [
+        "{trend} 전문가 분석",
+        "{category} 전문가들이 {trend}에 대해 생각하는 것",
+        "전문가 관점에서 {trend} 분석하기",
+      ],
+      difficulty: "hard",
+    },
+    {
+      titleTemplate: "{trend} - 알아야 할 모든 것",
+      descTemplate: "{trend}를 다루는 체계적이고 유익한 콘텐츠. 명확한 설명과 실행 가능한 인사이트를 제공합니다.",
+      hooksTemplate: [
+        "{trend}에 대해 이해해야 할 핵심 사항",
+        "{trend} 완전 정복 브리핑",
+        "전문가들이 아는 {trend}의 모든 것",
+      ],
+      difficulty: "medium",
+    },
+  ],
+};
+
+// Audience descriptions based on target type - English
+const AUDIENCE_DESCRIPTIONS_EN: Record<string, string> = {
   general: "General audience seeking quality content",
   young: "Gen Z and young millennials (13-24)",
   adult: "Working professionals and adults (25-44)",
   mature: "Experienced viewers (45+)",
   niche: "Dedicated enthusiasts and experts",
+};
+
+// Audience descriptions based on target type - Korean
+const AUDIENCE_DESCRIPTIONS_KO: Record<string, string> = {
+  general: "양질의 콘텐츠를 찾는 일반 시청자",
+  young: "Z세대 및 젊은 밀레니얼 (13-24세)",
+  adult: "직장인 및 성인 (25-44세)",
+  mature: "경험 많은 시청자 (45세 이상)",
+  niche: "열정적인 마니아 및 전문가",
 };
 
 // View estimates based on video type
@@ -168,8 +294,13 @@ export async function generateIdeasFromTrend(
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const templates = IDEA_TEMPLATES[options.contentTone] || IDEA_TEMPLATES.informative;
-  const audienceDesc = AUDIENCE_DESCRIPTIONS[options.targetAudienceType] || AUDIENCE_DESCRIPTIONS.general;
+  // Select templates based on language
+  const isKorean = options.language === "ko";
+  const ideaTemplates = isKorean ? IDEA_TEMPLATES_KO : IDEA_TEMPLATES_EN;
+  const audienceDescriptions = isKorean ? AUDIENCE_DESCRIPTIONS_KO : AUDIENCE_DESCRIPTIONS_EN;
+
+  const templates = ideaTemplates[options.contentTone] || ideaTemplates.informative;
+  const audienceDesc = audienceDescriptions[options.targetAudienceType] || audienceDescriptions.general;
   const viewEstimates = VIEW_ESTIMATES[options.videoType] || VIEW_ESTIMATES.medium;
 
   // Generate ideas based on templates and options
@@ -195,18 +326,25 @@ export async function generateIdeasFromTrend(
     // Add custom prompt influence if provided
     let finalDescription = description;
     if (options.customPrompt) {
-      finalDescription += ` Focus: ${options.customPrompt}`;
+      const focusLabel = isKorean ? "포커스:" : "Focus:";
+      finalDescription += ` ${focusLabel} ${options.customPrompt}`;
     }
 
     // Add variation suffix for duplicates
-    const finalTitle = variation > 0 ? `${title} (Part ${variation + 1})` : title;
+    const variationSuffix = isKorean ? `(${variation + 1}편)` : `(Part ${variation + 1})`;
+    const finalTitle = variation > 0 ? `${title} ${variationSuffix}` : title;
+
+    // Build audience text
+    const interestedInText = isKorean
+      ? `${request.trendCategory}에 관심 있는 ${audienceDesc}`
+      : `${audienceDesc} interested in ${request.trendCategory}`;
 
     ideas.push({
       id: crypto.randomUUID(),
       title: finalTitle,
       description: finalDescription,
       hooks,
-      targetAudience: `${audienceDesc} interested in ${request.trendCategory}`,
+      targetAudience: interestedInText,
       estimatedViews: viewEstimates[template.difficulty],
       difficulty: template.difficulty,
       basedOnTrend: request.trendTitle,
