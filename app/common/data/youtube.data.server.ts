@@ -1,7 +1,9 @@
 // =============================================================================
-// YouTube Data API v3 Integration
+// YouTube Data API v3 Integration with Supabase Cache
 // =============================================================================
 
+import { desc, gte, sql } from "drizzle-orm";
+import { db, schema } from "~/lib/db.server";
 import type { TrendItem } from "../types/project.types";
 import type { YouTubeVideosListResponse, YouTubeVideoItem } from "../types/youtube.types";
 import { TRENDS_DATA } from "../mocks/project-mock";
@@ -50,33 +52,84 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 // =============================================================================
-// Cache Implementation
+// Supabase Cache Functions
 // =============================================================================
 
-interface CacheEntry {
-  data: TrendItem[];
-  timestamp: number;
-}
+/**
+ * Get cached trends from Supabase if they're still fresh (within 15 minutes)
+ */
+async function getCachedTrends(): Promise<TrendItem[] | null> {
+  const cacheThreshold = new Date(Date.now() - CACHE_DURATION_MS);
 
-let cache: CacheEntry | null = null;
+  const cachedTrends = await db.query.trends.findMany({
+    where: gte(schema.trends.fetchedAt, cacheThreshold),
+    orderBy: [desc(schema.trends.fetchedAt)],
+    limit: 20,
+  });
 
-function isCacheValid(): boolean {
-  if (!cache) return false;
-  return Date.now() - cache.timestamp < CACHE_DURATION_MS;
-}
-
-function setCache(data: TrendItem[]): void {
-  cache = {
-    data,
-    timestamp: Date.now(),
-  };
-}
-
-function getCache(): TrendItem[] | null {
-  if (isCacheValid()) {
-    return cache!.data;
+  if (cachedTrends.length === 0) {
+    return null;
   }
-  return null;
+
+  // Map database records to TrendItem format
+  return cachedTrends.map((trend, index) => ({
+    id: index + 1,
+    title: trend.title,
+    category: trend.category,
+    views: trend.viewsCount ?? "0",
+    growth: trend.growthRate ?? "+NEW",
+    thumbnail: trend.thumbnailUrl ?? "",
+    tags: trend.tags ?? [],
+  }));
+}
+
+/**
+ * Save trends to Supabase, replacing old YouTube trends
+ */
+async function saveTrendsToCache(
+  videos: YouTubeVideoItem[]
+): Promise<void> {
+  // Delete old YouTube trends (source = 'youtube_api')
+  await db.delete(schema.trends).where(
+    sql`${schema.trends.source} = 'youtube_api'`
+  );
+
+  // Insert new trends
+  const trendsToInsert = videos.map((video) => {
+    const categoryName = CATEGORY_MAP[video.snippet.categoryId] ?? "Other";
+    const tags = video.snippet.tags?.slice(0, 5) ?? [categoryName];
+
+    return {
+      title: video.snippet.title,
+      description: video.snippet.description?.slice(0, 500),
+      category: categoryName,
+      viewsCount: formatViewCount(video.statistics.viewCount),
+      growthRate: "+NEW",
+      thumbnailUrl:
+        video.snippet.thumbnails.high?.url ??
+        video.snippet.thumbnails.medium?.url ??
+        video.snippet.thumbnails.default.url,
+      tags,
+      source: "youtube_api" as const,
+      externalId: video.id,
+      externalUrl: `https://www.youtube.com/watch?v=${video.id}`,
+      viewCount: parseInt(video.statistics.viewCount, 10) || 0,
+      likeCount: video.statistics.likeCount
+        ? parseInt(video.statistics.likeCount, 10)
+        : null,
+      commentCount: video.statistics.commentCount
+        ? parseInt(video.statistics.commentCount, 10)
+        : null,
+      publishedAt: new Date(video.snippet.publishedAt),
+      fetchedAt: new Date(),
+    };
+  });
+
+  if (trendsToInsert.length > 0) {
+    await db.insert(schema.trends).values(trendsToInsert);
+  }
+
+  console.log(`[YouTube API] Saved ${trendsToInsert.length} trends to Supabase`);
 }
 
 // =============================================================================
@@ -128,15 +181,20 @@ function mapVideoToTrendItem(video: YouTubeVideoItem, index: number): TrendItem 
 
 /**
  * Fetch trending videos from YouTube Data API v3
- * Uses in-memory cache (15 min) to manage API quota
+ * Uses Supabase cache (15 min) to manage API quota
  * Falls back to mock data on error or missing API key
  */
 export async function getYouTubeTrends(regionCode: string = "KR"): Promise<TrendItem[]> {
-  // Check cache first
-  const cachedData = getCache();
-  if (cachedData) {
-    console.log("[YouTube API] Returning cached data");
-    return cachedData;
+  // Check Supabase cache first
+  try {
+    const cachedData = await getCachedTrends();
+    if (cachedData && cachedData.length > 0) {
+      console.log("[YouTube API] Returning cached data from Supabase");
+      return cachedData;
+    }
+  } catch (error) {
+    console.error("[YouTube API] Failed to check Supabase cache:", error);
+    // Continue to fetch from API
   }
 
   // Check for API key
@@ -172,10 +230,15 @@ export async function getYouTubeTrends(regionCode: string = "KR"): Promise<Trend
       return TRENDS_DATA;
     }
 
-    const trends = data.items.map(mapVideoToTrendItem);
+    // Save to Supabase cache
+    try {
+      await saveTrendsToCache(data.items);
+    } catch (error) {
+      console.error("[YouTube API] Failed to save to Supabase cache:", error);
+      // Continue even if caching fails
+    }
 
-    // Update cache
-    setCache(trends);
+    const trends = data.items.map(mapVideoToTrendItem);
 
     console.log(`[YouTube API] Successfully fetched ${trends.length} trending videos`);
     return trends;
@@ -187,10 +250,12 @@ export async function getYouTubeTrends(regionCode: string = "KR"): Promise<Trend
 }
 
 /**
- * Clear the YouTube trends cache
+ * Clear the YouTube trends cache in Supabase
  * Useful for forcing a refresh
  */
-export function clearYouTubeCache(): void {
-  cache = null;
-  console.log("[YouTube API] Cache cleared");
+export async function clearYouTubeCache(): Promise<void> {
+  await db.delete(schema.trends).where(
+    sql`${schema.trends.source} = 'youtube_api'`
+  );
+  console.log("[YouTube API] Supabase cache cleared");
 }

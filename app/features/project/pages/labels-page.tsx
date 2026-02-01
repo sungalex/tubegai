@@ -40,7 +40,7 @@ import { Label as UILabel } from "~/common/components/ui/label";
 import { cn } from "~/lib/utils";
 import type { Label } from "~/common/types/project.types";
 import { useLoaderData } from "react-router";
-import { getLabelsWithDetails, getLabelColors } from "~/common/data/project.data";
+import { getLabelsWithDetails, getLabelColors } from "~/common/data/project.data.server";
 
 export async function loader() {
   const [initialLabels, labelColors] = await Promise.all([

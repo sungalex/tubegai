@@ -42,7 +42,7 @@ import { Badge } from "~/common/components/ui/badge";
 import { Separator } from "~/common/components/ui/separator";
 import type { Channel } from "~/common/types/project.types";
 import { useLoaderData } from "react-router";
-import { getChannelsWithDetails } from "~/common/data/project.data";
+import { getChannelsWithDetails } from "~/common/data/project.data.server";
 
 export async function loader() {
   const channels = await getChannelsWithDetails();

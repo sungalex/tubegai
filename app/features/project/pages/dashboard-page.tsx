@@ -8,7 +8,7 @@ import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
 import { SavedIdeasSection } from "../components/saved-ideas-section";
-import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data";
+import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data.server";
 import { getSavedIdeas } from "~/common/data/ideation.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { SavedIdea } from "~/common/types/ideation.types";

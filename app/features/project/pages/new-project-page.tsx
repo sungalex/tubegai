@@ -67,7 +67,7 @@ const defaultValues: Partial<ProjectFormValues> = {
   labels: [],
 };
 
-import { getChannels, getLabels } from "~/common/data/project.data";
+import { getChannels, getLabels } from "~/common/data/project.data.server";
 import type { Route } from "./+types/new-project-page";
 // import { useLoaderData } from "react-router";
 

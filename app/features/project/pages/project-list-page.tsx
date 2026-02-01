@@ -11,7 +11,7 @@ import {
 } from "~/common/components/ui/dropdown-menu";
 import { ProjectCard } from "../components/project-card";
 import type { Route } from "./+types/project-list-page";
-import { getProjects, type ProjectSortOption } from "~/common/data/project.data";
+import { getProjects, type ProjectSortOption } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import { useTranslation } from "~/i18n/context";
 
