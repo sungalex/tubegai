@@ -41,30 +41,38 @@ export function DesktopNavigation({ navItems }: DesktopNavigationProps) {
               {item.items ? (
                 <>
                   <NavigationMenuTrigger asChild>
-                    <Link to={item.to} className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50">
+                    <Link
+                      to={item.to}
+                      className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-active:bg-accent/50 data-[state=open]:bg-accent/50"
+                    >
                       {item.icon && <item.icon className="mr-2 h-4 w-4" />}
                       {item.name}
                     </Link>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className={cn(
-                      "grid gap-3 p-4 md:w-100",
-                      item.items.some((sub) => sub.featured)
-                        ? "lg:w-125 lg:grid-cols-[0.75fr_1fr]"
-                        : "lg:w-150 md:grid-cols-2"
-                    )}>
-                      {item.items.map((subItem) => (
+                    <ul
+                      className={cn(
+                        "grid gap-3 p-4 md:w-100",
+                        item.items.some((sub) => sub.featured)
+                          ? "lg:w-125 lg:grid-cols-[0.75fr_1fr]"
+                          : "lg:w-150 md:grid-cols-2",
+                      )}
+                    >
+                      {item.items.map((subItem) =>
                         subItem.featured ? (
                           <li key={subItem.name} className="row-span-3">
                             <NavigationMenuLink asChild>
                               <Link
                                 className={cn(
                                   "flex h-full w-full select-none flex-col justify-end rounded-md bg-linear-to-b from-primary/80 to-primary p-6 no-underline outline-none focus:shadow-md",
-                                  subItem.disabled && "pointer-events-none opacity-50"
+                                  subItem.disabled &&
+                                    "pointer-events-none opacity-50",
                                 )}
                                 to={subItem.to}
                               >
-                                {subItem.icon && <subItem.icon className="h-6 w-6 text-primary-foreground" />}
+                                {subItem.icon && (
+                                  <subItem.icon className="h-6 w-6 text-primary-foreground" />
+                                )}
                                 <div className="mb-2 mt-4 text-lg font-medium text-primary-foreground">
                                   {subItem.name}
                                 </div>
@@ -81,18 +89,21 @@ export function DesktopNavigation({ navItems }: DesktopNavigationProps) {
                                 to={subItem.to}
                                 className={cn(
                                   "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                                  subItem.disabled && "pointer-events-none opacity-50"
+                                  subItem.disabled &&
+                                    "pointer-events-none opacity-50",
                                 )}
                               >
-                                <div className="text-sm font-medium leading-none">{subItem.name}</div>
+                                <div className="text-sm font-medium leading-none">
+                                  {subItem.name}
+                                </div>
                                 <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                                   {subItem.description}
                                 </p>
                               </Link>
                             </NavigationMenuLink>
                           </li>
-                        )
-                      ))}
+                        ),
+                      )}
                     </ul>
                   </NavigationMenuContent>
                 </>
@@ -109,4 +120,3 @@ export function DesktopNavigation({ navItems }: DesktopNavigationProps) {
     </div>
   );
 }
-
