@@ -53,6 +53,12 @@ export default [
     // route(":projectId", "features/project/pages/project-detail-page.tsx"),
   ]),
 
+  // API Routes (Ideation Hub)
+  ...prefix("api", [
+    route("generate-ideas", "features/project/api/generate-ideas.ts"),
+    route("saved-ideas", "features/project/api/saved-ideas.ts"),
+  ]),
+
   // Studio (MVP - core video creation workflow)
   layout("features/studio/layouts/studio-layout.tsx", [
     ...prefix("studio", [

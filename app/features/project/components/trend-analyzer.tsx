@@ -1,17 +1,25 @@
 import { useState } from "react";
-import { TrendingUp, ArrowUpRight, Search, Zap, PlayCircle, Filter } from "lucide-react";
+import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { Input } from "~/common/components/ui/input";
 import { Button } from "~/common/components/ui/button";
 import { Card, CardContent } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
+import { Checkbox } from "~/common/components/ui/checkbox";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
 } from "~/common/components/ui/carousel";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/common/components/ui/popover";
+import { Label } from "~/common/components/ui/label";
 import type { TrendItem, AIRecommendation } from "~/common/types/project.types";
+import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
@@ -20,11 +28,44 @@ interface TrendAnalyzerProps {
 
 export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
+  const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
 
-  const filteredTrends = trends.filter(trend =>
-    trend.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trend.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Get unique categories from trends
+  const availableCategories = [...new Set(trends.map((t) => t.category))];
+
+  // Filter trends by search term and selected categories
+  const filteredTrends = trends.filter((trend) => {
+    const matchesSearch =
+      trend.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trend.tags.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+    const matchesCategory =
+      selectedCategories.length === 0 ||
+      selectedCategories.includes(trend.category);
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleCategoryToggle = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedCategories([]);
+  };
+
+  const handleGenerateIdeas = (trend: TrendItem) => {
+    setSelectedTrend(trend);
+    setIsIdeaDialogOpen(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -88,9 +129,59 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className={selectedCategories.length > 0 ? "border-primary text-primary" : ""}
+              >
+                <Filter className="h-4 w-4" />
+                {selectedCategories.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                    {selectedCategories.length}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Filter by Category</h4>
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {availableCategories.map((category) => (
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`category-${category}`}
+                        checked={selectedCategories.includes(category)}
+                        onCheckedChange={() => handleCategoryToggle(category)}
+                      />
+                      <Label
+                        htmlFor={`category-${category}`}
+                        className="text-sm font-normal cursor-pointer flex-1"
+                      >
+                        {category}
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        {trends.filter((t) => t.category === category).length}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -124,7 +215,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                           alt={trend.title}
                           className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
                           <Button
                             size="sm"
                             className="w-full bg-red-600 hover:bg-red-700 text-white"
@@ -133,6 +224,15 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                             <Link to="/projects/new" state={{ topic: trend.title }}>
                               Use Theme
                             </Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-full"
+                            onClick={() => handleGenerateIdeas(trend)}
+                          >
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            Generate Ideas
                           </Button>
                         </div>
                         <Badge className="absolute top-2 left-2 bg-black/60 hover:bg-black/70 backdrop-blur-sm text-white border-0">
@@ -166,6 +266,15 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
           </CarouselContent>
         </Carousel>
       </div>
+
+      {/* Idea Generator Dialog */}
+      {selectedTrend && (
+        <IdeaGeneratorDialog
+          open={isIdeaDialogOpen}
+          onOpenChange={setIsIdeaDialogOpen}
+          trend={selectedTrend}
+        />
+      )}
     </div>
   );
 }

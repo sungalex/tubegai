@@ -14,7 +14,7 @@
  * - channel_video, project_pipeline, project_seo, ai_generation_cache
  */
 
-import { uuid, text, timestamp, integer, bigint, primaryKey } from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, integer, bigint, primaryKey, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import {
   mediaTypeEnum,
@@ -24,6 +24,7 @@ import {
   projectVisibilityEnum,
   projectStatusEnum,
   channelStatusEnum,
+  ideaDifficultyEnum,
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
@@ -174,6 +175,42 @@ export const projectLabelsRelations = relations(projectLabels, ({ one }) => ({
   label: one(labels, {
     fields: [projectLabels.labelId],
     references: [labels.id],
+  }),
+}));
+
+// ============================================
+// Ideation Hub Tables
+// ============================================
+
+export const savedIdeas = tubegaiSchema.table("saved_idea", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  hooks: text("hooks").array().notNull(),
+  targetAudience: text("target_audience").notNull(),
+  estimatedViews: text("estimated_views").notNull(),
+  difficulty: ideaDifficultyEnum("difficulty").default("medium").notNull(),
+  basedOnTrend: text("based_on_trend").notNull(),
+  trendId: integer("trend_id"),
+  usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
+  isUsed: boolean("is_used").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const savedIdeasRelations = relations(savedIdeas, ({ one }) => ({
+  user: one(users, {
+    fields: [savedIdeas.userId],
+    references: [users.id],
+  }),
+  usedForProject: one(projects, {
+    fields: [savedIdeas.usedForProjectId],
+    references: [projects.id],
   }),
 }));
 

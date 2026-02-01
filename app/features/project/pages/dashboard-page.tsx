@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Route } from "./+types/dashboard-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
@@ -6,18 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui
 import { Edit2, FolderKanban } from "lucide-react";
 import { Link } from "react-router";
 import { TrendAnalyzer } from "../components/trend-analyzer";
+import { SavedIdeasSection } from "../components/saved-ideas-section";
 import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/data/project.data";
+import { getSavedIdeas } from "~/common/data/ideation.data.server";
 import { requireAuth } from "~/lib/auth.server";
+import type { SavedIdea } from "~/common/types/ideation.types";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
 
-  const [recentProjects, trends, recommendations] = await Promise.all([
+  const [recentProjects, trends, recommendations, savedIdeas] = await Promise.all([
     getRecentProjects(userId),
     getTrends(),
     getAIRecommendations(),
+    getSavedIdeas(userId),
   ]);
-  return { recentProjects, trends, recommendations };
+  return { recentProjects, trends, recommendations, savedIdeas };
 }
 
 export const meta = () => {
@@ -28,7 +33,12 @@ export const meta = () => {
 };
 
 export default function DashboardPage({ loaderData }: Route.ComponentProps) {
-  const { recentProjects, trends, recommendations } = loaderData;
+  const { recentProjects, trends, recommendations, savedIdeas: initialSavedIdeas } = loaderData;
+  const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(initialSavedIdeas);
+
+  const handleDeleteIdea = (ideaId: string) => {
+    setSavedIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
@@ -38,10 +48,18 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         <p className="text-muted-foreground">Manage your creative workflow and production.</p>
       </div>
 
-      {/* MVP: Only Trends and Projects tabs are active */}
+      {/* MVP: Trends, Saved Ideas, and Projects tabs are active */}
       <Tabs defaultValue="trends" className="space-y-6">
-        <TabsList className="grid w-full max-w-75 grid-cols-2">
+        <TabsList className="grid w-full max-w-100 grid-cols-3">
           <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="saved-ideas">
+            Saved Ideas
+            {savedIdeas.length > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                {savedIdeas.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="active-projects">Projects</TabsTrigger>
           {/* DISABLED: Phase 2+ tabs
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -61,6 +79,18 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
           {/* Full Trend Analyzer Component */}
           <TrendAnalyzer trends={trends} recommendations={recommendations} />
+        </TabsContent>
+
+        {/* SAVED IDEAS TAB */}
+        <TabsContent value="saved-ideas" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Saved Ideas</h2>
+              <p className="text-muted-foreground">Your bookmarked content ideas for future projects.</p>
+            </div>
+          </div>
+
+          <SavedIdeasSection ideas={savedIdeas} onDelete={handleDeleteIdea} />
         </TabsContent>
 
         {/* ACTIVE PROJECTS TAB */}

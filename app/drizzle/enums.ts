@@ -140,3 +140,10 @@ export const aiGenerationTypeEnum = tubegaiSchema.enum("ai_generation_type", [
   "script",
   "seo",
 ]);
+
+// Ideation
+export const ideaDifficultyEnum = tubegaiSchema.enum("idea_difficulty", [
+  "easy",
+  "medium",
+  "hard",
+]);
