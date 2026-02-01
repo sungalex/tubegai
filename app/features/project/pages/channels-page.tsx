@@ -123,18 +123,18 @@ export default function ChannelsPage({ loaderData }: Route.ComponentProps) {
     }
   }, [searchParams]);
 
-  // YouTube OAuth handler - starts OAuth flow
+  // YouTube OAuth handler - starts OAuth flow (Standalone OAuth)
+  // GitHub 로그인 세션을 유지하면서 YouTube OAuth를 별도로 처리
   async function handleYouTubeOAuth() {
     setIsOAuthLoading(true);
     try {
-      const { linkYouTubeAccount } = await import("~/lib/youtube-oauth.client");
-      const result = await linkYouTubeAccount("/projects/channels/callback");
-
-      if (!result.success) {
-        toast.error(result.error || "OAuth 시작 실패");
-        setIsOAuthLoading(false);
-      }
-      // If successful, user will be redirected to Google
+      // Form을 통해 POST 요청 → 서버에서 Google OAuth URL로 리다이렉트
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/api/youtube-oauth";
+      document.body.appendChild(form);
+      form.submit();
+      // 리다이렉트되므로 여기서 로딩 상태 해제 불필요
     } catch (error) {
       console.error("OAuth error:", error);
       toast.error("OAuth 연결 중 오류가 발생했습니다.");

@@ -59,6 +59,7 @@ export default [
     route("saved-ideas", "features/project/api/saved-ideas.ts"),
     route("ai-recommendations", "features/project/api/ai-recommendations.ts"),
     route("channels", "features/project/pages/channels-api.tsx"),
+    route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)
