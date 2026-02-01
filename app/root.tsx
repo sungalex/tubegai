@@ -10,7 +10,20 @@ import {
 import type { Route } from "./+types/root";
 import Navigation from "./common/components/navigation";
 import { Toaster } from "~/common/components/ui/sonner";
+import { LanguageProvider } from "~/i18n/context";
+import { getLocaleFromRequest } from "~/i18n/server";
+import { initI18n, type Locale } from "~/i18n/config";
 import "./app.css";
+
+// Server-side locale for SSR
+let ssrLocale: Locale = "ko";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const locale = getLocaleFromRequest(request);
+  ssrLocale = locale;
+  initI18n(locale);
+  return { locale };
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -32,7 +45,7 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang={ssrLocale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -49,29 +62,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
+  const { locale } = loaderData;
+
   return (
-    <div className="py-20">
-      <Navigation
-        isLoggedIn={true}
-        hasNotifications={true}
-        hasMessages={true}
-      />
-      <Outlet />
-    </div>
+    <LanguageProvider initialLocale={locale}>
+      <div className="py-20">
+        <Navigation
+          isLoggedIn={true}
+          hasNotifications={true}
+          hasMessages={true}
+        />
+        <Outlet />
+      </div>
+    </LanguageProvider>
   );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
+  // Use ssrLocale for error boundary translations
+  const isKorean = ssrLocale === "ko";
+
+  let message = isKorean ? "오류!" : "Oops!";
+  let details = isKorean ? "예기치 않은 오류가 발생했습니다." : "An unexpected error occurred.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
+    message = error.status === 404 ? "404" : (isKorean ? "오류" : "Error");
     details =
       error.status === 404
-        ? "The requested page could not be found."
+        ? (isKorean ? "요청하신 페이지를 찾을 수 없습니다." : "The requested page could not be found.")
         : error.statusText || details;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;

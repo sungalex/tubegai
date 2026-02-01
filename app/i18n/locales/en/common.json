@@ -1,0 +1,79 @@
+{
+  "button": {
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "previous": "Previous",
+    "next": "Next",
+    "add": "Add",
+    "reset": "Reset",
+    "generate": "Generate",
+    "export": "Export",
+    "import": "Import",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "done": "Done",
+    "retry": "Retry",
+    "learnMore": "Learn More",
+    "viewAll": "View All",
+    "clearAll": "Clear All",
+    "clearSearch": "Clear Search"
+  },
+  "status": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "generating": "Generating...",
+    "processing": "Processing...",
+    "error": "An error occurred",
+    "success": "Success",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "draft": "Draft",
+    "archived": "Archived"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be at most {{max}} characters",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "error": {
+    "title": "Oops!",
+    "unexpected": "An unexpected error occurred.",
+    "notFound": "404",
+    "pageNotFound": "The requested page could not be found.",
+    "tryAgain": "Please try again"
+  },
+  "time": {
+    "seconds": "seconds",
+    "minutes": "minutes",
+    "hours": "hours",
+    "days": "days"
+  },
+  "misc": {
+    "or": "OR",
+    "and": "and",
+    "comingSoon": "Coming Soon",
+    "beta": "Beta",
+    "new": "New",
+    "optional": "Optional",
+    "showMore": "Show More",
+    "showLess": "Show Less"
+  },
+  "toast": {
+    "projectCreated": "Project created successfully!",
+    "redirectingToStudio": "Redirecting to project studio...",
+    "projectCreateFailed": "Failed to create project.",
+    "tryAgainLater": "Please try again later."
+  }
+}

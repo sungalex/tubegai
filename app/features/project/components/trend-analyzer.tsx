@@ -20,6 +20,7 @@ import {
 import { Label } from "~/common/components/ui/label";
 import type { TrendItem, AIRecommendation } from "~/common/types/project.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
+import { useTranslation } from "~/i18n/context";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
@@ -31,6 +32,8 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
+  const { t } = useTranslation("project");
+  const { t: tc } = useTranslation("common");
 
   // Get unique categories from trends
   const availableCategories = [...new Set(trends.map((t) => t.category))];
@@ -89,10 +92,10 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
         <div className="flex items-center gap-2 mb-4">
           <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border-purple-500/20 gap-1 px-3 py-1">
             <Zap className="h-3.5 w-3.5" fill="currentColor" />
-            AI Recommended
+            {t("trends.aiRecommended")}
           </Badge>
           <h3 className="text-lg font-semibold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Top Ideation Picks for You
+            {t("trends.topPicks")}
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -138,10 +141,10 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-red-500" />
-            Real-time Trends
+            {t("trends.title")}
           </h3>
           <p className="text-muted-foreground text-sm">
-            Discover rising topics and create content instantly.
+            {t("trends.subtitle")}
           </p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
@@ -149,7 +152,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search trends or topics..."
+              placeholder={t("trends.searchPlaceholder")}
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -173,7 +176,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
             <PopoverContent className="w-64" align="end">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Filter by Category</h4>
+                  <h4 className="font-medium text-sm">{t("trends.filterByCategory")}</h4>
                   {selectedCategories.length > 0 && (
                     <Button
                       variant="ghost"
@@ -181,7 +184,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                       onClick={clearFilters}
                       className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      Clear all
+                      {tc("button.clearAll")}
                     </Button>
                   )}
                 </div>
@@ -248,7 +251,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                             asChild
                           >
                             <Link to="/projects/new" state={{ topic: trend.title }}>
-                              Use Theme
+                              {t("trends.useTheme")}
                             </Link>
                           </Button>
                           <Button
@@ -258,7 +261,7 @@ export function TrendAnalyzer({ trends, recommendations }: TrendAnalyzerProps) {
                             onClick={() => handleGenerateIdeas(trend)}
                           >
                             <Sparkles className="h-3 w-3 mr-1" />
-                            Generate Ideas
+                            {t("trends.generateIdeas")}
                           </Button>
                         </div>
                         <Badge className="absolute top-2 left-2 bg-black/60 hover:bg-black/70 backdrop-blur-sm text-white border-0">

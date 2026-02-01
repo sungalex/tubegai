@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "~/common/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "~/common/components/ui/avatar";
+import { useTranslation } from "~/i18n/context";
 
 interface UserNavigationProps {
   isLoggedIn: boolean;
@@ -22,6 +23,7 @@ interface UserNavigationProps {
 export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: UserNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { t } = useTranslation("navigation");
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -46,13 +48,13 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
         <Button variant="ghost" asChild className="hidden sm:inline-flex">
           <Link to="/auth/login">
             <LogIn className="mr-2 h-4 w-4" />
-            Login
+            {t("user.login")}
           </Link>
         </Button>
         <Button asChild>
           <Link to="/auth/join">
             <UserPlus className="mr-2 h-4 w-4" />
-            Join
+            {t("user.join")}
           </Link>
         </Button>
       </>
@@ -64,13 +66,13 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
       {hasNotifications && (
         <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">{t("user.notifications")}</span>
         </Button>
       )}
       {hasMessages && (
         <Button variant="ghost" size="icon">
           <MessageCircle className="h-5 w-5" />
-          <span className="sr-only">Messages</span>
+          <span className="sr-only">{t("user.messages")}</span>
         </Button>
       )}
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
@@ -106,33 +108,33 @@ export function UserNavigation({ isLoggedIn, hasNotifications, hasMessages }: Us
           {/* DISABLED: Settings (Phase 2+) */}
           <DropdownMenuGroup>
             <DropdownMenuLabel className="text-muted-foreground">
-              Settings <span className="text-xs">(Coming Soon)</span>
+              {t("user.settings")} <span className="text-xs">({t("misc.comingSoon", { ns: "common" })})</span>
             </DropdownMenuLabel>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <User className="mr-2 h-4 w-4" />
-              Profile
+              {t("user.profile")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <CreditCard className="mr-2 h-4 w-4" />
-              Account
+              {t("user.account")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Sun className="mr-2 h-4 w-4" />
-              Appearance
+              {t("user.appearance")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Bell className="mr-2 h-4 w-4" />
-              Notifications
+              {t("user.notifications")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Plug className="mr-2 h-4 w-4" />
-              Integrations
+              {t("user.integrations")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
-            Log out
+            {t("user.logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

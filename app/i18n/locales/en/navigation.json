@@ -1,0 +1,101 @@
+{
+  "brand": "TubeGAI",
+  "toggleMenu": "Toggle menu",
+  "products": {
+    "title": "Products",
+    "tubegai": {
+      "name": "TubeGAI",
+      "description": "Standard integrated creator workflow solution."
+    },
+    "pro": {
+      "name": "TubeGAI Pro",
+      "description": "Coming soon - Advanced analytics."
+    },
+    "plus": {
+      "name": "TubeGAI Plus",
+      "description": "Coming soon - Enterprise solutions."
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "dashboard": {
+      "name": "Dashboard",
+      "description": "Manage your creative workflow and production."
+    },
+    "allProjects": {
+      "name": "All Projects",
+      "description": "View and manage all your creative projects."
+    },
+    "newProject": {
+      "name": "New Project",
+      "description": "Start a new video project from scratch."
+    },
+    "channels": {
+      "name": "Channels",
+      "description": "Coming soon - YouTube channel management."
+    },
+    "labels": {
+      "name": "Labels",
+      "description": "Coming soon - Project organization."
+    }
+  },
+  "studio": {
+    "title": "Studio",
+    "creatorStudio": "Creator Studio",
+    "script": {
+      "name": "Script",
+      "description": "Write and edit your video script with AI."
+    },
+    "storyboard": {
+      "name": "Storyboard",
+      "description": "Visualize scenes and shots."
+    },
+    "scene": {
+      "name": "Scene",
+      "description": "Set up environments and assets."
+    },
+    "export": {
+      "name": "Export",
+      "description": "Render and download final video."
+    },
+    "dashboard": {
+      "name": "Studio Dashboard",
+      "description": "Coming soon - Production pipeline overview."
+    },
+    "broll": {
+      "name": "B-Roll",
+      "description": "Coming soon - Stock footage."
+    },
+    "subtitles": {
+      "name": "Subtitles",
+      "description": "Coming soon - Caption generation."
+    },
+    "coloring": {
+      "name": "Coloring",
+      "description": "Coming soon - Color grading."
+    },
+    "thumbnail": {
+      "name": "Thumbnail",
+      "description": "Coming soon - Thumbnail designer."
+    },
+    "seo": {
+      "name": "SEO",
+      "description": "Coming soon - Search optimization."
+    },
+    "expandSidebar": "Expand Sidebar",
+    "collapseSidebar": "Collapse Sidebar",
+    "exportPublish": "Export & Publish"
+  },
+  "user": {
+    "login": "Login",
+    "join": "Join",
+    "logout": "Log out",
+    "notifications": "Notifications",
+    "messages": "Messages",
+    "settings": "Settings",
+    "profile": "Profile",
+    "account": "Account",
+    "appearance": "Appearance",
+    "integrations": "Integrations"
+  }
+}

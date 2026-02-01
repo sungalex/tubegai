@@ -12,6 +12,7 @@ import { getRecentProjects, getTrends, getAIRecommendations } from "~/common/dat
 import { getSavedIdeas } from "~/common/data/ideation.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { SavedIdea } from "~/common/types/ideation.types";
+import { useTranslation } from "~/i18n/context";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
@@ -35,6 +36,7 @@ export const meta = () => {
 export default function DashboardPage({ loaderData }: Route.ComponentProps) {
   const { recentProjects, trends, recommendations, savedIdeas: initialSavedIdeas } = loaderData;
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(initialSavedIdeas);
+  const { t } = useTranslation("project");
 
   const handleDeleteIdea = (ideaId: string) => {
     setSavedIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
@@ -44,23 +46,23 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Projects Dashboard</h2>
-        <p className="text-muted-foreground">Manage your creative workflow and production.</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h2>
+        <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* MVP: Trends, Saved Ideas, and Projects tabs are active */}
       <Tabs defaultValue="trends" className="space-y-6">
         <TabsList className="grid w-full max-w-100 grid-cols-3">
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="trends">{t("dashboard.tabs.trends")}</TabsTrigger>
           <TabsTrigger value="saved-ideas">
-            Saved Ideas
+            {t("dashboard.tabs.savedIdeas")}
             {savedIdeas.length > 0 && (
               <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
                 {savedIdeas.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active-projects">Projects</TabsTrigger>
+          <TabsTrigger value="active-projects">{t("dashboard.tabs.projects")}</TabsTrigger>
           {/* DISABLED: Phase 2+ tabs
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="channels">Channels</TabsTrigger>
@@ -72,8 +74,8 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         <TabsContent value="trends" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Ideation Hub</h2>
-              <p className="text-muted-foreground">Discover winning topics and start creating instantly.</p>
+              <h2 className="text-2xl font-bold tracking-tight">{t("dashboard.ideationHub.title")}</h2>
+              <p className="text-muted-foreground">{t("dashboard.ideationHub.subtitle")}</p>
             </div>
           </div>
 
@@ -85,8 +87,8 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         <TabsContent value="saved-ideas" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Saved Ideas</h2>
-              <p className="text-muted-foreground">Your bookmarked content ideas for future projects.</p>
+              <h2 className="text-2xl font-bold tracking-tight">{t("dashboard.savedIdeasSection.title")}</h2>
+              <p className="text-muted-foreground">{t("dashboard.savedIdeasSection.subtitle")}</p>
             </div>
           </div>
 
@@ -100,7 +102,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.stats.inProgress")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">3</div>
@@ -108,7 +110,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.stats.completed")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">12</div>
@@ -116,7 +118,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Drafts</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.stats.drafts")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">5</div>
@@ -126,10 +128,10 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
           {/* Recent Activity Section */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Recent Activity</h3>
+            <h3 className="text-lg font-medium">{t("dashboard.recentActivity")}</h3>
             <Button variant="ghost" asChild>
               <Link to="/projects/lists" className="flex items-center gap-2">
-                View All Projects <FolderKanban className="h-4 w-4" />
+                {t("dashboard.viewAllProjects")} <FolderKanban className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -153,7 +155,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                   </div>
                   <Button className="w-full h-8 text-xs px-2" asChild>
                     <Link to={`/studio/script/${project.id}`}>
-                      <Edit2 className="h-3 w-3 mr-1.5" /> Open Script
+                      <Edit2 className="h-3 w-3 mr-1.5" /> {t("dashboard.openScript")}
                     </Link>
                   </Button>
                 </CardContent>

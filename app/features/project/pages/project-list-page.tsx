@@ -13,12 +13,13 @@ import { ProjectCard } from "../components/project-card";
 import type { Route } from "./+types/project-list-page";
 import { getProjects, type ProjectSortOption } from "~/common/data/project.data";
 import { requireAuth } from "~/lib/auth.server";
+import { useTranslation } from "~/i18n/context";
 
-const SORT_OPTIONS: { value: ProjectSortOption; label: string }[] = [
-  { value: "newest", label: "Newest First" },
-  { value: "oldest", label: "Oldest First" },
-  { value: "name", label: "Name (A-Z)" },
-  { value: "progress", label: "Progress" },
+const SORT_KEYS: { value: ProjectSortOption; key: string }[] = [
+  { value: "newest", key: "list.sortOptions.newest" },
+  { value: "oldest", key: "list.sortOptions.oldest" },
+  { value: "name", key: "list.sortOptions.name" },
+  { value: "progress", key: "list.sortOptions.progress" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -43,6 +44,8 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
   const { projects, search, sort, totalCount, totalPages, currentPage } = loaderData;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(search);
+  const { t } = useTranslation("project");
+  const { t: tc } = useTranslation("common");
 
   // Build URL with search params
   function buildUrl(params: { q?: string; sort?: string; page?: number }) {
@@ -71,20 +74,22 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
   }
 
   // Get current sort label
-  const currentSortLabel = SORT_OPTIONS.find((opt) => opt.value === sort)?.label ?? "Sort";
+  const currentSortLabel = SORT_KEYS.find((opt) => opt.value === sort)?.key
+    ? t(SORT_KEYS.find((opt) => opt.value === sort)!.key)
+    : t("list.sort");
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Your Projects</h1>
-          <p className="text-muted-foreground">Manage and organize your video creations.</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-1">{t("list.title")}</h1>
+          <p className="text-muted-foreground">{t("list.subtitle")}</p>
         </div>
         <Button asChild>
           <Link to="/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            {t("list.newProject")}
           </Link>
         </Button>
       </div>
@@ -95,7 +100,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search projects..."
+              placeholder={t("list.searchPlaceholder")}
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -107,7 +112,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
             className="transition-all hover:bg-primary hover:text-primary-foreground"
           >
             <Search className="h-4 w-4 mr-2" />
-            Search
+            {tc("button.search")}
           </Button>
         </form>
         <DropdownMenu>
@@ -118,13 +123,13 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {SORT_OPTIONS.map((option) => (
+            {SORT_KEYS.map((option) => (
               <DropdownMenuItem
                 key={option.value}
                 onClick={() => handleSortChange(option.value)}
                 className="flex items-center justify-between"
               >
-                {option.label}
+                {t(option.key)}
                 {sort === option.value && <Check className="h-4 w-4 ml-2" />}
               </DropdownMenuItem>
             ))}
@@ -151,7 +156,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                {tc("button.previous")}
               </Button>
 
               <div className="flex items-center gap-1">
@@ -193,7 +198,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
               >
-                Next
+                {tc("button.next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -201,28 +206,28 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
 
           {/* Result count */}
           <p className="text-center text-sm text-muted-foreground">
-            Showing {projects.length} of {totalCount} projects
+            {t("list.pagination.showing", { count: projects.length, total: totalCount })}
           </p>
         </div>
       ) : (
         <div className="text-center py-20 border rounded-lg bg-muted/20 border-dashed">
           <div className="flex flex-col items-center justify-center text-muted-foreground">
             <Search className="h-10 w-10 mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">No projects found</h3>
+            <h3 className="text-lg font-medium">{t("list.empty.title")}</h3>
             <p className="text-sm max-w-sm mt-1 mb-4">
               {search
-                ? `We couldn't find any projects matching "${search}". Try adjusting your search term.`
-                : "You haven't created any projects yet. Start by creating a new project."}
+                ? t("list.empty.searchEmpty", { query: search })
+                : t("list.empty.noProjects")}
             </p>
             {search ? (
               <Button variant="outline" onClick={() => navigate("/projects/lists")}>
-                Clear Search
+                {tc("button.clearSearch")}
               </Button>
             ) : (
               <Button asChild>
                 <Link to="/projects/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Project
+                  {t("list.empty.createProject")}
                 </Link>
               </Button>
             )}

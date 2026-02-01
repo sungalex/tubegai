@@ -17,6 +17,7 @@ import { StudioProjectSelector } from "../components/studio-project-selector";
 import type { StoryboardScriptSegment } from "~/common/types/studio.types";
 import { getStoryboardSegments, getStoryboardScenesPool } from "~/common/data/studio.data";
 import type { Route } from "./+types/studio-storyboard-page";
+import { useTranslation } from "~/i18n/context";
 // import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -43,13 +44,14 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
   const [segments, setSegments] = useState<StoryboardScriptSegment[]>(initialSegments);
   const [scenesPool, setScenesPool] = useState(initialScenesPool);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { t } = useTranslation("studio");
 
   // Handle No Project
   if (!projectId) {
     return (
       <StudioProjectSelector
-        title="Storyboard"
-        description="Select a project to visualize your narrative scene by scene."
+        title={t("storyboard.title")}
+        description={t("storyboard.subtitle")}
         context="storyboard"
       />
     );
@@ -58,7 +60,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
   // Generate All
   const handleGenerateAll = async () => {
     setIsGenerating(true);
-    toast.info("Analyzing script and generating scenes...", { description: "This might take a few seconds." });
+    toast.info(t("storyboard.generatingToast"), { description: t("storyboard.generatingDesc") });
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -71,7 +73,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
 
     setSegments(newSegments);
     setIsGenerating(false);
-    toast.success("Storyboard generation complete!", { description: "6 scenes created across 3 segments." });
+    toast.success(t("storyboard.completeToast"), { description: t("storyboard.completeDesc") });
   };
 
   // Generate Single Segment
@@ -99,12 +101,12 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
         <div className="p-4 pb-20 max-w-full px-6 space-y-8">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Storyboard Board</h2>
-              <p className="text-muted-foreground">Visualize your narrative scene by scene.</p>
+              <h2 className="text-2xl font-bold tracking-tight">{t("storyboard.title")}</h2>
+              <p className="text-muted-foreground">{t("storyboard.subtitle")}</p>
             </div>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
-              Export PDF
+              {t("storyboard.exportPdf")}
             </Button>
           </div>
 
@@ -117,7 +119,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                     <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-inset ring-primary/20">
                       {index + 1}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider">Script Segment</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">{t("storyboard.scriptSegment")}</span>
                   </div>
                   <div className="bg-muted/30 p-4 rounded-lg border border-border/50 text-base leading-relaxed relative group-hover:border-primary/20 transition-colors">
                     <FileText className="absolute top-3 right-3 h-4 w-4 text-muted-foreground/20" />
@@ -133,7 +135,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                         onClick={() => handleGenerateSegment(segment.id)}
                       >
                         <Sparkles className="h-4 w-4" />
-                        Generate this segment
+                        {t("storyboard.generateSegment")}
                       </Button>
                     </div>
                   )}
@@ -154,7 +156,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                       <div className="h-full min-h-70 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/20 transition-colors hover:bg-muted/30 cursor-pointer">
                         <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary">
                           <Plus className="h-6 w-6" />
-                          Add Scene
+                          {t("storyboard.addScene")}
                         </Button>
                       </div>
                     </StoryboardGrid>
@@ -163,13 +165,13 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                         <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>
-                      <h4 className="text-sm font-semibold mb-1">No scenes generated</h4>
+                      <h4 className="text-sm font-semibold mb-1">{t("storyboard.noScenes")}</h4>
                       <p className="text-xs text-muted-foreground max-w-62.5 mb-4">
-                        Use the generator to visualize scenes for this script segment.
+                        {t("storyboard.noScenesDesc")}
                       </p>
                       <Button onClick={() => handleGenerateSegment(segment.id)} size="sm" className="gap-2">
                         <Sparkles className="h-3 w-3" />
-                        Generate Scenes
+                        {t("storyboard.generateScenes")}
                       </Button>
                     </div>
                   )}

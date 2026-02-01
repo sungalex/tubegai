@@ -1,0 +1,155 @@
+{
+  "dashboard": {
+    "title": "Projects Dashboard",
+    "subtitle": "Manage your creative workflow and production.",
+    "tabs": {
+      "trends": "Trends",
+      "savedIdeas": "Saved Ideas",
+      "projects": "Projects"
+    },
+    "stats": {
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "drafts": "Drafts"
+    },
+    "ideationHub": {
+      "title": "Ideation Hub",
+      "subtitle": "Discover winning topics and start creating instantly."
+    },
+    "savedIdeasSection": {
+      "title": "Saved Ideas",
+      "subtitle": "Your bookmarked content ideas for future projects."
+    },
+    "recentActivity": "Recent Activity",
+    "viewAllProjects": "View All Projects",
+    "openScript": "Open Script"
+  },
+  "list": {
+    "title": "Your Projects",
+    "subtitle": "Manage and organize your video creations.",
+    "newProject": "New Project",
+    "searchPlaceholder": "Search projects...",
+    "sortOptions": {
+      "newest": "Newest First",
+      "oldest": "Oldest First",
+      "name": "Name (A-Z)",
+      "progress": "Progress"
+    },
+    "sort": "Sort",
+    "empty": {
+      "title": "No projects found",
+      "searchEmpty": "We couldn't find any projects matching \"{{query}}\". Try adjusting your search term.",
+      "noProjects": "You haven't created any projects yet. Start by creating a new project.",
+      "createProject": "Create Project"
+    },
+    "pagination": {
+      "showing": "Showing {{count}} of {{total}} projects"
+    }
+  },
+  "new": {
+    "title": "Create New Project",
+    "subtitle": "Define the basics for your new video project.",
+    "backToDashboard": "Back to Dashboard",
+    "themeSelected": "Theme selected:",
+    "channel": {
+      "label": "Channel (Required)",
+      "placeholder": "Select a channel"
+    },
+    "projectTitle": {
+      "label": "Project Title",
+      "placeholder": "e.g., Tech Reviews 2026",
+      "description": "This is the name of your project."
+    },
+    "videoType": {
+      "label": "Video Type",
+      "placeholder": "Select type",
+      "shorts": "Shorts (60s)",
+      "longForm": "Long Form"
+    },
+    "toneStyle": {
+      "label": "Tone & Style",
+      "placeholder": "Select tone",
+      "informative": "Informative",
+      "funny": "Funny / Entertaining",
+      "cinematic": "Cinematic",
+      "casual": "Casual / Vlog"
+    },
+    "labels": {
+      "label": "Project Labels",
+      "description": "Select labels to organize your project."
+    },
+    "description": {
+      "label": "Description / Concept",
+      "placeholder": "Briefly describe your video idea..."
+    },
+    "visibility": {
+      "label": "Visibility",
+      "private": "Private (Only you can view)",
+      "public": "Public (Visible to everyone)"
+    },
+    "submit": "Create Project",
+    "submitting": "Creating..."
+  },
+  "card": {
+    "progress": "Progress",
+    "lastUpdated": "Last updated",
+    "openProject": "Open Project",
+    "editProject": "Edit Project",
+    "deleteProject": "Delete Project"
+  },
+  "trends": {
+    "title": "Real-time Trends",
+    "subtitle": "Discover rising topics and create content instantly.",
+    "aiRecommended": "AI Recommended",
+    "topPicks": "Top Ideation Picks for You",
+    "searchPlaceholder": "Search trends or topics...",
+    "filterByCategory": "Filter by Category",
+    "useTheme": "Use Theme",
+    "generateIdeas": "Generate Ideas"
+  },
+  "ideaGenerator": {
+    "title": "AI Idea Generator",
+    "basedOn": "Generate content ideas based on:",
+    "language": "Language",
+    "contentTone": "Content Tone",
+    "videoLength": "Video Length",
+    "targetAudience": "Target Audience",
+    "ideaCount": "Number of Ideas",
+    "customFocus": "Custom Focus (Optional)",
+    "customFocusPlaceholder": "Add specific keywords, angles, or requirements for the AI...",
+    "generate": "Generate Content Ideas",
+    "generating": "Analyzing trend and generating ideas...",
+    "ideasGenerated": "{{count}} ideas generated",
+    "saveAll": "Save All",
+    "hookIdeas": "Hook Ideas:",
+    "audience": "Audience:",
+    "estViews": "Est. Views:",
+    "saved": "Saved",
+    "saveIdea": "Save Idea",
+    "useIdea": "Use This Idea",
+    "adjustOptions": "Adjust Options",
+    "regenerate": "Regenerate"
+  },
+  "tones": {
+    "informative": "Informative",
+    "entertaining": "Entertaining",
+    "educational": "Educational",
+    "inspirational": "Inspirational",
+    "humorous": "Humorous",
+    "serious": "Serious",
+    "casual": "Casual"
+  },
+  "videoTypes": {
+    "short": "Short (60s)",
+    "medium": "Medium (2-5 min)",
+    "long": "Long Form (10+ min)"
+  },
+  "audiences": {
+    "general": "General",
+    "teens": "Teenagers",
+    "youngAdults": "Young Adults",
+    "professionals": "Professionals",
+    "parents": "Parents",
+    "seniors": "Seniors"
+  }
+}

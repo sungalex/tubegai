@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "~/i18n/context";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,12 @@ import {
 } from "~/common/components/ui/dialog";
 import { Button } from "~/common/components/ui/button";
 import { Badge } from "~/common/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/common/components/ui/card";
 import { ScrollArea } from "~/common/components/ui/scroll-area";
 import { Label } from "~/common/components/ui/label";
 import { Textarea } from "~/common/components/ui/textarea";
@@ -39,11 +45,15 @@ import {
 } from "~/common/components/ui/collapsible";
 import { Slider } from "~/common/components/ui/slider";
 import type { TrendItem } from "~/common/types/project.types";
-import type { GeneratedIdea, IdeationOptions } from "~/common/types/ideation.types";
+import type {
+  GeneratedIdea,
+  IdeationOptions,
+} from "~/common/types/ideation.types";
 import {
   CONTENT_TONES,
   VIDEO_TYPES,
   TARGET_AUDIENCE_TYPES,
+  IDEATION_LANGUAGES,
   DEFAULT_IDEATION_OPTIONS,
 } from "~/common/types/ideation.types";
 
@@ -62,7 +72,10 @@ export function IdeaGeneratorDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [savedIdeaIds, setSavedIdeaIds] = useState<Set<string>>(new Set());
   const [showOptions, setShowOptions] = useState(false);
-  const [options, setOptions] = useState<IdeationOptions>(DEFAULT_IDEATION_OPTIONS);
+  const [options, setOptions] = useState<IdeationOptions>(
+    DEFAULT_IDEATION_OPTIONS,
+  );
+  const { t } = useTranslation("project");
 
   const generateIdeas = async () => {
     setIsLoading(true);
@@ -169,7 +182,7 @@ export function IdeaGeneratorDialog({
 
   const updateOption = <K extends keyof IdeationOptions>(
     key: K,
-    value: IdeationOptions[K]
+    value: IdeationOptions[K],
   ) => {
     setOptions((prev) => ({ ...prev, [key]: value }));
   };
@@ -180,10 +193,10 @@ export function IdeaGeneratorDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
-            AI Idea Generator
+            {t("ideaGenerator.title")}
           </DialogTitle>
           <DialogDescription>
-            Generate content ideas based on: <strong>{trend.title}</strong>
+            {t("ideaGenerator.basedOn")} <strong>{trend.title}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -207,7 +220,7 @@ export function IdeaGeneratorDialog({
               >
                 <span className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4" />
-                  Generation Options
+                  {t("ideaGenerator.adjustOptions")}
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${showOptions ? "rotate-180" : ""}`}
@@ -216,13 +229,50 @@ export function IdeaGeneratorDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-4">
               <div className="grid gap-4 p-4 border rounded-lg bg-muted/30">
+                {/* Language */}
+                <div className="grid gap-2">
+                  <Label htmlFor="language">
+                    {t("ideaGenerator.language")}
+                  </Label>
+                  <Select
+                    value={options.language}
+                    onValueChange={(value) =>
+                      updateOption(
+                        "language",
+                        value as IdeationOptions["language"],
+                      )
+                    }
+                  >
+                    <SelectTrigger id="language">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {IDEATION_LANGUAGES.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          <div className="flex items-center gap-2">
+                            <span>{lang.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({lang.description})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Content Tone */}
                 <div className="grid gap-2">
-                  <Label htmlFor="content-tone">Content Tone</Label>
+                  <Label htmlFor="content-tone">
+                    {t("ideaGenerator.contentTone")}
+                  </Label>
                   <Select
                     value={options.contentTone}
                     onValueChange={(value) =>
-                      updateOption("contentTone", value as IdeationOptions["contentTone"])
+                      updateOption(
+                        "contentTone",
+                        value as IdeationOptions["contentTone"],
+                      )
                     }
                   >
                     <SelectTrigger id="content-tone">
@@ -245,11 +295,16 @@ export function IdeaGeneratorDialog({
 
                 {/* Video Type */}
                 <div className="grid gap-2">
-                  <Label htmlFor="video-type">Video Length</Label>
+                  <Label htmlFor="video-type">
+                    {t("ideaGenerator.videoLength")}
+                  </Label>
                   <Select
                     value={options.videoType}
                     onValueChange={(value) =>
-                      updateOption("videoType", value as IdeationOptions["videoType"])
+                      updateOption(
+                        "videoType",
+                        value as IdeationOptions["videoType"],
+                      )
                     }
                   >
                     <SelectTrigger id="video-type">
@@ -272,13 +327,15 @@ export function IdeaGeneratorDialog({
 
                 {/* Target Audience */}
                 <div className="grid gap-2">
-                  <Label htmlFor="target-audience">Target Audience</Label>
+                  <Label htmlFor="target-audience">
+                    {t("ideaGenerator.targetAudience")}
+                  </Label>
                   <Select
                     value={options.targetAudienceType}
                     onValueChange={(value) =>
                       updateOption(
                         "targetAudienceType",
-                        value as IdeationOptions["targetAudienceType"]
+                        value as IdeationOptions["targetAudienceType"],
                       )
                     }
                   >
@@ -303,14 +360,16 @@ export function IdeaGeneratorDialog({
                 {/* Number of Ideas */}
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
-                    <Label>Number of Ideas</Label>
+                    <Label>{t("ideaGenerator.ideaCount")}</Label>
                     <span className="text-sm text-muted-foreground">
                       {options.ideaCount}
                     </span>
                   </div>
                   <Slider
                     value={[options.ideaCount]}
-                    onValueChange={([value]) => updateOption("ideaCount", value)}
+                    onValueChange={([value]) =>
+                      updateOption("ideaCount", value)
+                    }
                     min={1}
                     max={5}
                     step={1}
@@ -321,13 +380,15 @@ export function IdeaGeneratorDialog({
                 {/* Custom Prompt */}
                 <div className="grid gap-2">
                   <Label htmlFor="custom-prompt">
-                    Custom Focus (Optional)
+                    {t("ideaGenerator.customFocus")}
                   </Label>
                   <Textarea
                     id="custom-prompt"
-                    placeholder="Add specific keywords, angles, or requirements for the AI..."
+                    placeholder={t("ideaGenerator.customFocusPlaceholder")}
                     value={options.customPrompt || ""}
-                    onChange={(e) => updateOption("customPrompt", e.target.value)}
+                    onChange={(e) =>
+                      updateOption("customPrompt", e.target.value)
+                    }
                     className="h-20 resize-none"
                   />
                 </div>
@@ -342,7 +403,7 @@ export function IdeaGeneratorDialog({
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              Generate Content Ideas
+              {t("ideaGenerator.generate")}
             </Button>
           )}
 
@@ -350,10 +411,18 @@ export function IdeaGeneratorDialog({
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-purple-500" />
-              <p className="text-sm">Analyzing trend and generating ideas...</p>
+              <p className="text-sm">{t("ideaGenerator.generating")}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Tone: {CONTENT_TONES.find((t) => t.value === options.contentTone)?.label} •
-                Length: {VIDEO_TYPES.find((t) => t.value === options.videoType)?.label}
+                {
+                  IDEATION_LANGUAGES.find((l) => l.value === options.language)
+                    ?.label
+                }{" "}
+                •
+                {
+                  CONTENT_TONES.find((t) => t.value === options.contentTone)
+                    ?.label
+                }{" "}
+                •{VIDEO_TYPES.find((t) => t.value === options.videoType)?.label}
               </p>
             </div>
           )}
@@ -364,7 +433,7 @@ export function IdeaGeneratorDialog({
               {/* Bulk Actions */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
-                  {ideas.length} ideas generated
+                  {t("ideaGenerator.ideasGenerated", { count: ideas.length })}
                 </span>
                 <Button
                   size="sm"
@@ -373,11 +442,11 @@ export function IdeaGeneratorDialog({
                   disabled={ideas.every((idea) => savedIdeaIds.has(idea.id))}
                 >
                   <Bookmark className="h-3 w-3 mr-1" />
-                  Save All
+                  {t("ideaGenerator.saveAll")}
                 </Button>
               </div>
 
-              <ScrollArea className="h-[350px] pr-4">
+              <ScrollArea className="h-87.5 pr-4">
                 <div className="space-y-4">
                   {ideas.map((idea) => (
                     <Card key={idea.id} className="group">
@@ -402,7 +471,7 @@ export function IdeaGeneratorDialog({
                         {/* Hooks */}
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-2">
-                            Hook Ideas:
+                            {t("ideaGenerator.hookIdeas")}
                           </p>
                           <ul className="space-y-1">
                             {idea.hooks.map((hook, idx) => (
@@ -421,12 +490,16 @@ export function IdeaGeneratorDialog({
                         <div className="flex flex-wrap gap-4 text-xs">
                           <div className="flex items-center gap-1.5">
                             <Target className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">Audience:</span>
+                            <span className="text-muted-foreground">
+                              {t("ideaGenerator.audience")}
+                            </span>
                             <span>{idea.targetAudience}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">Est. Views:</span>
+                            <span className="text-muted-foreground">
+                              {t("ideaGenerator.estViews")}
+                            </span>
                             <span className="text-green-500 font-medium">
                               {idea.estimatedViews}
                             </span>
@@ -444,12 +517,12 @@ export function IdeaGeneratorDialog({
                             {savedIdeaIds.has(idea.id) ? (
                               <>
                                 <Check className="h-3 w-3 mr-1" />
-                                Saved
+                                {t("ideaGenerator.saved")}
                               </>
                             ) : (
                               <>
                                 <Bookmark className="h-3 w-3 mr-1" />
-                                Save Idea
+                                {t("ideaGenerator.saveIdea")}
                               </>
                             )}
                           </Button>
@@ -458,7 +531,7 @@ export function IdeaGeneratorDialog({
                               to="/projects/new"
                               state={{ topic: idea.title, hooks: idea.hooks }}
                             >
-                              Use This Idea
+                              {t("ideaGenerator.useIdea")}
                             </Link>
                           </Button>
                         </div>
@@ -475,11 +548,11 @@ export function IdeaGeneratorDialog({
             <div className="flex justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowOptions(true)}>
                 <Settings2 className="h-3 w-3 mr-1" />
-                Adjust Options
+                {t("ideaGenerator.adjustOptions")}
               </Button>
               <Button variant="ghost" onClick={generateIdeas}>
                 <Sparkles className="h-3 w-3 mr-1" />
-                Regenerate
+                {t("ideaGenerator.regenerate")}
               </Button>
             </div>
           )}

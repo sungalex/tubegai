@@ -11,6 +11,7 @@ import { getSceneSegments } from "~/common/data/studio.data";
 import type { Route } from "./+types/studio-scene-page";
 // import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { SceneScriptSegment } from "~/common/types/studio.types";
+import { useTranslation } from "~/i18n/context";
 
 export async function loader({ params }: Route.LoaderArgs) {
   if (!params.projectId) {
@@ -26,13 +27,14 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
 
   const [segments, setSegments] = useState<SceneScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { t } = useTranslation("studio");
 
   // Handle No Project
   if (!projectId) {
     return (
       <StudioProjectSelector
-        title="Scene Video Generation"
-        description="Transform your storyboard scenes into dynamic video clips."
+        title={t("scene.title")}
+        description={t("scene.subtitle")}
         context="scene"
       />
     );
@@ -64,13 +66,13 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
     setTimeout(() => {
       // Success
       updatePartStatus(sceneId, partId, "completed", "https://example.com/video.mp4"); // URL is mock, card uses thumbnail
-      toast.success("Video clip generated!");
+      toast.success(t("scene.clipGenerated"));
     }, 2500);
   };
 
   // Generate Single Scene Logic
   const handleGenerateScene = async (sceneId: string) => {
-    toast.info("Generating video for scene...", { description: "Processing..." });
+    toast.info(t("scene.generatingToast"), { description: t("scene.generatingDesc") });
     const MAX_DURATION = 4;
 
     setSegments(prev => prev.map(seg => ({
@@ -112,13 +114,13 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
         return scene;
       })
     })));
-    toast.success("Scene video generated!");
+    toast.success(t("scene.sceneGenerated"));
   };
 
   // Generate All Logic (The requirement: Split video length)
   const handleGenerateAll = async () => {
     setIsGenerating(true);
-    toast.info("Generating videos for all scenes...", { description: "Applying AI split logic for long scenes." });
+    toast.info(t("scene.generatingAllToast"), { description: t("scene.generatingAllDesc") });
 
     const MAX_DURATION = 4;
 
@@ -157,7 +159,7 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
     })));
 
     setIsGenerating(false);
-    toast.success("All videos generated successfully!");
+    toast.success(t("scene.allGenerated"));
   };
 
   return (
@@ -169,12 +171,12 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
 
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Scene Generation</h2>
-              <p className="text-muted-foreground">Turn your storyboard into a video sequence.</p>
+              <h2 className="text-2xl font-bold tracking-tight">{t("scene.pageTitle")}</h2>
+              <p className="text-muted-foreground">{t("scene.pageSubtitle")}</p>
             </div>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
-              Export Timeline
+              {t("scene.exportTimeline")}
             </Button>
           </div>
 
@@ -187,7 +189,7 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
                     <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-inset ring-primary/20">
                       {index + 1}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider">Segment</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">{t("scene.segment")}</span>
                   </div>
                   <div className="bg-background p-3 rounded-lg border text-sm text-muted-foreground">
                     {segment.content}

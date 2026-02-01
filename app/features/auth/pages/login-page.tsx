@@ -18,13 +18,7 @@ import {
 import { Input } from "~/common/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Separator } from "~/common/components/ui/separator";
-
-export const meta = () => {
-  return [
-    { title: "Login | TubeGAI" },
-    { name: "description", content: "Login to your account to access the creator tools." },
-  ];
-};
+import { useTranslation } from "~/i18n/context";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -36,6 +30,8 @@ type LoginValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation("auth");
+  const { t: tc } = useTranslation("common");
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -73,9 +69,9 @@ export default function LoginPage() {
     <div className="flex h-full min-h-[calc(100vh-200px)] items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">{t("login.title")}</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and password to access your account
+            {t("login.subtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -86,11 +82,11 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t("login.email")}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="name@example.com" className="pl-9" {...field} disabled={isLoading} />
+                        <Input placeholder={t("login.emailPlaceholder")} className="pl-9" {...field} disabled={isLoading} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -102,7 +98,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>{t("login.password")}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -116,38 +112,38 @@ export default function LoginPage() {
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? t("login.submitting") : t("login.submit")}
               </Button>
             </form>
           </Form>
 
           <div className="flex items-center gap-4">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">OR</span>
+            <span className="text-xs text-muted-foreground">{tc("misc.or")}</span>
             <Separator className="flex-1" />
           </div>
 
           <Button variant="outline" className="w-full" disabled={isLoading}>
             <Github className="mr-2 h-4 w-4" />
-            Continue with Github
+            {t("login.continueWith", { provider: t("login.github") })}
           </Button>
 
           <Button variant="outline" className="w-full" disabled={isLoading}>
             <span className="mr-2">G</span>
-            Continue with Google
+            {t("login.continueWith", { provider: t("login.google") })}
           </Button>
 
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            {t("login.noAccount")}{" "}
             <Link to="/auth/join" className="text-primary hover:underline font-medium">
-              Sign up
+              {t("login.signUp")}
             </Link>
           </div>
           <div className="text-center text-xs text-muted-foreground">
             <Link to="/auth/forgot-password" className="text-primary hover:underline">
-              Forgot your password?
+              {t("login.forgotPassword")}
             </Link>
           </div>
         </CardFooter>

@@ -7,6 +7,7 @@ import { ChevronLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/common/components/ui/badge";
+import { useTranslation } from "~/i18n/context";
 
 import { Button } from "~/common/components/ui/button";
 import {
@@ -71,10 +72,7 @@ import type { Route } from "./+types/new-project-page";
 // import { useLoaderData } from "react-router";
 
 export async function loader() {
-  const [channels, labels] = await Promise.all([
-    getChannels(),
-    getLabels()
-  ]);
+  const [channels, labels] = await Promise.all([getChannels(), getLabels()]);
   return { channels, labels };
 }
 
@@ -83,13 +81,14 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation("project");
+  const { t: tc } = useTranslation("common");
 
   // ... (rest of the component)
 
   // Usage in Select (channels) - Replace CHANNELS with channels
   // ...
   // Usage in Labels (labels) - Replace LABELS with labels
-
 
   // Get topic from navigation state if available
   const initialTopic = location.state?.topic || "";
@@ -98,7 +97,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       ...defaultValues,
-      topic: initialTopic
+      topic: initialTopic,
     },
   });
 
@@ -112,7 +111,10 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
       }
       // Auto-fill description with prompt
       if (!form.getValues("description")) {
-        form.setValue("description", `Create a video about ${initialTopic}. Focus on key trends and insights.`);
+        form.setValue(
+          "description",
+          `Create a video about ${initialTopic}. Focus on key trends and insights.`,
+        );
       }
     }
   }, [initialTopic, form]);
@@ -122,17 +124,17 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
 
     // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       console.log("Creating project:", data);
 
-      toast.success("Project created successfully!", {
-        description: "Redirecting to project studio...",
+      toast.success(tc("toast.projectCreated"), {
+        description: tc("toast.redirectingToStudio"),
       });
       // Mock navigation to the new project detail page (ID: 1)
       navigate("/projects/1");
     } catch (error) {
-      toast.error("Failed to create project.", {
-        description: "Please try again later.",
+      toast.error(tc("toast.projectCreateFailed"), {
+        description: tc("toast.tryAgainLater"),
       });
     } finally {
       setIsLoading(false);
@@ -145,12 +147,14 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
         <Button variant="ghost" className="pl-0 mb-4" asChild>
           <Link to="/projects/dashboard">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            {t("new.backToDashboard")}
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Create New Project</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
+          {t("new.title")}
+        </h1>
         <p className="text-muted-foreground">
-          Define the basics for your new video project.
+          {t("new.subtitle")}
         </p>
       </div>
 
@@ -158,12 +162,13 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
         <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-
               {/* Topic (Auto-filled or Manual) */}
               {initialTopic && (
                 <div className="bg-primary/10 p-4 rounded-lg flex items-center gap-3 text-primary mb-6">
                   <Sparkles className="h-5 w-5" />
-                  <span className="font-medium">Theme selected: {initialTopic}</span>
+                  <span className="font-medium">
+                    {t("new.themeSelected")} {initialTopic}
+                  </span>
                 </div>
               )}
 
@@ -173,17 +178,24 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                   name="channelId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Channel (Required)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                      <FormLabel>{t("new.channel.label")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a channel" />
+                            <SelectValue placeholder={t("new.channel.placeholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {channels.map((channel) => (
                             <SelectItem key={channel.id} value={channel.id}>
-                              {channel.name} <span className="text-muted-foreground ml-1">({channel.handle})</span>
+                              {channel.name}{" "}
+                              <span className="text-muted-foreground ml-1">
+                                ({channel.handle})
+                              </span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -198,12 +210,16 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Project Title</FormLabel>
+                      <FormLabel>{t("new.projectTitle.label")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Tech Reviews 2026" {...field} disabled={isLoading} />
+                        <Input
+                          placeholder={t("new.projectTitle.placeholder")}
+                          {...field}
+                          disabled={isLoading}
+                        />
                       </FormControl>
                       <FormDescription>
-                        This is the name of your project.
+                        {t("new.projectTitle.description")}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -217,16 +233,20 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Video Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                      <FormLabel>{t("new.videoType.label")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder={t("new.videoType.placeholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="short">Shorts (60s)</SelectItem>
-                          <SelectItem value="long">Long Form</SelectItem>
+                          <SelectItem value="short">{t("new.videoType.shorts")}</SelectItem>
+                          <SelectItem value="long">{t("new.videoType.longForm")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -239,18 +259,26 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                   name="tone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tone & Style</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                      <FormLabel>{t("new.toneStyle.label")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select tone" />
+                            <SelectValue placeholder={t("new.toneStyle.placeholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="informative">Informative</SelectItem>
-                          <SelectItem value="funny">Funny / Entertaining</SelectItem>
-                          <SelectItem value="cinematic">Cinematic</SelectItem>
-                          <SelectItem value="vlog">Casual / Vlog</SelectItem>
+                          <SelectItem value="informative">
+                            {t("new.toneStyle.informative")}
+                          </SelectItem>
+                          <SelectItem value="funny">
+                            {t("new.toneStyle.funny")}
+                          </SelectItem>
+                          <SelectItem value="cinematic">{t("new.toneStyle.cinematic")}</SelectItem>
+                          <SelectItem value="vlog">{t("new.toneStyle.casual")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -264,7 +292,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                 name="labels"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project Labels</FormLabel>
+                    <FormLabel>{t("new.labels.label")}</FormLabel>
                     <div className="flex flex-wrap gap-2 pt-1">
                       {labels.map((label) => {
                         const isSelected = field.value.includes(label.id);
@@ -274,7 +302,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                             variant={isSelected ? "default" : "outline"}
                             className={cn(
                               "cursor-pointer transition-all px-3 py-1",
-                              isSelected ? label.color : "hover:bg-muted"
+                              isSelected ? label.color : "hover:bg-muted",
                             )}
                             onClick={() => {
                               const newValue = isSelected
@@ -289,7 +317,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                       })}
                     </div>
                     <FormDescription>
-                      Select labels to organize your project.
+                      {t("new.labels.description")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -301,10 +329,10 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description / Concept</FormLabel>
+                    <FormLabel>{t("new.description.label")}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Briefly describe your video idea..."
+                        placeholder={t("new.description.placeholder")}
                         className="resize-none"
                         rows={4}
                         {...field}
@@ -321,7 +349,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                 name="visibility"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel>Visibility</FormLabel>
+                    <FormLabel>{t("new.visibility.label")}</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -334,7 +362,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                             <RadioGroupItem value="private" />
                           </FormControl>
                           <FormLabel className="font-normal">
-                            Private (Only you can view)
+                            {t("new.visibility.private")}
                           </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0">
@@ -342,7 +370,7 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
                             <RadioGroupItem value="public" />
                           </FormControl>
                           <FormLabel className="font-normal">
-                            Public (Visible to everyone)
+                            {t("new.visibility.public")}
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -353,12 +381,19 @@ export default function NewProjectPage({ loaderData }: Route.ComponentProps) {
               />
 
               <div className="flex justify-end gap-4">
-                <Button variant="outline" type="button" onClick={() => navigate("/projects/dashboard")} disabled={isLoading}>
-                  Cancel
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => navigate("/projects/dashboard")}
+                  disabled={isLoading}
+                >
+                  {tc("button.cancel")}
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLoading ? "Creating..." : "Create Project"}
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isLoading ? t("new.submitting") : t("new.submit")}
                 </Button>
               </div>
             </form>
