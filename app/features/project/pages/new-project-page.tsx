@@ -124,6 +124,9 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const data = Object.fromEntries(formData);
 
+  // Check if caller wants JSON response (for fetcher calls)
+  const returnJson = data._returnJson === "true";
+
   // Debug: log received form data
   console.log("[CreateProject] Form data received:", JSON.stringify(data, null, 2));
 
@@ -137,8 +140,18 @@ export async function action({ request }: Route.ActionArgs) {
       aiContext.keywords = (data.keywords as string).split(",").map(k => k.trim()).filter(Boolean);
     }
     if (data.styleNotes) aiContext.styleNotes = data.styleNotes;
-    if (data.scriptGuidelines) aiContext.scriptGuidelines = data.scriptGuidelines;
     if (data.callToAction) aiContext.callToAction = data.callToAction;
+
+    // Parse scriptGuidelines as proper JSON object (not string)
+    let scriptGuidelines;
+    if (data.scriptGuidelines) {
+      try {
+        scriptGuidelines = JSON.parse(data.scriptGuidelines as string);
+      } catch {
+        // If parsing fails, store as text in aiContext
+        aiContext.scriptGuidelinesText = data.scriptGuidelines;
+      }
+    }
 
     const result = await createProject(userId, {
       title: (data.title as string) || "Untitled Project",
@@ -148,6 +161,7 @@ export async function action({ request }: Route.ActionArgs) {
       visibility: (data.visibility as "public" | "private") || "private",
       topic: (data.topic as string) || undefined,
       channelId: (data.channelId as string) || undefined,
+      thumbnailUrl: (data.thumbnailUrl as string) || undefined,
       labels,
       hooks,
       targetAudience: (data.targetAudience as string) || undefined,
@@ -157,10 +171,16 @@ export async function action({ request }: Route.ActionArgs) {
       videoLength: (data.videoLength as string) ? (data.videoLength as "short" | "medium" | "long") : undefined,
       basedOnTrend: (data.basedOnTrend as string) || undefined,
       basedOnTrendId: data.basedOnTrendId ? parseInt(data.basedOnTrendId as string) : undefined,
+      basedOnTrendUuid: (data.basedOnTrendUuid as string) || undefined,
       sourceIdeaId: (data.sourceIdeaId as string) || undefined,
       aiContext: Object.keys(aiContext).length > 0 ? aiContext : undefined,
+      scriptGuidelines,
     });
 
+    // Return JSON for fetcher calls, redirect for regular form submissions
+    if (returnJson) {
+      return { id: result.id };
+    }
     return redirect(`/projects/${result.id}`);
   } catch (error) {
     console.error("Failed to create project:", error);

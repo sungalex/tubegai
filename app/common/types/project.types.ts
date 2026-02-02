@@ -64,6 +64,9 @@ export interface TrendItem {
   thumbnail: string;
   tags: string[];
   videoUrl?: string;
+  // Phase 2: Bookmark support
+  trendUuid?: string;
+  isSaved?: boolean;
 }
 
 export interface ProjectDetail {

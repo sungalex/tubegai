@@ -23,6 +23,7 @@ import {
   Save,
   Loader2,
   MessageSquarePlus,
+  Hash,
 } from "lucide-react";
 
 import { cn } from "~/lib/utils";
@@ -75,7 +76,7 @@ import {
 import { toast } from "sonner";
 
 import type { Route } from "./+types/project-detail-page";
-import { getProjectById, updateProject, archiveProject, deleteProject } from "~/common/data/project.data.server";
+import { getProjectById, updateProject, archiveProject, deleteProject, getProjectIntroImage } from "~/common/data/project.data.server";
 import { getChannels } from "~/common/data/channel.data.server";
 import { requireAuth } from "~/lib/auth.server";
 
@@ -104,7 +105,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect("/projects");
   }
 
-  return { project, channels };
+  // Get intro image from storyboard if exists (for projects past storyboard stage)
+  const introImage = await getProjectIntroImage(projectId);
+
+  return { project, channels, introImage };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -228,7 +232,10 @@ function ReadOnlyField({
 }
 
 export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) {
-  const { project, channels } = loaderData;
+  const { project, channels, introImage } = loaderData;
+
+  // Use intro image if available (storyboard created), otherwise use project thumbnail
+  const displayThumbnail = introImage || project.thumbnailUrl;
   const fetcher = useFetcher();
   const navigate = useNavigate();
 
@@ -248,7 +255,14 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
     videoLength: project.videoLength ?? "",
     difficulty: project.difficulty ?? "",
     hooks: project.hooks?.join("\n") ?? "",
-    scriptGuidelines: project.aiContext?.scriptGuidelines ?? "",
+    scriptGuidelines: project.scriptGuidelines
+      ? [
+          project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
+          project.scriptGuidelines.mainPoints?.length ? `핵심 포인트:\n${project.scriptGuidelines.mainPoints.join("\n")}` : "",
+          project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
+          project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
+        ].filter(Boolean).join("\n\n")
+      : (project.aiContext?.scriptGuidelinesText ?? ""),
     additionalNotes: project.aiContext?.additionalNotes ?? "",
     channelId: project.channel?.id ?? "",
   });
@@ -296,7 +310,7 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
       hooks: formData.hooks ? formData.hooks.split("\n").filter(Boolean) : [],
       aiContext: {
         ...project.aiContext,
-        scriptGuidelines: formData.scriptGuidelines || undefined,
+        scriptGuidelinesText: formData.scriptGuidelines || undefined,
         additionalNotes: formData.additionalNotes || undefined,
       },
     };
@@ -326,7 +340,14 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
       videoLength: project.videoLength ?? "",
       difficulty: project.difficulty ?? "",
       hooks: project.hooks?.join("\n") ?? "",
-      scriptGuidelines: project.aiContext?.scriptGuidelines ?? "",
+      scriptGuidelines: project.scriptGuidelines
+        ? [
+            project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
+            project.scriptGuidelines.mainPoints?.length ? `핵심 포인트:\n${project.scriptGuidelines.mainPoints.join("\n")}` : "",
+            project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
+            project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
+          ].filter(Boolean).join("\n\n")
+        : (project.aiContext?.scriptGuidelinesText ?? ""),
       additionalNotes: project.aiContext?.additionalNotes ?? "",
       channelId: project.channel?.id ?? "",
     });
@@ -642,6 +663,25 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                 )}
               </div>
 
+              {/* Keywords */}
+              <div className="pt-4 border-t">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                  <Hash className="h-3 w-3 text-blue-500" />
+                  키워드
+                </div>
+                {project.aiContext?.keywords && project.aiContext.keywords.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {project.aiContext.keywords.map((keyword: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">미설정</span>
+                )}
+              </div>
+
               {/* Script Guidelines */}
               <div className="pt-4 border-t">
                 {isEditMode ? (
@@ -655,7 +695,19 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                     />
                   </div>
                 ) : (
-                  <ReadOnlyField label="스크립트 가이드라인" value={project.aiContext?.scriptGuidelines} />
+                  <ReadOnlyField
+                    label="스크립트 가이드라인"
+                    value={
+                      project.scriptGuidelines
+                        ? [
+                            project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
+                            project.scriptGuidelines.mainPoints?.length ? `핵심 포인트: ${project.scriptGuidelines.mainPoints.join(", ")}` : "",
+                            project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
+                            project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
+                          ].filter(Boolean).join(" | ")
+                        : project.aiContext?.scriptGuidelinesText
+                    }
+                  />
                 )}
               </div>
 
@@ -693,9 +745,10 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Thumbnail - Compact */}
+              {/* Uses intro image from storyboard if available, otherwise trend/project thumbnail */}
               <div className="aspect-video rounded-lg overflow-hidden bg-muted border relative max-h-36">
-                {project.thumbnailUrl ? (
-                  <img src={project.thumbnailUrl} alt={project.title} className="w-full h-full object-cover" />
+                {displayThumbnail ? (
+                  <img src={displayThumbnail} alt={project.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-secondary/30">
                     <Play className="w-8 h-8 text-muted-foreground/30" />

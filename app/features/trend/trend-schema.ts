@@ -14,11 +14,10 @@
  * - Store AI recommendations for better user experience (Phase 3.1)
  */
 
-import { uuid, text, timestamp, bigint, integer } from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, bigint, integer, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { trendSourceEnum } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
-import { projects } from "../project/project-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
 
 // ============================================
@@ -51,10 +50,8 @@ export const trends = tubegaiSchema.table("trend", {
   externalId: text("external_id"), // YouTube video ID, etc.
   externalUrl: text("external_url"), // Original URL
 
-  // Project tracking
-  usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
-    onDelete: "set null",
-  }),
+  // Project tracking (FK constraint defined in migration)
+  usedForProjectId: uuid("used_for_project_id"),
 
   // Analytics
   viewCount: bigint("view_count", { mode: "number" }), // Actual numeric view count
@@ -66,6 +63,28 @@ export const trends = tubegaiSchema.table("trend", {
   fetchedAt: timestamp("fetched_at").defaultNow(), // When we fetched this trend
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+  // ============================================
+  // Filtering Fields (Phase 1 Enhancement)
+  // ============================================
+  regionCode: text("region_code").default("KR"),
+  languageCode: text("language_code").default("ko"),
+  videoDuration: text("video_duration"), // 'short' | 'medium' | 'long'
+
+  // ============================================
+  // Usage Tracking (Phase 1 Enhancement)
+  // ============================================
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+
+  // ============================================
+  // User Saved Trends (Bookmark)
+  // ============================================
+  isSaved: boolean("is_saved").default(false),
+  savedByUserId: uuid("saved_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  savedAt: timestamp("saved_at"),
 });
 
 // ============================================
@@ -77,10 +96,8 @@ export const trendsRelations = relations(trends, ({ one, many }) => ({
     fields: [trends.userId],
     references: [users.id],
   }),
-  usedForProject: one(projects, {
-    fields: [trends.usedForProjectId],
-    references: [projects.id],
-  }),
+  // Note: usedForProject relation removed to avoid circular import
+  // FK constraint is defined in migration
   // Phase 3.1: AI Recommendations that reference this trend
   recommendations: many(aiRecommendations),
 }));
@@ -116,9 +133,7 @@ export const aiRecommendations = tubegaiSchema.table("ai_recommendation", {
   // References
   trendId: uuid("trend_id").references(() => trends.id, { onDelete: "set null" }),
   basedOnTrends: text("based_on_trends").array().default([]), // Trend titles used for generation
-  usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
-    onDelete: "set null",
-  }),
+  usedForProjectId: uuid("used_for_project_id"), // FK constraint defined in migration
   isUsed: integer("is_used").default(0), // 0 = not used, 1 = used
 
   // Timestamps
@@ -140,8 +155,6 @@ export const aiRecommendationsRelations = relations(aiRecommendations, ({ one })
     fields: [aiRecommendations.trendId],
     references: [trends.id],
   }),
-  usedForProject: one(projects, {
-    fields: [aiRecommendations.usedForProjectId],
-    references: [projects.id],
-  }),
+  // Note: usedForProject relation removed to avoid circular import
+  // FK constraint is defined in migration
 }));

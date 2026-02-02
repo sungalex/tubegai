@@ -66,6 +66,8 @@ export default [
     route("generate-ideas", "features/project/api/generate-ideas.ts"),
     route("saved-ideas", "features/project/api/saved-ideas.ts"),
     route("ai-recommendations", "features/project/api/ai-recommendations.ts"),
+    route("trend-bookmark", "features/project/api/trend-bookmark.ts"),
+    route("generate-project-context", "features/project/api/generate-project-context.ts"),
     route("channels", "features/project/pages/channels-api.tsx"),
     route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
     // Studio API

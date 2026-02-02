@@ -2,10 +2,11 @@
 // YouTube Data API v3 Integration with Supabase Cache
 // =============================================================================
 
-import { desc, gte, sql } from "drizzle-orm";
+import { desc, gte, sql, eq, and, ilike, or } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import type { TrendItem } from "../types/project.types";
 import type { YouTubeVideosListResponse, YouTubeVideoItem } from "../types/youtube.types";
+import type { TrendFilterOptions } from "../types/trend.types";
 import { TRENDS_DATA } from "../mocks/project-mock";
 
 // =============================================================================
@@ -15,40 +16,40 @@ import { TRENDS_DATA } from "../mocks/project-mock";
 const YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3";
 const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-// YouTube category ID to display name mapping
+// YouTube category ID to display name mapping (Korean for consistency with UI)
 const CATEGORY_MAP: Record<string, string> = {
-  "1": "Film & Animation",
-  "2": "Autos & Vehicles",
-  "10": "Music",
-  "15": "Pets & Animals",
-  "17": "Sports",
-  "18": "Short Movies",
-  "19": "Travel & Events",
-  "20": "Gaming",
-  "21": "Videoblogging",
-  "22": "People & Blogs",
-  "23": "Comedy",
-  "24": "Entertainment",
-  "25": "News & Politics",
-  "26": "Howto & Style",
-  "27": "Education",
-  "28": "Science & Technology",
-  "29": "Nonprofits & Activism",
-  "30": "Movies",
-  "31": "Anime/Animation",
-  "32": "Action/Adventure",
-  "33": "Classics",
-  "34": "Comedy",
-  "35": "Documentary",
-  "36": "Drama",
-  "37": "Family",
-  "38": "Foreign",
-  "39": "Horror",
-  "40": "Sci-Fi/Fantasy",
-  "41": "Thriller",
-  "42": "Shorts",
-  "43": "Shows",
-  "44": "Trailers",
+  "1": "영화 & 애니메이션",
+  "2": "자동차",
+  "10": "음악",
+  "15": "동물",
+  "17": "스포츠",
+  "18": "단편 영화",
+  "19": "여행 & 이벤트",
+  "20": "게임",
+  "21": "비디오블로그",
+  "22": "인물 & 블로그",
+  "23": "코미디",
+  "24": "엔터테인먼트",
+  "25": "뉴스 & 정치",
+  "26": "노하우 & 스타일",
+  "27": "교육",
+  "28": "과학 & 기술",
+  "29": "비영리 & 사회운동",
+  "30": "영화",
+  "31": "애니메이션",
+  "32": "액션/어드벤처",
+  "33": "클래식",
+  "34": "코미디",
+  "35": "다큐멘터리",
+  "36": "드라마",
+  "37": "가족",
+  "38": "외국",
+  "39": "공포",
+  "40": "SF/판타지",
+  "41": "스릴러",
+  "42": "쇼츠",
+  "43": "쇼",
+  "44": "예고편",
 };
 
 // =============================================================================
@@ -57,12 +58,16 @@ const CATEGORY_MAP: Record<string, string> = {
 
 /**
  * Get cached trends from Supabase if they're still fresh (within 15 minutes)
+ * Now region-aware to return correct data per region
  */
-async function getCachedTrends(): Promise<TrendItem[] | null> {
+async function getCachedTrends(regionCode: string = "KR"): Promise<TrendItem[] | null> {
   const cacheThreshold = new Date(Date.now() - CACHE_DURATION_MS);
 
   const cachedTrends = await db.query.trends.findMany({
-    where: gte(schema.trends.fetchedAt, cacheThreshold),
+    where: and(
+      gte(schema.trends.fetchedAt, cacheThreshold),
+      eq(schema.trends.regionCode, regionCode)
+    ),
     orderBy: [desc(schema.trends.fetchedAt)],
     limit: 20,
   });
@@ -74,6 +79,7 @@ async function getCachedTrends(): Promise<TrendItem[] | null> {
   // Map database records to TrendItem format
   return cachedTrends.map((trend, index) => ({
     id: index + 1,
+    trendUuid: trend.id,
     title: trend.title,
     category: trend.category,
     views: trend.viewsCount ?? "0",
@@ -85,14 +91,18 @@ async function getCachedTrends(): Promise<TrendItem[] | null> {
 }
 
 /**
- * Save trends to Supabase, replacing old YouTube trends
+ * Save trends to Supabase, replacing old YouTube trends for specific region
  */
 async function saveTrendsToCache(
-  videos: YouTubeVideoItem[]
+  videos: YouTubeVideoItem[],
+  regionCode: string = "KR"
 ): Promise<void> {
-  // Delete old YouTube trends (source = 'youtube_api')
+  // Delete old YouTube trends for this region (source = 'youtube_api')
   await db.delete(schema.trends).where(
-    sql`${schema.trends.source} = 'youtube_api'`
+    and(
+      sql`${schema.trends.source} = 'youtube_api'`,
+      eq(schema.trends.regionCode, regionCode)
+    )
   );
 
   // Insert new trends
@@ -112,6 +122,7 @@ async function saveTrendsToCache(
         video.snippet.thumbnails.default.url,
       tags,
       source: "youtube_api" as const,
+      regionCode,
       externalId: video.id,
       externalUrl: `https://www.youtube.com/watch?v=${video.id}`,
       viewCount: parseInt(video.statistics.viewCount, 10) || 0,
@@ -130,7 +141,7 @@ async function saveTrendsToCache(
     await db.insert(schema.trends).values(trendsToInsert);
   }
 
-  console.log(`[YouTube API] Saved ${trendsToInsert.length} trends to Supabase`);
+  console.log(`[YouTube API] Saved ${trendsToInsert.length} trends to Supabase for region ${regionCode}`);
 }
 
 // =============================================================================
@@ -185,18 +196,28 @@ function mapVideoToTrendItem(video: YouTubeVideoItem, index: number): TrendItem 
  * Fetch trending videos from YouTube Data API v3
  * Uses Supabase cache (15 min) to manage API quota
  * Falls back to mock data on error or missing API key
+ *
+ * @param regionCode - Region code for YouTube trends (default: "KR")
+ * @param forceRefresh - Skip cache and fetch fresh data from YouTube API
  */
-export async function getYouTubeTrends(regionCode: string = "KR"): Promise<TrendItem[]> {
-  // Check Supabase cache first
-  try {
-    const cachedData = await getCachedTrends();
-    if (cachedData && cachedData.length > 0) {
-      console.log("[YouTube API] Returning cached data from Supabase");
-      return cachedData;
+export async function getYouTubeTrends(
+  regionCode: string = "KR",
+  forceRefresh: boolean = false
+): Promise<TrendItem[]> {
+  // Check Supabase cache first (unless force refresh)
+  if (!forceRefresh) {
+    try {
+      const cachedData = await getCachedTrends(regionCode);
+      if (cachedData && cachedData.length > 0) {
+        console.log(`[YouTube API] Returning cached data from Supabase for region ${regionCode}`);
+        return cachedData;
+      }
+    } catch (error) {
+      console.error("[YouTube API] Failed to check Supabase cache:", error);
+      // Continue to fetch from API
     }
-  } catch (error) {
-    console.error("[YouTube API] Failed to check Supabase cache:", error);
-    // Continue to fetch from API
+  } else {
+    console.log(`[YouTube API] Force refresh requested for region ${regionCode}`);
   }
 
   // Check for API key
@@ -215,7 +236,7 @@ export async function getYouTubeTrends(regionCode: string = "KR"): Promise<Trend
     url.searchParams.set("maxResults", "20");
     url.searchParams.set("key", apiKey);
 
-    console.log("[YouTube API] Fetching trending videos...");
+    console.log(`[YouTube API] Fetching trending videos for region ${regionCode}...`);
 
     const response = await fetch(url.toString());
 
@@ -234,7 +255,7 @@ export async function getYouTubeTrends(regionCode: string = "KR"): Promise<Trend
 
     // Save to Supabase cache
     try {
-      await saveTrendsToCache(data.items);
+      await saveTrendsToCache(data.items, regionCode);
     } catch (error) {
       console.error("[YouTube API] Failed to save to Supabase cache:", error);
       // Continue even if caching fails
@@ -242,7 +263,7 @@ export async function getYouTubeTrends(regionCode: string = "KR"): Promise<Trend
 
     const trends = data.items.map(mapVideoToTrendItem);
 
-    console.log(`[YouTube API] Successfully fetched ${trends.length} trending videos`);
+    console.log(`[YouTube API] Successfully fetched ${trends.length} trending videos for region ${regionCode}`);
     return trends;
 
   } catch (error) {
@@ -260,4 +281,249 @@ export async function clearYouTubeCache(): Promise<void> {
     sql`${schema.trends.source} = 'youtube_api'`
   );
   console.log("[YouTube API] Supabase cache cleared");
+}
+
+// =============================================================================
+// Phase 2: Enhanced Filtering Functions
+// =============================================================================
+
+/**
+ * Parse view count string to number (e.g., "1.2M" -> 1200000)
+ */
+function parseViewCount(views: string): number {
+  const normalized = views.toUpperCase().trim();
+  const match = normalized.match(/^([\d.]+)\s*([KMB])?$/);
+
+  if (!match) return 0;
+
+  const num = parseFloat(match[1]);
+  const suffix = match[2];
+
+  switch (suffix) {
+    case "K":
+      return num * 1_000;
+    case "M":
+      return num * 1_000_000;
+    case "B":
+      return num * 1_000_000_000;
+    default:
+      return num;
+  }
+}
+
+/**
+ * Apply filters to trends array (client-side filtering)
+ */
+function applyFilters(trends: TrendItem[], filters: TrendFilterOptions): TrendItem[] {
+  return trends.filter((trend) => {
+    // Category filter
+    if (filters.category && trend.category.toLowerCase() !== filters.category.toLowerCase()) {
+      return false;
+    }
+
+    // Minimum views filter
+    if (filters.minViews) {
+      const viewCount = parseViewCount(trend.views);
+      if (viewCount < filters.minViews) {
+        return false;
+      }
+    }
+
+    // Keywords filter (include)
+    if (filters.keywords && filters.keywords.length > 0) {
+      const hasKeyword = filters.keywords.some(
+        (kw) =>
+          trend.title.toLowerCase().includes(kw.toLowerCase()) ||
+          trend.tags?.some((tag) => tag.toLowerCase().includes(kw.toLowerCase()))
+      );
+      if (!hasKeyword) {
+        return false;
+      }
+    }
+
+    // Keywords filter (exclude)
+    if (filters.excludeKeywords && filters.excludeKeywords.length > 0) {
+      const hasExcluded = filters.excludeKeywords.some(
+        (kw) =>
+          trend.title.toLowerCase().includes(kw.toLowerCase()) ||
+          trend.tags?.some((tag) => tag.toLowerCase().includes(kw.toLowerCase()))
+      );
+      if (hasExcluded) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Fetch trending videos with filters
+ * Uses Supabase cache (15 min) and applies filters
+ *
+ * @param filters - Filter options including regionCode
+ * @param forceRefresh - Skip cache and fetch fresh data from YouTube API
+ */
+export async function getYouTubeTrendsWithFilters(
+  filters: TrendFilterOptions = {},
+  forceRefresh: boolean = false
+): Promise<TrendItem[]> {
+  const regionCode = filters.regionCode ?? "KR";
+
+  // Get base trends (with optional force refresh)
+  const trends = await getYouTubeTrends(regionCode, forceRefresh);
+
+  // Apply client-side filters
+  const filteredTrends = applyFilters(trends, filters);
+
+  return filteredTrends;
+}
+
+/**
+ * Get stored trends from Supabase (previously fetched from YouTube)
+ * Unlike getCachedTrends, this ignores the 15-minute cache duration
+ * and returns all stored YouTube trends for a region
+ */
+export async function getStoredTrends(regionCode: string = "KR"): Promise<TrendItem[]> {
+  const storedTrends = await db.query.trends.findMany({
+    where: and(
+      eq(schema.trends.source, "youtube_api"),
+      eq(schema.trends.regionCode, regionCode)
+    ),
+    orderBy: [desc(schema.trends.fetchedAt)],
+    limit: 50,
+  });
+
+  if (storedTrends.length === 0) {
+    console.log(`[YouTube API] No stored trends found for region ${regionCode}`);
+    return [];
+  }
+
+  console.log(`[YouTube API] Returning ${storedTrends.length} stored trends from Supabase for region ${regionCode}`);
+
+  return storedTrends.map((trend, index) => ({
+    id: index + 1,
+    trendUuid: trend.id,
+    title: trend.title,
+    category: trend.category,
+    views: trend.viewsCount ?? "0",
+    growth: trend.growthRate ?? "+NEW",
+    thumbnail: trend.thumbnailUrl ?? "",
+    tags: trend.tags ?? [],
+    videoUrl: trend.externalUrl ?? undefined,
+  }));
+}
+
+/**
+ * Get saved (bookmarked) trends for a user
+ */
+export async function getSavedTrends(userId: string): Promise<TrendItem[]> {
+  const savedTrends = await db.query.trends.findMany({
+    where: and(
+      eq(schema.trends.isSaved, true),
+      eq(schema.trends.savedByUserId, userId)
+    ),
+    orderBy: [desc(schema.trends.savedAt)],
+  });
+
+  return savedTrends.map((trend, index) => ({
+    id: index + 1,
+    trendUuid: trend.id,
+    title: trend.title,
+    category: trend.category,
+    views: trend.viewsCount ?? "0",
+    growth: trend.growthRate ?? "+NEW",
+    thumbnail: trend.thumbnailUrl ?? "",
+    tags: trend.tags ?? [],
+    videoUrl: trend.externalUrl ?? undefined,
+    isSaved: true,
+  }));
+}
+
+/**
+ * Save (bookmark) a trend for a user
+ */
+export async function saveTrend(
+  trendId: string,
+  userId: string
+): Promise<{ success: boolean }> {
+  await db
+    .update(schema.trends)
+    .set({
+      isSaved: true,
+      savedByUserId: userId,
+      savedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.trends.id, trendId));
+
+  return { success: true };
+}
+
+/**
+ * Remove saved (bookmark) status from a trend
+ */
+export async function unsaveTrend(
+  trendId: string,
+  userId: string
+): Promise<{ success: boolean }> {
+  await db
+    .update(schema.trends)
+    .set({
+      isSaved: false,
+      savedByUserId: null,
+      savedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(schema.trends.id, trendId),
+        eq(schema.trends.savedByUserId, userId)
+      )
+    );
+
+  return { success: true };
+}
+
+/**
+ * Get trend by external ID (YouTube video ID)
+ */
+export async function getTrendByExternalId(externalId: string): Promise<{
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  viewsCount: string | null;
+  growthRate: string | null;
+  externalUrl: string | null;
+  thumbnailUrl: string | null;
+} | null> {
+  const trend = await db.query.trends.findFirst({
+    where: eq(schema.trends.externalId, externalId),
+  });
+
+  if (!trend) return null;
+
+  return {
+    id: trend.id,
+    title: trend.title,
+    category: trend.category,
+    tags: trend.tags ?? [],
+    viewsCount: trend.viewsCount,
+    growthRate: trend.growthRate,
+    externalUrl: trend.externalUrl,
+    thumbnailUrl: trend.thumbnailUrl,
+  };
+}
+
+/**
+ * Get all unique categories from cached trends
+ */
+export async function getTrendCategories(): Promise<string[]> {
+  const trends = await db.query.trends.findMany({
+    columns: { category: true },
+  });
+
+  const categories = [...new Set(trends.map((t) => t.category))];
+  return categories.sort();
 }

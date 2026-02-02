@@ -30,6 +30,7 @@ import {
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
+import type { TrendSnapshot, ScriptGuidelines } from "../../common/types/trend.types";
 
 // ============================================
 // MVP Tables
@@ -91,8 +92,10 @@ export const projects = tubegaiSchema.table("project", {
   videoLength: videoLengthEnum("video_length"),
   // Source trend title (if based on trend)
   basedOnTrend: text("based_on_trend"),
-  // Source trend ID (for reference)
+  // Source trend ID (for reference) - LEGACY: use basedOnTrendUuid instead
   basedOnTrendId: integer("based_on_trend_id"),
+  // Source trend UUID (FK to trends table - constraint defined in migration)
+  basedOnTrendUuid: uuid("based_on_trend_uuid"),
   // Source saved idea ID (if created from saved idea)
   sourceIdeaId: uuid("source_idea_id"),
   // Additional AI context data (flexible JSON for studio use)
@@ -101,11 +104,20 @@ export const projects = tubegaiSchema.table("project", {
     competitors?: string[];
     references?: string[];
     styleNotes?: string;
-    scriptGuidelines?: string;
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
+    // Legacy: simple text guidelines (use scriptGuidelines JSONB for structured data)
+    scriptGuidelinesText?: string;
   }>(),
+
+  // ============================================
+  // Trend Snapshot & Script Guidelines (Phase 1 Enhancement)
+  // ============================================
+  // Snapshot of trend data at project creation time
+  trendSnapshot: jsonb("trend_snapshot").$type<TrendSnapshot>(),
+  // AI-generated script guidelines
+  scriptGuidelines: jsonb("script_guidelines").$type<ScriptGuidelines>(),
 });
 
 // ============================================
@@ -138,7 +150,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.sourceIdeaId],
     references: [savedIdeas.id],
   }),
-  // Note: trend relation is defined in trend-schema.ts
+  // Note: basedOnTrendRef relation is defined in trend-schema.ts to avoid circular import
 }));
 
 // ============================================

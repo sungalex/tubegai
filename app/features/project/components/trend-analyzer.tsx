@@ -19,23 +19,28 @@ import {
   PopoverTrigger,
 } from "~/common/components/ui/popover";
 import { Label } from "~/common/components/ui/label";
-import type { TrendItem, AIRecommendation } from "~/common/types/project.types";
+import type { TrendItem, AIRecommendation, Channel } from "~/common/types/project.types";
 import type { SavedIdea } from "~/common/types/ideation.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
+import { AIProjectGeneratorDialog } from "./ai-project-generator-dialog";
 import { useTranslation } from "~/i18n/context";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
   recommendations: AIRecommendation[];
+  channels?: Channel[];
   onSaveIdea?: (idea: SavedIdea) => void;
   onRefreshRecommendations?: (newRecommendations: AIRecommendation[]) => void;
+  isLoading?: boolean;
 }
 
-export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRecommendations }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveIdea, onRefreshRecommendations, isLoading = false }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
+  const [isAIProjectDialogOpen, setIsAIProjectDialogOpen] = useState(false);
+  const [selectedTrendForAI, setSelectedTrendForAI] = useState<TrendItem | null>(null);
   const [savingTrendId, setSavingTrendId] = useState<number | null>(null);
   const [savingRecommendationIdx, setSavingRecommendationIdx] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,9 +53,11 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
 
   // Filter trends by search term and selected categories
   const filteredTrends = trends.filter((trend) => {
+    const trendTags = trend.tags ?? [];
     const matchesSearch =
+      searchTerm === "" ||
       trend.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trend.tags.some((tag) =>
+      trendTags.some((tag) =>
         tag.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
@@ -76,6 +83,15 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
   const handleGenerateIdeas = (trend: TrendItem) => {
     setSelectedTrend(trend);
     setIsIdeaDialogOpen(true);
+  };
+
+  const handleOpenAIProjectGenerator = (trend: TrendItem) => {
+    setSelectedTrendForAI(trend);
+    setIsAIProjectDialogOpen(true);
+  };
+
+  const handleAIProjectCreated = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
   };
 
   // Convert AI recommendation to TrendItem for idea generation
@@ -440,6 +456,18 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
                             <Sparkles className="h-3 w-3 mr-1" />
                             {t("trends.generateIdeas")}
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAIProjectGenerator(trend);
+                            }}
+                          >
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            AI 프로젝트 생성
+                          </Button>
                         </div>
                         <Badge className="absolute top-2 left-2 bg-black/60 hover:bg-black/70 backdrop-blur-sm text-white border-0">
                           {trend.category}
@@ -608,6 +636,15 @@ export function TrendAnalyzer({ trends, recommendations, onSaveIdea, onRefreshRe
           onSaveIdea={onSaveIdea}
         />
       )}
+
+      {/* AI Project Generator Dialog */}
+      <AIProjectGeneratorDialog
+        open={isAIProjectDialogOpen}
+        onOpenChange={setIsAIProjectDialogOpen}
+        trend={selectedTrendForAI}
+        channels={channels}
+        onProjectCreated={handleAIProjectCreated}
+      />
     </div>
   );
 }

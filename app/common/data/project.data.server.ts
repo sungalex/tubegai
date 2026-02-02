@@ -3,7 +3,7 @@
 // =============================================================================
 // This layer abstracts data fetching, making it easy to switch from mock to API.
 
-import { desc, eq, ilike, asc, and, count } from "drizzle-orm";
+import { desc, eq, ilike, asc, and, count, sql } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import { formatDistanceToNow } from "date-fns";
 
@@ -31,6 +31,11 @@ import type {
   LabelColor,
   AIRecommendation,
 } from "../types/project.types";
+
+import type {
+  TrendSnapshot,
+  ScriptGuidelines,
+} from "../types/trend.types";
 
 import {
   PROJECTS,
@@ -66,6 +71,7 @@ export interface CreateProjectInput {
   topic?: string;
   channelId?: string;
   labels?: string[];
+  thumbnailUrl?: string;
   // AI Context fields
   hooks?: string[];
   targetAudience?: string;
@@ -81,11 +87,14 @@ export interface CreateProjectInput {
     competitors?: string[];
     references?: string[];
     styleNotes?: string;
-    scriptGuidelines?: string;
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
   };
+  // Phase 1 Enhancement: Trend integration
+  basedOnTrendUuid?: string;
+  trendSnapshot?: TrendSnapshot;
+  scriptGuidelines?: ScriptGuidelines;
 }
 
 // =============================================================================
@@ -116,6 +125,7 @@ export async function createProject(
       visibility: input.visibility,
       topic: emptyToNull(input.topic),
       channelId: emptyToNull(input.channelId),
+      thumbnailUrl: emptyToNull(input.thumbnailUrl),
       status: "draft",
       progress: 0,
       currentStep: "Script",
@@ -130,6 +140,10 @@ export async function createProject(
       basedOnTrendId: input.basedOnTrendId,
       sourceIdeaId: emptyToNull(input.sourceIdeaId),
       aiContext: input.aiContext,
+      // Phase 1 Enhancement: Trend integration
+      basedOnTrendUuid: emptyToNull(input.basedOnTrendUuid),
+      trendSnapshot: input.trendSnapshot,
+      scriptGuidelines: input.scriptGuidelines,
     })
     .returning({ id: schema.projects.id });
 
@@ -153,6 +167,19 @@ export async function createProject(
         updatedAt: new Date(),
       })
       .where(eq(schema.savedIdeas.id, input.sourceIdeaId));
+  }
+
+  // Update trend usage tracking if basedOnTrendUuid is provided
+  if (input.basedOnTrendUuid) {
+    await db
+      .update(schema.trends)
+      .set({
+        usedForProjectId: project.id,
+        usageCount: sql`COALESCE(${schema.trends.usageCount}, 0) + 1`,
+        lastUsedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.trends.id, input.basedOnTrendUuid));
   }
 
   return { id: project.id };
@@ -324,11 +351,15 @@ export interface ProjectFullDetail {
     competitors?: string[];
     references?: string[];
     styleNotes?: string;
-    scriptGuidelines?: string;
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
+    scriptGuidelinesText?: string;
   } | null;
+  // Phase 1 Enhancement: Trend integration
+  basedOnTrendUuid: string | null;
+  trendSnapshot: TrendSnapshot | null;
+  scriptGuidelines: ScriptGuidelines | null;
   // Relations
   channel: {
     id: string;
@@ -403,6 +434,10 @@ export async function getProjectById(
     basedOnTrendId: project.basedOnTrendId,
     sourceIdeaId: project.sourceIdeaId,
     aiContext: project.aiContext as ProjectFullDetail["aiContext"],
+    // Phase 1 Enhancement: Trend integration
+    basedOnTrendUuid: project.basedOnTrendUuid,
+    trendSnapshot: project.trendSnapshot as TrendSnapshot | null,
+    scriptGuidelines: project.scriptGuidelines as ScriptGuidelines | null,
     // Relations
     channel: project.channel,
     labels: project.labels.map((pl) => pl.label),
@@ -420,6 +455,7 @@ export interface UpdateProjectInput {
   type?: "short" | "long";
   tone?: "informative" | "funny" | "cinematic" | "vlog";
   visibility?: "public" | "private";
+  channelId?: string | null;
   targetAudience?: string;
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
@@ -431,11 +467,12 @@ export interface UpdateProjectInput {
     competitors?: string[];
     references?: string[];
     styleNotes?: string;
-    scriptGuidelines?: string;
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
   };
+  // Phase 1 Enhancement: Trend integration
+  scriptGuidelines?: ScriptGuidelines;
 }
 
 export async function updateProject(
@@ -455,6 +492,7 @@ export async function updateProject(
   if (input.type !== undefined) updateData.type = input.type;
   if (input.tone !== undefined) updateData.tone = input.tone || null;
   if (input.visibility !== undefined) updateData.visibility = input.visibility;
+  if (input.channelId !== undefined) updateData.channelId = input.channelId || null;
   if (input.targetAudience !== undefined) updateData.targetAudience = input.targetAudience || null;
   if (input.estimatedViews !== undefined) updateData.estimatedViews = input.estimatedViews || null;
   if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
@@ -462,6 +500,7 @@ export async function updateProject(
   if (input.videoLength !== undefined) updateData.videoLength = input.videoLength || null;
   if (input.hooks !== undefined) updateData.hooks = input.hooks;
   if (input.aiContext !== undefined) updateData.aiContext = input.aiContext;
+  if (input.scriptGuidelines !== undefined) updateData.scriptGuidelines = input.scriptGuidelines;
 
   await db.update(schema.projects).set(updateData).where(eq(schema.projects.id, projectId));
   return { success: true };
@@ -561,4 +600,39 @@ export async function getTrends(): Promise<TrendItem[]> {
  */
 export async function getAIRecommendations(): Promise<AIRecommendation[]> {
   return AI_RECOMMENDATIONS;
+}
+
+/**
+ * Get the intro storyboard image for a project
+ * Used to display as project thumbnail after storyboard is created
+ */
+export async function getProjectIntroImage(projectId: string): Promise<string | null> {
+  // Get the first storyboard with an intro segment type that has an image
+  const storyboard = await db.query.storyboards.findFirst({
+    where: eq(schema.storyboards.projectId, projectId),
+    with: {
+      scriptSegment: true,
+      imageAsset: true,
+    },
+    orderBy: [asc(schema.storyboards.sceneNumber)],
+  });
+
+  // If storyboard has an intro type segment with an image, return it
+  if (storyboard?.scriptSegment?.type === "intro" && storyboard?.imageAsset?.publicUrl) {
+    return storyboard.imageAsset.publicUrl;
+  }
+
+  // Otherwise, get the first storyboard with any image
+  const firstWithImage = await db.query.storyboards.findFirst({
+    where: and(
+      eq(schema.storyboards.projectId, projectId),
+      sql`${schema.storyboards.imageAssetId} IS NOT NULL`
+    ),
+    with: {
+      imageAsset: true,
+    },
+    orderBy: [asc(schema.storyboards.sceneNumber)],
+  });
+
+  return firstWithImage?.imageAsset?.publicUrl ?? null;
 }
