@@ -1,707 +1,401 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Commands
+## 빠른 참조
 
 ```bash
-npm run dev              # Start dev server on port 3000
-npm run build            # Production build (outputs to build/)
-npm run start            # Run production server
-npm run typecheck        # Run type checking (generates route types first)
-npm run db:generate      # Generate Drizzle migrations from schema changes
-npm run db:migrate       # Apply migrations to database
-npm run db:seed          # Populate database with mock data for development
+npm run dev              # 개발 서버 (포트 3000)
+npm run build            # 프로덕션 빌드
+npm run typecheck        # 타입 체크
+npm run db:generate      # 마이그레이션 생성
+npm run db:migrate       # 마이그레이션 적용
+npm run db:seed          # 시드 데이터 삽입
 ```
 
-## Architecture Overview
+## 기술 스택
 
-TubeGAI is an AI-powered video creator workflow platform built with **React Router v7** (formerly Remix) and **Vite**, deployed on Vercel with SSR enabled. The MVP focuses on core video creation features with a phased rollout approach.
+| 영역 | 기술 |
+|------|------|
+| Framework | React Router v7 + Vite (SSR) |
+| Styling | Tailwind CSS 4 + Shadcn UI |
+| Forms | React Hook Form + Zod |
+| Database | PostgreSQL + Drizzle ORM + Supabase |
+| AI | Anthropic Claude + Google Gemini |
+| Charts | Recharts |
+| Animation | Framer Motion |
+| i18n | i18next (ko, en) |
 
-### Tech Stack
-
-| Aspect               | Implementation                        |
-| -------------------- | ------------------------------------- |
-| **Framework**        | React Router v7 with Vite             |
-| **Styling**          | Tailwind CSS 4 with Shadcn UI         |
-| **Forms**            | React Hook Form + Zod validation      |
-| **Database**         | PostgreSQL + Drizzle ORM + Supabase   |
-| **State Management** | React Router loaders + local useState |
-| **Notifications**    | Sonner toast library                  |
-| **Charts/Data**      | Recharts for data visualization       |
-| **Animation**        | Framer Motion                         |
-| **Icons**            | Lucide React                          |
-| **Type Safety**      | TypeScript strict mode                |
-
-## Project Structure
+## 프로젝트 구조
 
 ```
 app/
-├── features/               # Feature modules (MVP: auth, project, studio, product)
-│   └── {feature}/
-│       ├── pages/         # Route page components
-│       ├── components/    # Feature-specific components
-│       ├── layouts/       # Nested layouts (e.g., studio-layout.tsx)
-│       ├── {feature}-schema.ts  # Drizzle ORM table definitions
-│       └── queries.ts     # Optional data layer
+├── features/           # 기능 모듈
+│   ├── auth/          # 인증 (GitHub, Google, Email)
+│   ├── project/       # 프로젝트, 채널, 아이디어
+│   ├── studio/        # 스크립트, 스토리보드, 씬, 내보내기
+│   ├── product/       # 제품 페이지
+│   └── trend/         # 트렌드 분석
 ├── common/
-│   ├── components/
-│   │   ├── ui/           # Shadcn UI components (Button, Card, Form, etc.)
-│   │   └── magicui/      # Animation components
-│   ├── data/             # Data access layer (*.data.ts)
-│   ├── mocks/            # Mock data for MVP development
-│   └── types/            # Shared type definitions
-├── drizzle/
-│   ├── db.ts             # Database connection (Supabase)
-│   ├── schema-def.ts     # tubegaiSchema definition
-│   ├── enums.ts          # PostgreSQL enums
-│   └── migrations/       # Generated migration files
-├── hooks/                # Custom React hooks (use-*.ts)
-├── lib/
-│   └── utils.ts          # Utility functions (cn, etc.)
-├── routes.ts             # Central route configuration
-├── root.tsx              # Root layout and error boundary
-└── supa-client.ts        # Supabase client initialization
+│   ├── components/ui/ # Shadcn UI (35개+)
+│   ├── data/          # 데이터 레이어 (*.data.server.ts)
+│   └── types/         # 공유 타입
+├── drizzle/           # DB 스키마, 마이그레이션
+├── hooks/             # 커스텀 훅
+├── lib/               # 유틸리티, AI, 인증
+├── i18n/              # 번역 파일
+└── routes.ts          # 라우트 설정
 ```
 
-### Feature Structure Convention
-
-Each feature follows a consistent pattern:
+### 기능별 구조
 
 ```
-app/features/{feature}/
-├── pages/                  # Named *-page.tsx
-├── components/             # Named {feature}-*.tsx
-├── layouts/               # Named {feature}-layout.tsx
-├── {feature}-schema.ts    # Database schema
-└── queries.ts             # Data access layer (optional)
+features/{feature}/
+├── pages/              # *-page.tsx
+├── components/         # {feature}-*.tsx
+├── layouts/           # {feature}-layout.tsx
+├── {feature}-schema.ts # Drizzle 스키마
+└── queries.ts         # 데이터 접근 (optional)
 ```
 
-## Database Architecture
+## React Router v7 패턴
 
-### Configuration
+**IMPORTANT**: This is NOT Remix. NEVER import from `@remix-run/*`.
 
-- **Database**: PostgreSQL via Supabase
-- **ORM**: Drizzle ORM
-- **Schema**: Custom `tubegai` schema (not `public`)
-- **Connection**: Supabase client with typed database
-- **Environment Variables**: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`
-
-### Schema Definition Pattern
-
-All tables use the `tubegaiSchema` defined in [app/drizzle/schema-def.ts](app/drizzle/schema-def.ts):
+### 페이지 컴포넌트
 
 ```typescript
-import { tubegaiSchema } from "../../drizzle/schema-def";
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import type { Route } from "./+types/page-name";
 
-// Define table
-export const projects = tubegaiSchema.table("project", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  ownerId: uuid("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+// Server data loading - MUST return plain objects
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const userId = await requireAuth(request);
+  const data = await getData(params.id);
+  return { data };  // ✓ Never use json()
+}
 
-// Define relations
-export const projectsRelations = relations(projects, ({ one, many }) => ({
-  owner: one(users, { fields: [projects.ownerId], references: [users.id] }),
-  mediaAssets: many(mediaAssets),
-}));
+// Form handling - MUST return plain objects
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  return { success: true };
+}
+
+// Meta tags
+export const meta = () => [{ title: "페이지 제목 | TubeGAI" }];
+
+// Component receives loaderData via props directly
+export default function Page({ loaderData }: Route.ComponentProps) {
+  const { data } = loaderData;  // ✓ Never use useLoaderData()
+  return <div>{data.title}</div>;
+}
 ```
 
-### Enum Definition Pattern
+### useFetcher 패턴
 
-Define enums in [app/drizzle/enums.ts](app/drizzle/enums.ts):
+Use for async operations (form submission, API calls, state updates):
 
 ```typescript
-import { tubegaiSchema } from "./schema-def";
+import { useFetcher } from "react-router";
 
-export const projectStatusEnum = tubegaiSchema.enum("project_status", [
-  "draft",
-  "in_progress",
-  "completed",
-  "archived",
-]);
+function Component() {
+  const fetcher = useFetcher();
+  const isSubmitting = fetcher.state !== "idle";
+
+  return (
+    <fetcher.Form method="post" action="/api/save">
+      <input name="title" />
+      <button disabled={isSubmitting}>저장</button>
+    </fetcher.Form>
+  );
+}
 ```
 
-### Database Workflow
-
-1. Modify schema in `app/features/**/*-schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Review migration in `app/drizzle/migrations/`
-4. Apply migration: `npm run db:migrate`
-
-## React Router v7 Conventions
-
-**Critical**: This project uses React Router v7, NOT Remix. Never import from `@remix-run/*`.
-
-### Route Configuration
-
-Routes are defined centrally in [app/routes.ts](app/routes.ts):
+### 라우트 설정 (routes.ts)
 
 ```typescript
-import {
-  type RouteConfig,
-  route,
-  layout,
-  prefix,
-  index,
-} from "@react-router/dev/routes";
+import { route, layout, prefix, index } from "@react-router/dev/routes";
 
 export default [
-  // Static route
-  route("login", "features/auth/pages/auth-login-page.tsx"),
-
-  // Parameterized route
-  route("script/:projectId", "features/studio/pages/studio-script-page.tsx"),
-
-  // Layout with nested routes
+  route("login", "features/auth/pages/login-page.tsx"),
   layout("features/studio/layouts/studio-layout.tsx", [
     ...prefix("studio", [
-      index("features/project/pages/project-list-page.tsx"),
-      route("script", "features/studio/pages/studio-script-page.tsx"),
+      index("features/studio/pages/studio-index-page.tsx"),
+      route("script/:projectId", "features/studio/pages/script-page.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;
 ```
 
-### Page Component Pattern
+## 데이터베이스
+
+### 스키마 정의
+
+All tables MUST use `tubegaiSchema` from [app/drizzle/schema-def.ts](app/drizzle/schema-def.ts):
 
 ```typescript
-import type { Route } from "./+types/page-name";
+import { tubegaiSchema } from "~/drizzle/schema-def";
+import { uuid, text, timestamp } from "drizzle-orm/pg-core";
 
-// Loader (server-side data fetching)
-export async function loader({ params, request }: Route.LoaderArgs) {
-  const projectId = params.projectId;
-  const data = await fetchData(projectId);
-  return { data };  // Return plain objects, NOT json()
-}
+export const projects = tubegaiSchema.table("project", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
 
-// Action (form submissions, mutations)
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const result = await updateData(formData);
-  return { success: true, result };  // Return plain objects
-}
+### Enum 정의 ([app/drizzle/enums.ts](app/drizzle/enums.ts))
 
-// Meta tags
-export function meta({ data }: Route.MetaArgs) {
-  return [
-    { title: `${data.title} - TubeGAI` },
-    { name: "description", content: data.description }
-  ];
-}
+```typescript
+export const projectStatusEnum = tubegaiSchema.enum("project_status", [
+  "draft", "in_progress", "completed", "archived"
+]);
+```
 
-// Component (receives loaderData via props)
-export default function Page({ loaderData, actionData }: Route.ComponentProps) {
-  const { data } = loaderData;
-  // Use data directly, no useLoaderData() hook
+### 데이터 레이어 (*.data.server.ts)
 
-  return (
-    <div>
-      <h1>{data.title}</h1>
-    </div>
-  );
+```typescript
+// app/common/data/project.data.server.ts
+import { db, schema } from "~/lib/db.server";
+import { eq } from "drizzle-orm";
+
+export async function getProject(id: string) {
+  return db.query.projects.findFirst({
+    where: eq(schema.projects.id, id),
+    with: { owner: true, mediaAssets: true }
+  });
 }
 ```
 
-### Key Differences from Remix
+## 인증
 
-- ❌ `json()` does not exist - return plain objects
-- ❌ `useLoaderData()` / `useActionData()` do not exist - use `Route.ComponentProps`
-- ✅ Always import types from `./+types/{page-name}`
-- ✅ Always export `loader`, `action`, and `meta` for pages
+### 서버 ([app/lib/auth.server.ts](app/lib/auth.server.ts))
 
-## UI & Styling Conventions
+```typescript
+// Required auth - redirects to login if unauthenticated
+const userId = await requireAuth(request);
 
-### Component Library
+// Optional auth - returns null if unauthenticated
+const userId = await getCurrentUserId(request);
+```
 
-- **Primary**: Shadcn UI components from [app/common/components/ui/](app/common/components/ui/)
-- **Never** import from Radix UI directly
-- **Available components**: Button, Card, Form, Input, Select, Dialog, Sheet, Tabs, etc.
+### 클라이언트 ([app/lib/auth.client.ts](app/lib/auth.client.ts))
+
+```typescript
+import { signInWithEmail, signInWithGitHub, signInWithGoogle } from "~/lib/auth.client";
+```
+
+## UI 컴포넌트
+
+### Shadcn UI
+
+NEVER import from Radix directly. Always use Shadcn components:
 
 ```typescript
 import { Button } from "~/common/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/common/components/ui/card";
-import { Input } from "~/common/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "~/common/components/ui/form";
 ```
 
-### Tailwind CSS Conventions
+### Tailwind CSS 컨벤션
 
-- Use semantic tokens from Shadcn: `primary`, `muted-foreground`, `background`, `border`
-- Responsive utilities: `sm:`, `md:`, `lg:`, `xl:`
-- Utility function for conditional classes: `cn()` from [app/lib/utils.ts](app/lib/utils.ts)
+**REQUIRED**: Use Shadcn semantic tokens instead of raw colors:
+- Colors: `primary`, `secondary`, `muted`, `accent`, `destructive`
+- Text: `foreground`, `muted-foreground`, `primary-foreground`
+- Background: `background`, `card`, `popover`
+- Border: `border`, `input`, `ring`
+
+```typescript
+// ✓ Good - semantic tokens
+<div className="bg-card text-card-foreground border-border" />
+<span className="text-muted-foreground" />
+
+// ❌ Bad - raw colors
+<div className="bg-white text-gray-900 border-gray-200" />
+```
+
+### Tailwind CSS 4 - 표준 클래스 사용
+
+**FORBIDDEN**: Arbitrary values (`w-[140px]`, `text-[14px]`)
+
+**REQUIRED**: Use standard Tailwind classes
+
+| 클래스 | 픽셀 |
+|--------|------|
+| `w-20` | 80px |
+| `w-24` | 96px |
+| `w-28` | 112px |
+| `w-32` | 128px |
+| `w-36` | 144px |
+| `w-40` | 160px |
+| `text-xs` | 12px |
+| `text-sm` | 14px |
+| `text-base` | 16px |
+
+### cn() 유틸리티
 
 ```typescript
 import { cn } from "~/lib/utils";
 
-<div className={cn(
-  "rounded-lg border bg-card text-card-foreground shadow-sm",
-  isActive && "border-primary",
-  className
-)} />
+<div className={cn("rounded-lg border", isActive && "border-primary")} />
 ```
 
-### Tailwind CSS 4 - 표준 클래스 사용 규칙
-
-**중요**: Arbitrary values (임의 값) 대신 표준 Tailwind 클래스를 사용하세요.
-
-**❌ Don't**: Arbitrary values 사용 금지 (lint 에러 발생)
-- `w-[NNpx]`, `h-[NNpx]` 형태의 임의 픽셀 값
-- `text-[NNpx]` 형태의 임의 폰트 크기
-- `p-[NNpx]`, `m-[NNpx]` 형태의 임의 간격
-
-**✅ Do**: 표준 Tailwind 클래스 사용
-```typescript
-className="w-35"      // 140px
-className="h-25"      // 100px
-className="text-sm"   // 14px
-className="p-2.5"     // 10px
-```
-
-**Width/Height 참조 테이블** (Tailwind CSS 4):
-
-| Class | Pixels |
-|-------|--------|
-| `w-20` | 80px |
-| `w-24` | 96px |
-| `w-25` | 100px |
-| `w-28` | 112px |
-| `w-32` | 128px |
-| `w-35` | 140px |
-| `w-36` | 144px |
-| `w-40` | 160px |
-| `w-48` | 192px |
-
-**Font Size 참조**:
-
-| Class | Size |
-|-------|------|
-| `text-xs` | 12px |
-| `text-sm` | 14px |
-| `text-base` | 16px |
-| `text-lg` | 18px |
-| `text-xl` | 20px |
-
-**예외**: 디자인 시스템에 정확히 맞는 표준 클래스가 없는 경우에만 arbitrary values 사용 가능하지만, 가능한 한 가장 가까운 표준 값을 선택하세요.
-
-### Naming Conventions
-
-- **Components**: PascalCase, kebab-case files (e.g., `studio-sidebar.tsx`)
-- **Hooks**: camelCase with `use` prefix (e.g., `use-media-query.ts`)
-- **Types**: PascalCase interfaces (prefer `interface` over `type`)
-- **Files**: kebab-case directories and files
-- **Variables**: camelCase with auxiliary verbs (`isLoading`, `hasError`, `canEdit`)
-- **Exports**: Favor named exports over default for components
-
-## Form Handling Pattern
-
-Use **React Hook Form** with **Zod** validation:
+## 폼 처리
 
 ```typescript
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "~/common/components/ui/form";
-import { Input } from "~/common/components/ui/input";
-import { Button } from "~/common/components/ui/button";
 
-// Define schema
-const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+const schema = z.object({
+  email: z.string().email("올바른 이메일을 입력하세요"),
+  password: z.string().min(6, "최소 6자 이상")
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
-
-export default function LoginPage() {
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+function LoginForm() {
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" }
   });
 
-  async function onSubmit(data: LoginFormValues) {
-    // Handle form submission
-    toast.success("Login successful");
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="you@example.com" {...field} />
-              </FormControl>
+              <FormLabel>이메일</FormLabel>
+              <FormControl><Input {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit">Login</Button>
       </form>
     </Form>
   );
 }
 ```
 
-## Data Layer Pattern
-
-Abstract data fetching in `app/common/data/*.data.ts` for easy API integration:
+## 국제화 (i18n)
 
 ```typescript
-// app/common/data/studio.data.ts
-import { MOCK_SCRIPTS } from "../mocks/studio";
+import { useTranslation } from "~/i18n/context";
 
-// Data access layer - can easily switch from mock to real API
-export async function getScriptSegments(
-  projectId: string,
-): Promise<ScriptSegment[]> {
-  // TODO: Replace with API call when backend is ready
-  // return await fetch(`/api/scripts/${projectId}`).then(r => r.json());
-  return MOCK_SCRIPTS;
-}
-
-export async function createScriptSegment(
-  projectId: string,
-  data: CreateScriptSegmentInput,
-): Promise<ScriptSegment> {
-  // TODO: POST to API
-  return { id: crypto.randomUUID(), ...data };
+function Component() {
+  const { t } = useTranslation("auth");
+  return <label>{t("login.email")}</label>;
 }
 ```
 
-Usage in pages:
+Namespaces: `common`, `navigation`, `auth`, `project`, `studio`, `home`
 
-```typescript
-import { getScriptSegments } from "~/common/data/studio.data";
-
-export async function loader({ params }: Route.LoaderArgs) {
-  const segments = await getScriptSegments(params.projectId);
-  return { segments };
-}
-```
-
-## Type Definition Patterns
-
-### Prefer Interfaces
-
-```typescript
-// ✅ Good: Interface for object shapes
-export interface StoryboardScene {
-  id: string;
-  sceneNumber: number;
-  description: string;
-  visualPrompt: string;
-  duration: number;
-  imageUrl: string;
-}
-
-// ✅ Good: Type for unions, mapped types, or primitives
-export type ScriptSegmentType = "hook" | "intro" | "body" | "cta" | "outro";
-
-export type ApiResponse<T> = {
-  data: T;
-  error?: string;
-};
-
-// ❌ Avoid: Enums (use maps or union types instead)
-// Bad: enum ProjectStatus { Draft, InProgress }
-// Good: type ProjectStatus = "draft" | "in_progress"
-```
-
-## State Management Patterns
-
-### Local UI State
-
-```typescript
-const [isOpen, setIsOpen] = useState(false);
-const [selectedId, setSelectedId] = useState<string | null>(null);
-```
-
-### Server State (Loader Data)
-
-```typescript
-export default function Page({ loaderData }: Route.ComponentProps) {
-  const { projects, user } = loaderData;
-  // No need for additional state management
-}
-```
-
-### Custom Hooks for Reusable Logic
-
-```typescript
-// app/hooks/use-media-query.ts
-import { useState, useEffect } from "react";
-
-export function useMediaQuery(query: string) {
-  const [value, setValue] = useState(false);
-
-  useEffect(() => {
-    function onChange(event: MediaQueryListEvent) {
-      setValue(event.matches);
-    }
-
-    const result = matchMedia(query);
-    setValue(result.matches);
-    result.addEventListener("change", onChange);
-
-    return () => result.removeEventListener("change", onChange);
-  }, [query]);
-
-  return value;
-}
-```
-
-Usage:
-
-```typescript
-const isXlScreen = useMediaQuery("(min-width: 1280px)");
-```
-
-## Responsive Layout Patterns
-
-### Breakpoint-Aware Components
-
-```typescript
-import { useMediaQuery } from "~/hooks/use-media-query";
-
-export function StudioLayout({ children }: { children: React.ReactNode }) {
-  const isXlScreen = useMediaQuery("(min-width: 1280px)");
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    setIsCollapsed(!isXlScreen);
-  }, [isXlScreen]);
-
-  return (
-    <div className="flex h-screen">
-      {/* Desktop: Collapsible sidebar */}
-      {isXlScreen && (
-        <aside className={cn(
-          "border-r transition-all",
-          isCollapsed ? "w-12" : "w-48"
-        )}>
-          {/* Sidebar content */}
-        </aside>
-      )}
-
-      {/* Mobile: Sheet-based drawer */}
-      {!isXlScreen && (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent side="left">
-            {/* Sidebar content */}
-          </SheetContent>
-        </Sheet>
-      )}
-
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
-  );
-}
-```
-
-## Error Handling & Notifications
-
-### Toast Notifications (Sonner)
+## 알림 (Sonner)
 
 ```typescript
 import { toast } from "sonner";
 
-// Success
-toast.success("Script Generated", {
-  description: "AI has successfully created a new script draft.",
-});
-
-// Error
-toast.error("Login failed", {
-  description: "Invalid email or password.",
-});
-
-// Info
-toast.info("Processing video", {
-  description: "This may take a few minutes.",
-});
-
-// Custom with action
-toast("New comment", {
-  description: "John replied to your video.",
-  action: {
-    label: "View",
-    onClick: () => navigate("/comments"),
-  },
-});
+toast.success("저장 완료");
+toast.error("오류 발생", { description: "다시 시도해주세요." });
 ```
 
-### Error Boundary
+## AI 통합
 
-Root layout includes an error boundary in [app/root.tsx](app/root.tsx). Don't create additional error boundaries unless needed for specific features.
+### Claude (스크립트 생성)
 
-## Environment Variables
+```typescript
+import { Anthropic } from "@anthropic-ai/sdk";
+// See app/lib/ai-script.server.ts
+```
 
-Required in `.env`:
+### Gemini (아이디어 생성)
+
+```typescript
+import { GoogleGenerativeAI } from "@google/generative-ai";
+// See app/common/data/ideation.data.server.ts
+```
+
+## YouTube OAuth
+
+Channel integration: [app/lib/youtube-oauth.server.ts](app/lib/youtube-oauth.server.ts)
+
+```typescript
+import { getChannelInfo } from "~/common/data/channel.data.server";
+```
+
+## 환경 변수
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/database
-
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=...
+ANTHROPIC_API_KEY=...
+GOOGLE_AI_API_KEY=...
 ```
 
-Access in code:
+## 금지 패턴
 
 ```typescript
-// Server-side only
-const dbUrl = process.env.DATABASE_URL;
-```
-
-## MVP vs Phase 2+ Features
-
-Routes and features are explicitly gated by development phase:
-
-```typescript
-// ✅ MVP (Enabled)
-route("script", "features/studio/pages/studio-script-page.tsx"),
-
-// ❌ Phase 2+ (Disabled - commented out)
-// route("dashboard", "features/studio/pages/studio-dashboard-page.tsx"),
-```
-
-When working on features:
-
-- Check route comments to understand feature phase
-- Don't build Phase 2+ features unless explicitly requested
-- Use mock data for API integrations (mark with `// TODO: Replace with API`)
-
-## Common Anti-Patterns to Avoid
-
-### ❌ Don't
-
-```typescript
-// Don't import from Remix
+// ❌ Remix imports
 import { useLoaderData } from "@remix-run/react";
 
-// Don't use json()
+// ❌ Using json()
 return json({ data });
 
-// Don't import from Radix directly
+// ❌ useLoaderData/useActionData hooks
+const data = useLoaderData();
+
+// ❌ Direct Radix imports
 import { Button } from "@radix-ui/react-button";
 
-// Don't use enums
-enum Status {
-  Draft,
-  Active,
-}
+// ❌ TypeScript enums
+enum Status { Draft, Active }
 
-// Don't use type for object shapes
-type User = { name: string };
+// ❌ Arbitrary Tailwind values (e.g., w-[NNpx], h-[NNpx], text-[NNpx])
 
-// Don't create new files when editing suffices
-// Bad: Create new component file for one-time use
+// ❌ Raw colors instead of semantic tokens
+className="bg-white text-gray-500"
 ```
 
-### ✅ Do
+## 권장 패턴
 
 ```typescript
-// Use Route.ComponentProps
+// ✓ Use Route.ComponentProps
 export default function Page({ loaderData }: Route.ComponentProps) {}
 
-// Return plain objects
+// ✓ Return plain objects
 return { data };
 
-// Import from Shadcn
+// ✓ Import from Shadcn UI
 import { Button } from "~/common/components/ui/button";
 
-// Use union types
+// ✓ Use union types instead of enums
 type Status = "draft" | "active";
 
-// Use interfaces for object shapes
-interface User {
-  name: string;
-}
+// ✓ Use interfaces for object shapes
+interface User { name: string; }
 
-// Edit existing files
-// Good: Add to existing component file
+// ✓ Use standard Tailwind classes
+className="w-36"
+
+// ✓ Use Shadcn semantic tokens
+className="bg-card text-muted-foreground"
 ```
 
-## Code Style Guidelines
+## MVP 기능 현황
 
-### Component Structure
+**활성화 (MVP)**:
+- Auth: 로그인, 회원가입, OAuth
+- Projects: 대시보드, 생성, 채널 관리
+- Studio: 스크립트, 스토리보드, 씬, 내보내기
+- Trends: 트렌드 분석, AI 추천
+- Product: 메인 페이지
 
-```typescript
-// 1. Imports
-import { useState } from "react";
-import { Button } from "~/common/components/ui/button";
+**비활성화 (Phase 2+)**: Settings, Pro/Plus, 고급 Studio 기능
 
-// 2. Types/Interfaces
-interface ProjectCardProps {
-  project: Project;
-  onEdit: (id: string) => void;
-}
+## 작업 규칙
 
-// 3. Component
-export function ProjectCard({ project, onEdit }: ProjectCardProps) {
-  // 4. Hooks
-  const [isHovered, setIsHovered] = useState(false);
-
-  // 5. Handlers
-  function handleClick() {
-    onEdit(project.id);
-  }
-
-  // 6. Render
-  return (
-    <Card onMouseEnter={() => setIsHovered(true)}>
-      <CardHeader>
-        <CardTitle>{project.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {project.description}
-      </CardContent>
-    </Card>
-  );
-}
-```
-
-### Import Order
-
-1. React and React Router
-2. Third-party libraries
-3. Internal utilities and hooks
-4. UI components
-5. Types
-6. Local components
-
-## Testing Strategy
-
-- No formal testing setup in MVP phase
-- Manual testing via dev server
-- Type safety via TypeScript strict mode
-- Consider adding Vitest + React Testing Library in Phase 2+
-
-## Reporting
-
-- 분석 결과, 계획 수립 등 보고서는 항상 한글로 작성해줘
-- 보고서는 /docs 폴더에 저장해줘
-
-## Language
-
-- 모든 페이지에 한국어, 한글을 기본으로 적용해줘
+- Reports and analysis: Write in Korean, save to `/docs` folder
+- Page UI text: Korean as default language
+- Always read existing files before making changes
+- Follow existing patterns, avoid over-engineering
+- Do NOT build Phase 2+ features unless explicitly requested
