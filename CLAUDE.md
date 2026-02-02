@@ -13,16 +13,16 @@ npm run db:seed          # 시드 데이터 삽입
 
 ## 기술 스택
 
-| 영역 | 기술 |
-|------|------|
-| Framework | React Router v7 + Vite (SSR) |
-| Styling | Tailwind CSS 4 + Shadcn UI |
-| Forms | React Hook Form + Zod |
-| Database | PostgreSQL + Drizzle ORM + Supabase |
-| AI | Anthropic Claude + Google Gemini |
-| Charts | Recharts |
-| Animation | Framer Motion |
-| i18n | i18next (ko, en) |
+| 영역      | 기술                                |
+| --------- | ----------------------------------- |
+| Framework | React Router v7 + Vite (SSR)        |
+| Styling   | Tailwind CSS 4 + Shadcn UI          |
+| Forms     | React Hook Form + Zod               |
+| Database  | PostgreSQL + Drizzle ORM + Supabase |
+| AI        | Anthropic Claude + Google Gemini    |
+| Charts    | Recharts                            |
+| Animation | Framer Motion                       |
+| i18n      | i18next (ko, en)                    |
 
 ## 프로젝트 구조
 
@@ -136,7 +136,9 @@ import { uuid, text, timestamp } from "drizzle-orm/pg-core";
 
 export const projects = tubegaiSchema.table("project", {
   id: uuid("id").defaultRandom().primaryKey(),
-  ownerId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  ownerId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -146,11 +148,14 @@ export const projects = tubegaiSchema.table("project", {
 
 ```typescript
 export const projectStatusEnum = tubegaiSchema.enum("project_status", [
-  "draft", "in_progress", "completed", "archived"
+  "draft",
+  "in_progress",
+  "completed",
+  "archived",
 ]);
 ```
 
-### 데이터 레이어 (*.data.server.ts)
+### 데이터 레이어 (\*.data.server.ts)
 
 ```typescript
 // app/common/data/project.data.server.ts
@@ -160,7 +165,7 @@ import { eq } from "drizzle-orm";
 export async function getProject(id: string) {
   return db.query.projects.findFirst({
     where: eq(schema.projects.id, id),
-    with: { owner: true, mediaAssets: true }
+    with: { owner: true, mediaAssets: true },
   });
 }
 ```
@@ -180,7 +185,11 @@ const userId = await getCurrentUserId(request);
 ### 클라이언트 ([app/lib/auth.client.ts](app/lib/auth.client.ts))
 
 ```typescript
-import { signInWithEmail, signInWithGitHub, signInWithGoogle } from "~/lib/auth.client";
+import {
+  signInWithEmail,
+  signInWithGitHub,
+  signInWithGoogle,
+} from "~/lib/auth.client";
 ```
 
 ## UI 컴포넌트
@@ -191,13 +200,26 @@ NEVER import from Radix directly. Always use Shadcn components:
 
 ```typescript
 import { Button } from "~/common/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "~/common/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/common/components/ui/card";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "~/common/components/ui/form";
 ```
 
 ### Tailwind CSS 컨벤션
 
 **REQUIRED**: Use Shadcn semantic tokens instead of raw colors:
+
 - Colors: `primary`, `secondary`, `muted`, `accent`, `destructive`
 - Text: `foreground`, `muted-foreground`, `primary-foreground`
 - Background: `background`, `card`, `popover`
@@ -218,17 +240,17 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 
 **REQUIRED**: Use standard Tailwind classes
 
-| 클래스 | 픽셀 |
-|--------|------|
-| `w-20` | 80px |
-| `w-24` | 96px |
-| `w-28` | 112px |
-| `w-32` | 128px |
-| `w-36` | 144px |
-| `w-40` | 160px |
-| `text-xs` | 12px |
-| `text-sm` | 14px |
-| `text-base` | 16px |
+| 클래스      | 픽셀  |
+| ----------- | ----- |
+| `w-20`      | 80px  |
+| `w-24`      | 96px  |
+| `w-28`      | 112px |
+| `w-32`      | 128px |
+| `w-36`      | 144px |
+| `w-40`      | 160px |
+| `text-xs`   | 12px  |
+| `text-sm`   | 14px  |
+| `text-base` | 16px  |
 
 ### cn() 유틸리티
 
@@ -348,12 +370,15 @@ const data = useLoaderData();
 import { Button } from "@radix-ui/react-button";
 
 // ❌ TypeScript enums
-enum Status { Draft, Active }
+enum Status {
+  Draft,
+  Active,
+}
 
 // ❌ Arbitrary Tailwind values (e.g., w-[NNpx], h-[NNpx], text-[NNpx])
 
 // ❌ Raw colors instead of semantic tokens
-className="bg-white text-gray-500"
+className = "bg-white text-gray-500";
 ```
 
 ## 권장 패턴
@@ -372,18 +397,21 @@ import { Button } from "~/common/components/ui/button";
 type Status = "draft" | "active";
 
 // ✓ Use interfaces for object shapes
-interface User { name: string; }
+interface User {
+  name: string;
+}
 
 // ✓ Use standard Tailwind classes
-className="w-36"
+className = "w-36";
 
 // ✓ Use Shadcn semantic tokens
-className="bg-card text-muted-foreground"
+className = "bg-card text-muted-foreground";
 ```
 
 ## MVP 기능 현황
 
 **활성화 (MVP)**:
+
 - Auth: 로그인, 회원가입, OAuth
 - Projects: 대시보드, 생성, 채널 관리
 - Studio: 스크립트, 스토리보드, 씬, 내보내기
@@ -399,3 +427,21 @@ className="bg-card text-muted-foreground"
 - Always read existing files before making changes
 - Follow existing patterns, avoid over-engineering
 - Do NOT build Phase 2+ features unless explicitly requested
+
+## AI model
+
+- Prioritize using Gemini as the AI model
+- Available models in Gemini:
+  - gemini-3-pro-preview
+  - gemini-3-flash-preview
+  - gemini-3-pro-image-preview
+  - gemini-pro-latest
+  - gemini-flash-latest
+  - nano-banana-pro-preview
+  - deep-research-pro-preview-12-2025
+  - gemini-2.5-pro
+  - gemini-2.5-flash
+  - gemini-2.5-flash-lite
+  - gemini-2.5-pro-preview-tts
+  - gemini-2.5-flash-preview-tts
+  - gemini-2.5-flash-image
