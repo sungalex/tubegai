@@ -47,7 +47,7 @@ export const trends = tubegaiSchema.table("trend", {
 
   // Source tracking
   source: trendSourceEnum("source").default("ai_generated").notNull(),
-  externalId: text("external_id"), // YouTube video ID, etc.
+  externalId: text("external_id").unique(), // YouTube video ID, etc.
   externalUrl: text("external_url"), // Original URL
 
   // Project tracking (FK constraint defined in migration)
