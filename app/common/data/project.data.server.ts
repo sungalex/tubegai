@@ -410,6 +410,83 @@ export async function getProjectById(
 }
 
 // =============================================================================
+// Project Update/Delete Operations
+// =============================================================================
+
+export interface UpdateProjectInput {
+  title?: string;
+  description?: string;
+  topic?: string;
+  type?: "short" | "long";
+  tone?: "informative" | "funny" | "cinematic" | "vlog";
+  visibility?: "public" | "private";
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
+  videoLength?: "short" | "medium" | "long";
+  hooks?: string[];
+  aiContext?: {
+    keywords?: string[];
+    competitors?: string[];
+    references?: string[];
+    styleNotes?: string;
+    scriptGuidelines?: string;
+    targetLength?: string;
+    callToAction?: string;
+    additionalNotes?: string;
+  };
+}
+
+export async function updateProject(
+  projectId: string,
+  userId: string,
+  input: UpdateProjectInput
+): Promise<{ success: boolean }> {
+  const project = await db.query.projects.findFirst({
+    where: and(eq(schema.projects.id, projectId), eq(schema.projects.ownerId, userId)),
+  });
+  if (!project) throw new Error("프로젝트를 찾을 수 없습니다.");
+
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (input.title !== undefined) updateData.title = input.title;
+  if (input.description !== undefined) updateData.description = input.description || null;
+  if (input.topic !== undefined) updateData.topic = input.topic || null;
+  if (input.type !== undefined) updateData.type = input.type;
+  if (input.tone !== undefined) updateData.tone = input.tone || null;
+  if (input.visibility !== undefined) updateData.visibility = input.visibility;
+  if (input.targetAudience !== undefined) updateData.targetAudience = input.targetAudience || null;
+  if (input.estimatedViews !== undefined) updateData.estimatedViews = input.estimatedViews || null;
+  if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
+  if (input.contentTone !== undefined) updateData.contentTone = input.contentTone || null;
+  if (input.videoLength !== undefined) updateData.videoLength = input.videoLength || null;
+  if (input.hooks !== undefined) updateData.hooks = input.hooks;
+  if (input.aiContext !== undefined) updateData.aiContext = input.aiContext;
+
+  await db.update(schema.projects).set(updateData).where(eq(schema.projects.id, projectId));
+  return { success: true };
+}
+
+export async function archiveProject(projectId: string, userId: string): Promise<{ success: boolean }> {
+  const result = await db
+    .update(schema.projects)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(and(eq(schema.projects.id, projectId), eq(schema.projects.ownerId, userId)))
+    .returning({ id: schema.projects.id });
+  if (result.length === 0) throw new Error("프로젝트를 찾을 수 없습니다.");
+  return { success: true };
+}
+
+export async function deleteProject(projectId: string, userId: string): Promise<{ success: boolean }> {
+  const result = await db
+    .delete(schema.projects)
+    .where(and(eq(schema.projects.id, projectId), eq(schema.projects.ownerId, userId)))
+    .returning({ id: schema.projects.id });
+  if (result.length === 0) throw new Error("프로젝트를 찾을 수 없습니다.");
+  return { success: true };
+}
+
+// =============================================================================
 // Channel Data Functions
 // =============================================================================
 

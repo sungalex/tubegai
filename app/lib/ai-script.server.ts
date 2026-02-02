@@ -604,6 +604,7 @@ function buildProjectContext(project: ProjectFullDetail, language: "ko" | "en"):
       if (ctx.scriptGuidelines) lines.push(`대본 가이드라인: ${ctx.scriptGuidelines}`);
       if (ctx.styleNotes) lines.push(`스타일 노트: ${ctx.styleNotes}`);
       if (ctx.callToAction) lines.push(`CTA: ${ctx.callToAction}`);
+      if (ctx.additionalNotes) lines.push(`사용자 요청사항: ${ctx.additionalNotes}`);
     }
   } else {
     lines.push(`Title: ${project.title}`);
@@ -624,6 +625,7 @@ function buildProjectContext(project: ProjectFullDetail, language: "ko" | "en"):
       if (ctx.scriptGuidelines) lines.push(`Script Guidelines: ${ctx.scriptGuidelines}`);
       if (ctx.styleNotes) lines.push(`Style Notes: ${ctx.styleNotes}`);
       if (ctx.callToAction) lines.push(`CTA: ${ctx.callToAction}`);
+      if (ctx.additionalNotes) lines.push(`User Requirements: ${ctx.additionalNotes}`);
     }
   }
 
