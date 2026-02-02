@@ -159,6 +159,18 @@ export async function createProject(
 }
 
 /**
+ * Get total project count for a user (lightweight query for badges)
+ */
+export async function getProjectCount(userId: string): Promise<number> {
+  const [result] = await db
+    .select({ count: count() })
+    .from(schema.projects)
+    .where(eq(schema.projects.ownerId, userId));
+
+  return result?.count ?? 0;
+}
+
+/**
  * Fetch project statistics by status for dashboard
  */
 export async function getProjectStats(userId: string): Promise<{
@@ -207,26 +219,35 @@ export async function getRecentProjects(userId: string): Promise<RecentProject[]
   }));
 }
 
+// Status filter type (maps to DB enum values)
+export type ProjectStatusFilter = "draft" | "in_progress" | "completed";
+
 /**
- * Fetch projects for a user with search, sort, and pagination options
+ * Fetch projects for a user with search, sort, status filter, and pagination options
  */
 export async function getProjects(
   userId: string,
   options?: {
     search?: string;
     sort?: ProjectSortOption;
+    status?: ProjectStatusFilter;
     page?: number;
   }
 ): Promise<PaginatedProjects> {
-  const { search, sort = "newest", page = 1 } = options ?? {};
+  const { search, sort = "newest", status, page = 1 } = options ?? {};
 
   // Build where conditions
-  const whereConditions = search
-    ? and(
-        eq(schema.projects.ownerId, userId),
-        ilike(schema.projects.title, `%${search}%`)
-      )
-    : eq(schema.projects.ownerId, userId);
+  const conditions = [eq(schema.projects.ownerId, userId)];
+
+  if (search) {
+    conditions.push(ilike(schema.projects.title, `%${search}%`));
+  }
+
+  if (status) {
+    conditions.push(eq(schema.projects.status, status));
+  }
+
+  const whereConditions = conditions.length > 1 ? and(...conditions) : conditions[0];
 
   // Build order by
   const orderByMap = {

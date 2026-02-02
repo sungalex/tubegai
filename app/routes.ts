@@ -47,7 +47,12 @@ export default [
 
   // Projects (MVP - core project management)
   ...prefix("projects", [
-    index("features/project/pages/dashboard-page.tsx"),
+    // Dashboard with tabs (layout pattern for optimized data loading)
+    layout("features/project/layouts/dashboard-layout.tsx", [
+      index("features/project/pages/projects-tab-page.tsx"),
+      route("trends", "features/project/pages/trends-tab-page.tsx"),
+      route("saved-ideas", "features/project/pages/saved-ideas-tab-page.tsx"),
+    ]),
     route("new", "features/project/pages/new-project-page.tsx"),
     route("channels", "features/project/pages/channels-page.tsx"),
     route("channels/callback", "features/project/pages/channels-callback-page.tsx"),

@@ -4,7 +4,7 @@
 // This layer handles AI idea generation and saved ideas management.
 // Currently uses mock data - replace with OpenAI API calls when ready.
 
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, count } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import type {
   GeneratedIdea,
@@ -397,6 +397,18 @@ export async function saveIdea(
     createdAt: savedIdea.createdAt,
     updatedAt: savedIdea.updatedAt,
   };
+}
+
+/**
+ * Get saved ideas count for a user (lightweight query for badges)
+ */
+export async function getSavedIdeasCount(userId: string): Promise<number> {
+  const [result] = await db
+    .select({ count: count() })
+    .from(schema.savedIdeas)
+    .where(eq(schema.savedIdeas.userId, userId));
+
+  return result?.count ?? 0;
 }
 
 /**
