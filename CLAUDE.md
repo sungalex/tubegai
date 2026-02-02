@@ -253,6 +253,49 @@ import { cn } from "~/lib/utils";
 )} />
 ```
 
+### Tailwind CSS 4 - 표준 클래스 사용 규칙
+
+**중요**: Arbitrary values (임의 값) 대신 표준 Tailwind 클래스를 사용하세요.
+
+**❌ Don't**: Arbitrary values 사용 금지 (lint 에러 발생)
+- `w-[NNpx]`, `h-[NNpx]` 형태의 임의 픽셀 값
+- `text-[NNpx]` 형태의 임의 폰트 크기
+- `p-[NNpx]`, `m-[NNpx]` 형태의 임의 간격
+
+**✅ Do**: 표준 Tailwind 클래스 사용
+```typescript
+className="w-35"      // 140px
+className="h-25"      // 100px
+className="text-sm"   // 14px
+className="p-2.5"     // 10px
+```
+
+**Width/Height 참조 테이블** (Tailwind CSS 4):
+
+| Class | Pixels |
+|-------|--------|
+| `w-20` | 80px |
+| `w-24` | 96px |
+| `w-25` | 100px |
+| `w-28` | 112px |
+| `w-32` | 128px |
+| `w-35` | 140px |
+| `w-36` | 144px |
+| `w-40` | 160px |
+| `w-48` | 192px |
+
+**Font Size 참조**:
+
+| Class | Size |
+|-------|------|
+| `text-xs` | 12px |
+| `text-sm` | 14px |
+| `text-base` | 16px |
+| `text-lg` | 18px |
+| `text-xl` | 20px |
+
+**예외**: 디자인 시스템에 정확히 맞는 표준 클래스가 없는 경우에만 arbitrary values 사용 가능하지만, 가능한 한 가장 가까운 표준 값을 선택하세요.
+
 ### Naming Conventions
 
 - **Components**: PascalCase, kebab-case files (e.g., `studio-sidebar.tsx`)

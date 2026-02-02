@@ -551,7 +551,7 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
                 }
                 disabled={isStreaming}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-35">
                   <Plus className="w-4 h-4 mr-2" />
                   세그먼트 추가
                 </SelectTrigger>
@@ -631,7 +631,7 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
                         disabled={isStreaming}
                       >
                         <SelectTrigger
-                          className={`w-[100px] h-7 text-xs ${segmentTypeColors[segment.type]}`}
+                          className={`w-25 h-7 text-xs ${segmentTypeColors[segment.type]}`}
                         >
                           <SelectValue />
                         </SelectTrigger>
