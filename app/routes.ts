@@ -63,6 +63,8 @@ export default [
     route("ai-recommendations", "features/project/api/ai-recommendations.ts"),
     route("channels", "features/project/pages/channels-api.tsx"),
     route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
+    // Studio API
+    route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)

@@ -5,11 +5,32 @@
 // ---------------------------
 // Script Types
 // ---------------------------
+
+/**
+ * Scene hint for storyboard generation
+ * Each segment can suggest multiple scenes for visual breakdown
+ */
+export interface SceneHint {
+  description: string;      // Brief scene description
+  visualPrompt: string;     // AI image/video generation prompt
+  duration: number;         // Suggested duration in seconds
+  cameraAngle?: string;     // Optional: "wide", "close-up", "medium", "pov"
+}
+
+/**
+ * Script segment with enhanced metadata for storyboard/scene generation
+ */
 export type ScriptSegment = {
   id: string;
   type: "hook" | "intro" | "body" | "cta" | "outro";
   content: string;
   duration: number; // seconds
+
+  // Enhanced metadata for storyboard/scene generation
+  visualNotes?: string;      // Overall visual direction for this segment
+  sceneHints?: SceneHint[];  // Suggested scene breakdowns
+  keywords?: string[];       // Keywords for B-roll search
+  emotionalTone?: string;    // Emotional tone: "exciting", "calm", "dramatic", etc.
 };
 
 // ---------------------------
