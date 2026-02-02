@@ -8,7 +8,6 @@ npm run build            # 프로덕션 빌드
 npm run typecheck        # 타입 체크
 npm run db:generate      # 마이그레이션 생성
 npm run db:migrate       # 마이그레이션 적용
-npm run db:seed          # 시드 데이터 삽입
 ```
 
 ## 기술 스택
