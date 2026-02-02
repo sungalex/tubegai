@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:enable-rls": "tsx app/drizzle/enable-rls.ts",
     "db:typegen": "supabase gen types typescript --project-id peyncmsqlmfykdlbaqnn > database.types.ts"
   },
   "dependencies": {
