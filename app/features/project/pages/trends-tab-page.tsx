@@ -87,18 +87,46 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     }
   }, [fetcher.data]);
 
-  // Apply client-side filters for keywords (instant filtering)
-  const filteredTrends = useMemo(() => {
-    if (!filters.keywords?.length) return currentTrends;
+  // Parse view count string to number (e.g., "1.2M" -> 1200000)
+  const parseViewCount = (views: string): number => {
+    const normalized = views.toUpperCase().trim();
+    const match = normalized.match(/^([\d.]+)\s*([KMB])?$/);
+    if (!match) return 0;
+    const num = parseFloat(match[1]);
+    const suffix = match[2];
+    switch (suffix) {
+      case "K": return num * 1_000;
+      case "M": return num * 1_000_000;
+      case "B": return num * 1_000_000_000;
+      default: return num;
+    }
+  };
 
-    return currentTrends.filter((trend: TrendItem) =>
-      filters.keywords!.some(
-        (kw: string) =>
-          trend.title.toLowerCase().includes(kw.toLowerCase()) ||
-          trend.tags?.some((tag: string) => tag.toLowerCase().includes(kw.toLowerCase()))
-      )
-    );
-  }, [currentTrends, filters.keywords]);
+  // Apply client-side filters (keywords and minViews) for instant filtering
+  const filteredTrends = useMemo(() => {
+    let result = currentTrends;
+
+    // Filter by minimum views
+    if (filters.minViews) {
+      result = result.filter((trend: TrendItem) => {
+        const viewCount = parseViewCount(trend.views);
+        return viewCount >= filters.minViews!;
+      });
+    }
+
+    // Filter by keywords
+    if (filters.keywords?.length) {
+      result = result.filter((trend: TrendItem) =>
+        filters.keywords!.some(
+          (kw: string) =>
+            trend.title.toLowerCase().includes(kw.toLowerCase()) ||
+            trend.tags?.some((tag: string) => tag.toLowerCase().includes(kw.toLowerCase()))
+        )
+      );
+    }
+
+    return result;
+  }, [currentTrends, filters.minViews, filters.keywords]);
 
   const handleFiltersChange = (newFilters: TrendFilterOptions) => {
     setFilters(newFilters);

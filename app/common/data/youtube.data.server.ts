@@ -16,41 +16,82 @@ import { TRENDS_DATA } from "../mocks/project-mock";
 const YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3";
 const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-// YouTube category ID to display name mapping (Korean for consistency with UI)
+// YouTube category ID to display name mapping (Korean)
+// Reference: https://developers.google.com/youtube/v3/docs/videoCategories/list
 const CATEGORY_MAP: Record<string, string> = {
-  "1": "영화 & 애니메이션",
-  "2": "자동차",
+  "1": "영화/애니메이션",
+  "2": "자동차/교통",
   "10": "음악",
-  "15": "동물",
+  "15": "반려동물/동물",
   "17": "스포츠",
-  "18": "단편 영화",
-  "19": "여행 & 이벤트",
+  "18": "단편 영화",        // 비활성 카테고리
+  "19": "여행/이벤트",
   "20": "게임",
-  "21": "비디오블로그",
-  "22": "인물 & 블로그",
+  "21": "비디오 블로그",    // 비활성 카테고리
+  "22": "인물/블로그",
   "23": "코미디",
   "24": "엔터테인먼트",
-  "25": "뉴스 & 정치",
-  "26": "노하우 & 스타일",
+  "25": "뉴스/정치",
+  "26": "노하우/스타일",
   "27": "교육",
-  "28": "과학 & 기술",
-  "29": "비영리 & 사회운동",
-  "30": "영화",
-  "31": "애니메이션",
-  "32": "액션/어드벤처",
-  "33": "클래식",
-  "34": "코미디",
-  "35": "다큐멘터리",
-  "36": "드라마",
-  "37": "가족",
-  "38": "외국",
-  "39": "공포",
-  "40": "SF/판타지",
-  "41": "스릴러",
-  "42": "쇼츠",
-  "43": "쇼",
+  "28": "과학기술",
+  "29": "비영리/사회운동",
+  "30": "영화",             // YouTube 전용
   "44": "예고편",
 };
+
+// Reverse mapping: category name to YouTube category ID
+const CATEGORY_NAME_TO_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_MAP).map(([id, name]) => [name.toLowerCase(), id])
+);
+
+// Category aliases for backward compatibility with cached data
+const CATEGORY_ALIASES: Record<string, string> = {
+  // Old names → new category ID
+  "동물": "15",
+  "자동차": "2",
+  "영화 & 애니메이션": "1",
+  "여행 & 이벤트": "19",
+  "인물 & 블로그": "22",
+  "뉴스 & 정치": "25",
+  "노하우 & 스타일": "26",
+  "과학 & 기술": "28",
+  "비디오블로그": "21",
+  // English names
+  "film & animation": "1",
+  "autos & vehicles": "2",
+  "music": "10",
+  "pets & animals": "15",
+  "sports": "17",
+  "travel & events": "19",
+  "gaming": "20",
+  "people & blogs": "22",
+  "comedy": "23",
+  "entertainment": "24",
+  "news & politics": "25",
+  "howto & style": "26",
+  "education": "27",
+  "science & technology": "28",
+  "nonprofits & activism": "29",
+  "movies": "30",
+  "trailers": "44",
+};
+
+/**
+ * Get YouTube category ID from category name
+ */
+function getCategoryId(categoryName: string): string | null {
+  const normalized = categoryName.toLowerCase().trim();
+  // Try exact match first
+  if (CATEGORY_NAME_TO_ID[normalized]) {
+    return CATEGORY_NAME_TO_ID[normalized];
+  }
+  // Try alias match
+  if (CATEGORY_ALIASES[normalized]) {
+    return CATEGORY_ALIASES[normalized];
+  }
+  return null;
+}
 
 // =============================================================================
 // Supabase Cache Functions
@@ -91,21 +132,25 @@ async function getCachedTrends(regionCode: string = "KR"): Promise<TrendItem[] |
 }
 
 /**
- * Save trends to Supabase, replacing old YouTube trends for specific region
+ * Save trends to Supabase using upsert (insert or update on conflict)
+ * This allows saving both full trends and category-filtered trends without duplicates
  */
 async function saveTrendsToCache(
   videos: YouTubeVideoItem[],
-  regionCode: string = "KR"
+  regionCode: string = "KR",
+  replaceAll: boolean = false
 ): Promise<void> {
-  // Delete old YouTube trends for this region (source = 'youtube_api')
-  await db.delete(schema.trends).where(
-    and(
-      sql`${schema.trends.source} = 'youtube_api'`,
-      eq(schema.trends.regionCode, regionCode)
-    )
-  );
+  // If replaceAll is true, delete old YouTube trends for this region first
+  if (replaceAll) {
+    await db.delete(schema.trends).where(
+      and(
+        sql`${schema.trends.source} = 'youtube_api'`,
+        eq(schema.trends.regionCode, regionCode)
+      )
+    );
+  }
 
-  // Insert new trends
+  // Prepare trends data
   const trendsToInsert = videos.map((video) => {
     const categoryName = CATEGORY_MAP[video.snippet.categoryId] ?? "Other";
     const tags = video.snippet.tags?.slice(0, 5) ?? [categoryName];
@@ -138,7 +183,28 @@ async function saveTrendsToCache(
   });
 
   if (trendsToInsert.length > 0) {
-    await db.insert(schema.trends).values(trendsToInsert);
+    // Use upsert: insert new trends or update existing ones based on externalId
+    for (const trend of trendsToInsert) {
+      await db
+        .insert(schema.trends)
+        .values(trend)
+        .onConflictDoUpdate({
+          target: schema.trends.externalId,
+          set: {
+            title: trend.title,
+            description: trend.description,
+            category: trend.category,
+            viewsCount: trend.viewsCount,
+            viewCount: trend.viewCount,
+            likeCount: trend.likeCount,
+            commentCount: trend.commentCount,
+            thumbnailUrl: trend.thumbnailUrl,
+            tags: trend.tags,
+            fetchedAt: trend.fetchedAt,
+            updatedAt: new Date(),
+          },
+        });
+    }
   }
 
   console.log(`[YouTube API] Saved ${trendsToInsert.length} trends to Supabase for region ${regionCode}`);
@@ -193,19 +259,39 @@ function mapVideoToTrendItem(video: YouTubeVideoItem, index: number): TrendItem 
 // =============================================================================
 
 /**
+ * Options for fetching YouTube trends
+ */
+interface YouTubeTrendsOptions {
+  regionCode?: string;
+  videoCategoryId?: string;
+  maxResults?: number;
+  forceRefresh?: boolean;
+}
+
+/**
  * Fetch trending videos from YouTube Data API v3
  * Uses Supabase cache (15 min) to manage API quota
  * Falls back to mock data on error or missing API key
  *
- * @param regionCode - Region code for YouTube trends (default: "KR")
- * @param forceRefresh - Skip cache and fetch fresh data from YouTube API
+ * @param options - Options including regionCode, videoCategoryId, maxResults, forceRefresh
  */
 export async function getYouTubeTrends(
-  regionCode: string = "KR",
-  forceRefresh: boolean = false
+  options: YouTubeTrendsOptions | string = "KR",
+  forceRefreshLegacy: boolean = false
 ): Promise<TrendItem[]> {
-  // Check Supabase cache first (unless force refresh)
-  if (!forceRefresh) {
+  // Support legacy signature: getYouTubeTrends(regionCode, forceRefresh)
+  const opts: YouTubeTrendsOptions = typeof options === "string"
+    ? { regionCode: options, forceRefresh: forceRefreshLegacy }
+    : options;
+
+  const regionCode = opts.regionCode ?? "KR";
+  const videoCategoryId = opts.videoCategoryId;
+  const maxResults = opts.maxResults ?? 20;
+  const forceRefresh = opts.forceRefresh ?? false;
+
+  // Check Supabase cache first (unless force refresh or category filter)
+  // Note: Skip cache when filtering by category since cache stores all categories mixed
+  if (!forceRefresh && !videoCategoryId) {
     try {
       const cachedData = await getCachedTrends(regionCode);
       if (cachedData && cachedData.length > 0) {
@@ -216,6 +302,8 @@ export async function getYouTubeTrends(
       console.error("[YouTube API] Failed to check Supabase cache:", error);
       // Continue to fetch from API
     }
+  } else if (videoCategoryId) {
+    console.log(`[YouTube API] Category filter requested (${videoCategoryId}), skipping cache`);
   } else {
     console.log(`[YouTube API] Force refresh requested for region ${regionCode}`);
   }
@@ -233,10 +321,15 @@ export async function getYouTubeTrends(
     url.searchParams.set("part", "snippet,statistics");
     url.searchParams.set("chart", "mostPopular");
     url.searchParams.set("regionCode", regionCode);
-    url.searchParams.set("maxResults", "20");
+    url.searchParams.set("maxResults", maxResults.toString());
     url.searchParams.set("key", apiKey);
 
-    console.log(`[YouTube API] Fetching trending videos for region ${regionCode}...`);
+    // Add category filter if specified
+    if (videoCategoryId) {
+      url.searchParams.set("videoCategoryId", videoCategoryId);
+    }
+
+    console.log(`[YouTube API] Fetching trending videos for region ${regionCode}${videoCategoryId ? `, category ${videoCategoryId}` : ""}...`);
 
     const response = await fetch(url.toString());
 
@@ -249,11 +342,12 @@ export async function getYouTubeTrends(
     const data: YouTubeVideosListResponse = await response.json();
 
     if (!data.items || data.items.length === 0) {
-      console.warn("[YouTube API] No videos returned, using mock data");
-      return TRENDS_DATA;
+      console.warn("[YouTube API] No videos returned for this filter");
+      // Return empty array instead of mock data when filtering by category
+      return videoCategoryId ? [] : TRENDS_DATA;
     }
 
-    // Save to Supabase cache
+    // Save to Supabase cache (upsert mode handles duplicates)
     try {
       await saveTrendsToCache(data.items, regionCode);
     } catch (error) {
@@ -263,12 +357,12 @@ export async function getYouTubeTrends(
 
     const trends = data.items.map(mapVideoToTrendItem);
 
-    console.log(`[YouTube API] Successfully fetched ${trends.length} trending videos for region ${regionCode}`);
+    console.log(`[YouTube API] Successfully fetched ${trends.length} trending videos for region ${regionCode}${videoCategoryId ? `, category ${videoCategoryId}` : ""}`);
     return trends;
 
   } catch (error) {
     console.error("[YouTube API] Failed to fetch trends:", error);
-    return TRENDS_DATA;
+    return videoCategoryId ? [] : TRENDS_DATA;
   }
 }
 
@@ -359,9 +453,10 @@ function applyFilters(trends: TrendItem[], filters: TrendFilterOptions): TrendIt
 
 /**
  * Fetch trending videos with filters
- * Uses Supabase cache (15 min) and applies filters
+ * Category filter is applied at the API level for better results
+ * Other filters (minViews, keywords) are applied client-side
  *
- * @param filters - Filter options including regionCode
+ * @param filters - Filter options including regionCode, category, minViews, keywords
  * @param forceRefresh - Skip cache and fetch fresh data from YouTube API
  */
 export async function getYouTubeTrendsWithFilters(
@@ -370,11 +465,34 @@ export async function getYouTubeTrendsWithFilters(
 ): Promise<TrendItem[]> {
   const regionCode = filters.regionCode ?? "KR";
 
-  // Get base trends (with optional force refresh)
-  const trends = await getYouTubeTrends(regionCode, forceRefresh);
+  // Convert category name to YouTube category ID for API-level filtering
+  let videoCategoryId: string | undefined;
+  if (filters.category) {
+    const categoryId = getCategoryId(filters.category);
+    if (categoryId) {
+      videoCategoryId = categoryId;
+      console.log(`[YouTube API] Category "${filters.category}" mapped to ID ${categoryId}`);
+    } else {
+      console.warn(`[YouTube API] Unknown category: "${filters.category}", will filter client-side`);
+    }
+  }
 
-  // Apply client-side filters
-  const filteredTrends = applyFilters(trends, filters);
+  // Fetch trends from API with category filter if available
+  const trends = await getYouTubeTrends({
+    regionCode,
+    videoCategoryId,
+    maxResults: 50, // Fetch more results when filtering
+    forceRefresh,
+  });
+
+  // Apply remaining client-side filters (minViews, keywords, excludeKeywords)
+  // Skip category filter if already applied at API level
+  const clientSideFilters: TrendFilterOptions = {
+    ...filters,
+    category: videoCategoryId ? undefined : filters.category, // Skip if already filtered by API
+  };
+
+  const filteredTrends = applyFilters(trends, clientSideFilters);
 
   return filteredTrends;
 }

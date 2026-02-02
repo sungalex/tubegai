@@ -41,7 +41,6 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
   const [isAIProjectDialogOpen, setIsAIProjectDialogOpen] = useState(false);
   const [selectedTrendForAI, setSelectedTrendForAI] = useState<TrendItem | null>(null);
-  const [savingTrendId, setSavingTrendId] = useState<number | null>(null);
   const [savingRecommendationIdx, setSavingRecommendationIdx] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
@@ -196,57 +195,6 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
       toast.error("추천 새로고침 실패");
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  // Save trend as idea and navigate to new project page
-  const handleUseTheme = async (trend: TrendItem) => {
-    setSavingTrendId(trend.id);
-    try {
-      const idea = {
-        id: crypto.randomUUID(),
-        title: trend.title,
-        description: `트렌드 기반 아이디어: ${trend.category}`,
-        hooks: [`${trend.title}에 대한 흥미로운 시작`, `왜 ${trend.title}이 중요한지`, `${trend.title}의 핵심 포인트`],
-        targetAudience: "일반 시청자",
-        estimatedViews: trend.views,
-        difficulty: "medium" as const,
-        basedOnTrend: trend.title,
-        trendId: trend.id,
-      };
-
-      const response = await fetch("/api/saved-ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error("아이디어 저장 실패", { description: data.error });
-        return;
-      }
-
-      // Notify parent component of saved idea
-      if (data.idea && onSaveIdea) {
-        onSaveIdea(data.idea);
-      }
-
-      toast.success("아이디어가 저장되었습니다!");
-      // Pass full idea data to new project page
-      navigate("/projects/new", {
-        state: {
-          idea: data.idea,
-          topic: trend.title,
-          fromTrend: true,
-          trendId: trend.id,
-        }
-      });
-    } catch (error) {
-      toast.error("아이디어 저장 실패");
-    } finally {
-      setSavingTrendId(null);
     }
   };
 
@@ -430,20 +378,6 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
                               {t("trends.watchVideo")}
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            className="w-full bg-red-600 hover:bg-red-700 text-white"
-                            disabled={savingTrendId === trend.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUseTheme(trend);
-                            }}
-                          >
-                            {savingTrendId === trend.id ? (
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            ) : null}
-                            {t("trends.useTheme")}
-                          </Button>
                           <Button
                             size="sm"
                             variant="secondary"
