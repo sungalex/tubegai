@@ -331,10 +331,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 ## Gemini 모델
 
-| 용도   | 모델                                                    |
-| ------ | ------------------------------------------------------- |
-| 텍스트 | `gemini-3-flash-preview`, `gemini-3-pro-preview`        |
-| 이미지 | `nano-banana-pro-preview`, `gemini-3-pro-image-preview` |
+| 콘텐츠 타입   | 추천 모델 (2026 기준) | 모델명            | 특징 및 용도                                |
+| ------------- | --------------------- | ----------------- | ------------------------------------------- |
+| 텍스트/추론   | Gemini 3 Pro          | `gemini-3-pro`    | 복잡한 논리, 코드 생성, 장문 요약           |
+| 텍스트/속도   | Gemini 3 Flash        | `gemini-3-flash`  | 실시간 챗봇, 단순 데이터 추출 (가성비 최고) |
+| 이미지 생성   | Nano Banana           | `nano-banana-001` | 텍스트 가이드 기반 고품질 이미지 생성       |
+| 영상 생성     | Veo 3.1               | `veo-3-flash`     | 고해상도 시네마틱 영상 및 오디오 생성       |
+| 멀티모달 분석 | Gemini 3 Pro (Vision) | `gemini-3-pro`    | 업로드된 이미지/영상 내용 설명 및 분석      |
 
 ## YouTube OAuth
 
