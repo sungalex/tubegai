@@ -221,3 +221,203 @@ export async function updateScriptPrompt(
     });
   }
 }
+
+// =============================================================================
+// Storyboard Types
+// =============================================================================
+
+export interface StoryboardSceneData {
+  id: string;
+  sceneNumber: number;
+  description: string;
+  visualPrompt: string;
+  duration: number;
+  imageUrl?: string;
+}
+
+export interface StoryboardSegmentData {
+  id: string;
+  scriptSegmentId: string;
+  content: string;
+  scenes: StoryboardSceneData[];
+}
+
+export interface StoryboardWithScenes {
+  projectId: string;
+  savedAt: Date | null;
+  segments: StoryboardSegmentData[];
+}
+
+export interface SaveStoryboardInput {
+  projectId: string;
+  scenes: Array<{
+    scriptSegmentId: string;
+    sceneNumber: number;
+    orderIndex: number;
+    description: string;
+    visualPrompt: string;
+    duration: number;
+  }>;
+}
+
+// =============================================================================
+// Storyboard Data Functions
+// =============================================================================
+
+/**
+ * Fetch storyboard with scenes for a project
+ * Groups scenes by their associated script segment
+ */
+export async function getStoryboardWithScenes(
+  projectId: string
+): Promise<StoryboardWithScenes | null> {
+  // First, get the script with segments
+  const script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+    with: {
+      segments: {
+        orderBy: [asc(schema.scriptSegments.orderIndex)],
+      },
+    },
+  });
+
+  if (!script || script.segments.length === 0) {
+    return null;
+  }
+
+  // Get all storyboards for this project
+  const storyboards = await db.query.storyboards.findMany({
+    where: eq(schema.storyboards.projectId, projectId),
+    orderBy: [asc(schema.storyboards.sceneNumber)],
+    with: {
+      imageAsset: true,
+    },
+  });
+
+  // Group storyboards by script segment
+  const segmentMap = new Map<string, StoryboardSceneData[]>();
+
+  for (const sb of storyboards) {
+    const segmentId = sb.scriptSegmentId;
+    if (!segmentMap.has(segmentId)) {
+      segmentMap.set(segmentId, []);
+    }
+    segmentMap.get(segmentId)!.push({
+      id: sb.id,
+      sceneNumber: sb.sceneNumber,
+      description: sb.description ?? "",
+      visualPrompt: sb.visualPrompt ?? "",
+      duration: sb.duration ?? 5,
+      imageUrl: sb.imageAsset?.publicUrl ?? undefined,
+    });
+  }
+
+  // Build segments array
+  const segments: StoryboardSegmentData[] = script.segments.map((seg) => ({
+    id: seg.id,
+    scriptSegmentId: seg.id,
+    content: seg.content,
+    scenes: segmentMap.get(seg.id) ?? [],
+  }));
+
+  return {
+    projectId,
+    savedAt: script.savedAt,
+    segments,
+  };
+}
+
+/**
+ * Save storyboard scenes (upsert operation)
+ */
+export async function saveStoryboard(input: SaveStoryboardInput): Promise<void> {
+  const { projectId, scenes } = input;
+
+  // Delete existing storyboards for this project
+  await db
+    .delete(schema.storyboards)
+    .where(eq(schema.storyboards.projectId, projectId));
+
+  // Insert new scenes
+  if (scenes.length > 0) {
+    await db.insert(schema.storyboards).values(
+      scenes.map((scene) => ({
+        projectId,
+        scriptSegmentId: scene.scriptSegmentId,
+        sceneNumber: scene.sceneNumber,
+        orderIndex: scene.orderIndex,
+        description: scene.description,
+        visualPrompt: scene.visualPrompt,
+        duration: scene.duration,
+      }))
+    );
+  }
+
+  // Update script savedAt timestamp
+  const script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+  });
+
+  if (script) {
+    await db
+      .update(schema.scripts)
+      .set({ savedAt: new Date() })
+      .where(eq(schema.scripts.id, script.id));
+  }
+}
+
+/**
+ * Update a single storyboard scene
+ */
+export async function updateStoryboardScene(
+  sceneId: string,
+  data: {
+    description?: string;
+    visualPrompt?: string;
+    duration?: number;
+  }
+): Promise<void> {
+  await db
+    .update(schema.storyboards)
+    .set(data)
+    .where(eq(schema.storyboards.id, sceneId));
+}
+
+/**
+ * Delete a storyboard scene
+ */
+export async function deleteStoryboardScene(sceneId: string): Promise<void> {
+  await db
+    .delete(schema.storyboards)
+    .where(eq(schema.storyboards.id, sceneId));
+}
+
+/**
+ * Add a new scene to storyboard
+ */
+export async function addStoryboardScene(
+  projectId: string,
+  scene: {
+    scriptSegmentId: string;
+    sceneNumber: number;
+    orderIndex: number;
+    description: string;
+    visualPrompt: string;
+    duration: number;
+  }
+): Promise<string> {
+  const [newScene] = await db
+    .insert(schema.storyboards)
+    .values({
+      projectId,
+      scriptSegmentId: scene.scriptSegmentId,
+      sceneNumber: scene.sceneNumber,
+      orderIndex: scene.orderIndex,
+      description: scene.description,
+      visualPrompt: scene.visualPrompt,
+      duration: scene.duration,
+    })
+    .returning({ id: schema.storyboards.id });
+
+  return newScene.id;
+}

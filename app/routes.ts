@@ -72,6 +72,7 @@ export default [
     route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
     // Studio API
     route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
+    route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)
