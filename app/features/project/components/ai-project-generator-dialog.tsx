@@ -668,7 +668,7 @@ function PromptStep({
       <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
         <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
         <p className="text-sm text-blue-600 dark:text-blue-400">
-          위 프롬프트가 AI에게 전송됩니다. "AI 생성 실행" 버튼을 클릭하면 Claude API를 호출합니다.
+          위 프롬프트가 AI에게 전송됩니다. "AI 생성 실행" 버튼을 클릭하면 Gemini API를 호출합니다.
         </p>
       </div>
     </div>

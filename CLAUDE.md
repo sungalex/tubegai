@@ -18,7 +18,7 @@ npm run db:migrate       # 마이그레이션 적용
 | Styling   | Tailwind CSS 4 + Shadcn UI          |
 | Forms     | React Hook Form + Zod               |
 | Database  | PostgreSQL + Drizzle ORM + Supabase |
-| AI        | Anthropic Claude + Google Gemini    |
+| AI        | Google Gemini                       |
 | Charts    | Recharts                            |
 | Animation | Framer Motion                       |
 | i18n      | i18next (ko, en)                    |
@@ -321,19 +321,20 @@ toast.error("오류 발생", { description: "다시 시도해주세요." });
 
 ## AI 통합
 
-### Claude (스크립트 생성)
-
-```typescript
-import { Anthropic } from "@anthropic-ai/sdk";
-// See app/lib/ai-script.server.ts
-```
-
-### Gemini (아이디어 생성)
+- **Gemini를 기본 AI 서비스로 사용한다**
+- 다른 AI 서비스(Claude, OpenAI 등) 이용이 필요한 경우 승인 요청 필수
 
 ```typescript
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // See app/common/data/ideation.data.server.ts
 ```
+
+## Gemini 모델
+
+| 용도   | 모델                                                    |
+| ------ | ------------------------------------------------------- |
+| 텍스트 | `gemini-3-flash-preview`, `gemini-3-pro-preview`        |
+| 이미지 | `nano-banana-pro-preview`, `gemini-3-pro-image-preview` |
 
 ## YouTube OAuth
 
@@ -349,8 +350,15 @@ import { getChannelInfo } from "~/common/data/channel.data.server";
 DATABASE_URL=postgresql://...
 SUPABASE_URL=https://...
 SUPABASE_ANON_KEY=...
-ANTHROPIC_API_KEY=...
-GOOGLE_AI_API_KEY=...
+GEMINI_API_KEY=...
+
+# YouTube OAuth (별도 OAuth 앱)
+GOOGLE_CLIENT_ID_YOUTUBE=...
+GOOGLE_CLIENT_SECRET_YOUTUBE=...
+
+# Supabase OAuth (Supabase 대시보드에서 설정)
+GOOGLE_CLIENT_ID_SUPABASE=...
+GOOGLE_CLIENT_SECRET_SUPABASE=...
 ```
 
 ## 금지 패턴
@@ -426,21 +434,4 @@ className = "bg-card text-muted-foreground";
 - Always read existing files before making changes
 - Follow existing patterns, avoid over-engineering
 - Do NOT build Phase 2+ features unless explicitly requested
-
-## AI model
-
-- Prioritize using Gemini as the AI model
-- Available models in Gemini:
-  - gemini-3-pro-preview
-  - gemini-3-flash-preview
-  - gemini-3-pro-image-preview
-  - gemini-pro-latest
-  - gemini-flash-latest
-  - nano-banana-pro-preview
-  - deep-research-pro-preview-12-2025
-  - gemini-2.5-pro
-  - gemini-2.5-flash
-  - gemini-2.5-flash-lite
-  - gemini-2.5-pro-preview-tts
-  - gemini-2.5-flash-preview-tts
-  - gemini-2.5-flash-image
+- Provide a brief context of the operation and then trigger the approval request, when an agent requires authorization.

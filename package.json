@@ -13,7 +13,6 @@
     "db:typegen": "supabase gen types typescript --project-id peyncmsqlmfykdlbaqnn > database.types.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.72.1",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",

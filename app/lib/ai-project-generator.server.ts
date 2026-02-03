@@ -162,7 +162,7 @@ export function buildProjectGenerationPrompt(input: AIProjectGenerationInput): s
 export async function generateProjectContext(
   input: AIProjectGenerationInput
 ): Promise<AIProjectGenerationOutput> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     console.warn("[AI Project Generator] Gemini API key not configured, using mock data");

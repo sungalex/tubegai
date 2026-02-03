@@ -1,7 +1,7 @@
 // =============================================================================
 // YouTube OAuth Server Functions (Standalone - Supabase Auth 외부)
 // =============================================================================
-// GitHub 로그인 세션을 유지하면서 YouTube OAuth를 별도로 처리
+// Supabase 로그인 세션을 유지하면서 YouTube OAuth를 별도로 처리
 // Google OAuth를 직접 구현하여 토큰을 채널 테이블에 저장
 
 // =============================================================================
@@ -70,7 +70,7 @@ function getGoogleClientSecret(): string {
  */
 export function generateYouTubeOAuthUrl(
   redirectUri: string,
-  state?: string
+  state?: string,
 ): string {
   const clientId = getGoogleClientId();
 
@@ -97,7 +97,7 @@ export function generateYouTubeOAuthUrl(
  */
 export async function exchangeCodeForTokens(
   code: string,
-  redirectUri: string
+  redirectUri: string,
 ): Promise<YouTubeTokens> {
   const clientId = getGoogleClientId();
   const clientSecret = getGoogleClientSecret();
@@ -119,7 +119,9 @@ export async function exchangeCodeForTokens(
   const data: GoogleTokenResponse = await response.json();
 
   if (data.error) {
-    throw new Error(`Token exchange failed: ${data.error_description || data.error}`);
+    throw new Error(
+      `Token exchange failed: ${data.error_description || data.error}`,
+    );
   }
 
   return {
@@ -136,7 +138,7 @@ export async function exchangeCodeForTokens(
  * 만료된 access_token을 refresh_token으로 갱신
  */
 export async function refreshAccessToken(
-  refreshToken: string
+  refreshToken: string,
 ): Promise<YouTubeTokens> {
   const clientId = getGoogleClientId();
   const clientSecret = getGoogleClientSecret();
@@ -157,7 +159,9 @@ export async function refreshAccessToken(
   const data: GoogleTokenResponse = await response.json();
 
   if (data.error) {
-    throw new Error(`Token refresh failed: ${data.error_description || data.error}`);
+    throw new Error(
+      `Token refresh failed: ${data.error_description || data.error}`,
+    );
   }
 
   return {
@@ -182,7 +186,7 @@ export async function revokeToken(token: string): Promise<boolean> {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      }
+      },
     );
 
     return response.ok;
