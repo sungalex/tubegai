@@ -73,6 +73,7 @@ export default [
     // Studio API
     route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
     route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
+    route("studio/generate-scene-image", "features/studio/api/generate-scene-image.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)

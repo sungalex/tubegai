@@ -228,6 +228,13 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
   const [consistentCharacter, setConsistentCharacter] = useState(true);
   const [enhancePrompt, setEnhancePrompt] = useState(true);
 
+  // Scene editing state
+  const [editingDescription, setEditingDescription] = useState("");
+  const [editingVisualPrompt, setEditingVisualPrompt] = useState("");
+
+  // Image generation state
+  const [isGeneratingImage, setIsGeneratingImage] = useState<string | null>(null);
+
   const fetcher = useFetcher();
   const { t } = useTranslation("studio");
 
@@ -262,6 +269,22 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
       }
     };
   }, []);
+
+  // Update editing state when selected scene changes
+  useEffect(() => {
+    if (selectedSceneId) {
+      const scene = segments
+        .flatMap((s) => s.scenes)
+        .find((s) => s.id === selectedSceneId);
+      if (scene) {
+        setEditingDescription(scene.description);
+        setEditingVisualPrompt(scene.visualPrompt);
+      }
+    } else {
+      setEditingDescription("");
+      setEditingVisualPrompt("");
+    }
+  }, [selectedSceneId, segments]);
 
   // Handle No Project
   if (!projectId || !project) {
@@ -469,10 +492,169 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
     }
   };
 
-  const handleRegenerateImage = (sceneId: string) => {
-    toast.info("이미지 재생성 요청", {
-      description: "이미지 생성 기능은 추후 지원 예정입니다.",
-    });
+  const handleRegenerateImage = async (sceneId: string) => {
+    const scene = segments
+      .flatMap((s) => s.scenes)
+      .find((s) => s.id === sceneId);
+
+    if (!scene) {
+      toast.error("씬을 찾을 수 없습니다");
+      return;
+    }
+
+    // Use editing prompt if scene is selected, otherwise use existing prompt
+    const promptToUse = selectedSceneId === sceneId && editingVisualPrompt.trim()
+      ? editingVisualPrompt
+      : scene.visualPrompt;
+
+    if (!promptToUse) {
+      toast.error("비주얼 프롬프트가 필요합니다");
+      return;
+    }
+
+    setIsGeneratingImage(sceneId);
+
+    try {
+      const response = await fetch("/api/studio/generate-scene-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneId,
+          visualPrompt: promptToUse,
+          options: {
+            aspectRatio,
+            style,
+            negativePrompt: negativePrompt || undefined,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state with new image URL
+        setSegments((prev) =>
+          prev.map((seg) => ({
+            ...seg,
+            scenes: seg.scenes.map((s) =>
+              s.id === sceneId ? { ...s, imageUrl: data.imageUrl } : s
+            ),
+          }))
+        );
+        toast.success("이미지가 생성되었습니다!");
+      } else {
+        toast.error(data.error || "이미지 생성 실패");
+      }
+    } catch (error) {
+      console.error("Image generation error:", error);
+      toast.error("이미지 생성 중 오류가 발생했습니다");
+    } finally {
+      setIsGeneratingImage(null);
+    }
+  };
+
+  // Update scene description and prompt
+  const handleUpdateScene = (sceneId: string) => {
+    setSegments((prev) =>
+      prev.map((seg) => ({
+        ...seg,
+        scenes: seg.scenes.map((scene) =>
+          scene.id === sceneId
+            ? {
+                ...scene,
+                description: editingDescription,
+                visualPrompt: editingVisualPrompt,
+              }
+            : scene
+        ),
+      }))
+    );
+    setHasChanges(true);
+    toast.success("씬이 업데이트되었습니다.");
+  };
+
+  // Reset editing to original values
+  const handleResetEditing = () => {
+    if (selectedSceneId) {
+      const scene = segments
+        .flatMap((s) => s.scenes)
+        .find((s) => s.id === selectedSceneId);
+      if (scene) {
+        setEditingDescription(scene.description);
+        setEditingVisualPrompt(scene.visualPrompt);
+      }
+    }
+  };
+
+  // Generate style prompt from current AI options
+  const generateStylePrompt = useCallback(() => {
+    const styleLabels: Record<string, string> = {
+      cinematic: "cinematic film style, dramatic lighting, professional cinematography",
+      anime: "anime style, vibrant colors, Japanese animation aesthetic",
+      lineart: "clean line art, minimalist black and white illustration",
+      "3d": "3D rendered, photorealistic CGI, high detail",
+    };
+
+    const lightingLabels: Record<string, string> = {
+      cinematic: "cinematic lighting, dramatic shadows",
+      natural: "natural daylight, soft shadows",
+      studio: "studio lighting, even illumination",
+      neon: "neon lights, cyberpunk glow",
+      golden: "golden hour lighting, warm tones",
+      lowkey: "low-key lighting, high contrast",
+    };
+
+    const cameraLabels: Record<string, string> = {
+      none: "",
+      pan: "horizontal pan shot",
+      tilt: "vertical tilt movement",
+      zoom: "zoom effect",
+      handheld: "handheld camera feel",
+      drone: "aerial drone shot",
+    };
+
+    const parts: string[] = [];
+
+    // Add style
+    if (style && styleLabels[style]) {
+      parts.push(styleLabels[style]);
+    }
+
+    // Add lighting
+    if (lighting && lightingLabels[lighting]) {
+      parts.push(lightingLabels[lighting]);
+    }
+
+    // Add camera
+    if (camera && camera !== "none" && cameraLabels[camera]) {
+      parts.push(cameraLabels[camera]);
+    }
+
+    // Add aspect ratio
+    if (aspectRatio) {
+      parts.push(`${aspectRatio} aspect ratio`);
+    }
+
+    // Add negative prompt if exists
+    let result = parts.join(", ");
+    if (negativePrompt) {
+      result += ` | Negative: ${negativePrompt}`;
+    }
+
+    return result;
+  }, [style, lighting, camera, aspectRatio, negativePrompt]);
+
+  // Apply AI style options to visual prompt
+  const handleApplyStyleToPrompt = () => {
+    const stylePrompt = generateStylePrompt();
+    if (editingVisualPrompt.trim()) {
+      // Append to existing prompt
+      setEditingVisualPrompt((prev) => `${prev}\n\nStyle: ${stylePrompt}`);
+    } else {
+      // Set as new prompt
+      setEditingVisualPrompt(`Style: ${stylePrompt}`);
+    }
+    toast.success("스타일 프롬프트가 추가되었습니다.");
   };
 
   // Calculate totals
@@ -927,53 +1109,155 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                   : "씬을 선택하세요"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      disabled={!selectedScene || isStreaming}
-                      onClick={() =>
-                        selectedScene && handleRegenerateImage(selectedScene.id)
-                      }
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      이미지 재생성
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>선택한 씬의 이미지를 새로 생성합니다</p>
-                  </TooltipContent>
-                </Tooltip>
+            <CardContent className="space-y-4">
+              {selectedScene ? (
+                <>
+                  {/* Scene Description */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">씬 설명</Label>
+                    <Textarea
+                      value={editingDescription}
+                      onChange={(e) => setEditingDescription(e.target.value)}
+                      placeholder="씬에 대한 설명을 입력하세요..."
+                      className="min-h-16 text-sm resize-none"
+                      disabled={isStreaming}
+                    />
+                  </div>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                  {/* Visual Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">
+                        비주얼 프롬프트
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          (이미지 생성용)
+                        </span>
+                      </Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs text-primary"
+                              onClick={handleApplyStyleToPrompt}
+                              disabled={isStreaming}
+                            >
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              AI 스타일 적용
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-64">
+                            <p className="text-xs">
+                              위 AI 스토리보드 생성 옵션(스타일, 조명, 카메라)을 프롬프트에 추가합니다
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Textarea
+                      value={editingVisualPrompt}
+                      onChange={(e) => setEditingVisualPrompt(e.target.value)}
+                      placeholder="AI 이미지 생성을 위한 프롬프트를 입력하세요..."
+                      className="min-h-24 text-xs resize-none font-mono"
+                      disabled={isStreaming}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      영어로 작성하면 더 좋은 결과를 얻을 수 있습니다
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className="justify-start text-destructive hover:text-destructive"
-                      disabled={!selectedScene || isStreaming}
-                      onClick={() => {
-                        if (selectedScene) {
-                          const seg = segments.find((s) =>
-                            s.scenes.some((sc) => sc.id === selectedScene.id)
-                          );
-                          if (seg) {
-                            handleDeleteScene(seg.id, selectedScene.id);
-                          }
-                        }
-                      }}
+                      size="sm"
+                      className="flex-1"
+                      disabled={isStreaming}
+                      onClick={handleResetEditing}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      씬 삭제
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      되돌리기
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>선택한 씬을 삭제합니다</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      disabled={
+                        isStreaming ||
+                        (editingDescription === selectedScene.description &&
+                          editingVisualPrompt === selectedScene.visualPrompt)
+                      }
+                      onClick={() => handleUpdateScene(selectedScene.id)}
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      적용
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* Regenerate & Delete Buttons */}
+                  <div className="grid gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start"
+                            disabled={isStreaming || isGeneratingImage === selectedScene.id}
+                            onClick={() => handleRegenerateImage(selectedScene.id)}
+                          >
+                            {isGeneratingImage === selectedScene.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                이미지 생성 중...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                수정된 프롬프트로 이미지 재생성
+                              </>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>위의 비주얼 프롬프트로 이미지를 새로 생성합니다</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start text-destructive hover:text-destructive"
+                            disabled={isStreaming}
+                            onClick={() => {
+                              const seg = segments.find((s) =>
+                                s.scenes.some((sc) => sc.id === selectedScene.id)
+                              );
+                              if (seg) {
+                                handleDeleteScene(seg.id, selectedScene.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            씬 삭제
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>선택한 씬을 삭제합니다</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Wand2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">왼쪽에서 씬을 선택하면</p>
+                  <p className="text-sm">프롬프트를 수정할 수 있습니다</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
