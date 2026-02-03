@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import { useTranslation as useI18nextTranslation } from "react-i18next";
 import type { Locale } from "./config";
 import { initI18n, i18n } from "./config";
@@ -19,10 +19,10 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children, initialLocale }: LanguageProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
-  // Initialize i18n on mount
-  useEffect(() => {
+  // Initialize i18n synchronously before children render to prevent hydration mismatch
+  if (!i18n.isInitialized) {
     initI18n(initialLocale);
-  }, [initialLocale]);
+  }
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
