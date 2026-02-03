@@ -113,6 +113,27 @@
       "when": 1770020000000,
       "tag": "0015_simplify_channel_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1770100000000,
+      "tag": "0016_trend_project_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1770100100000,
+      "tag": "0017_trend_external_id_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1770100200000,
+      "tag": "0018_fix_trend_external_id_unique",
+      "breakpoints": true
     }
   ]
 }

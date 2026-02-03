@@ -47,8 +47,6 @@ export interface GenerateRecommendationsInput {
 
 const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략 전문가입니다. 현재 트렌드를 분석하고 유튜버에게 매력적인 콘텐츠 아이디어를 추천합니다.
 
-응답은 반드시 유효한 JSON 배열 형식이어야 합니다. 다른 텍스트 없이 JSON만 반환하세요.
-
 각 추천은 다음 필드를 포함해야 합니다:
 - title: 매력적인 영상 제목 (클릭을 유도하는 제목)
 - reason: 추천 이유 (왜 이 주제가 좋은지, 10-20자)
@@ -61,11 +59,16 @@ const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략 전문가입니�
 - contentTone: 콘텐츠 톤 ("informative", "funny", "dramatic", "casual", "professional")
 - growthRate: 예상 성장률 (예: "+85%", "+120%")
 - score: 추천 점수 0-100
-- basedOnTrends: 참고한 트렌드 제목들 (배열)`;
+- basedOnTrends: 참고한 트렌드 제목들 (배열)
+
+**중요: JSON 응답 규칙**
+1. 응답은 반드시 순수 JSON 배열만 반환하세요
+2. 코드블록(\`\`\`)을 절대 사용하지 마세요
+3. 배열의 마지막 항목 뒤에 쉼표를 넣지 마세요
+4. 문자열 내 따옴표는 반드시 이스케이프하세요 (예: \\"텍스트\\")
+5. 줄바꿈 없이 한 줄로 작성하세요`;
 
 const SYSTEM_PROMPT_EN = `You are a YouTube content strategy expert. Analyze current trends and recommend engaging content ideas for YouTubers.
-
-Your response must be a valid JSON array only. Do not include any other text.
 
 Each recommendation must include these fields:
 - title: Engaging video title (click-worthy)
@@ -79,7 +82,49 @@ Each recommendation must include these fields:
 - contentTone: Content tone ("informative", "funny", "dramatic", "casual", "professional")
 - growthRate: Expected growth rate (e.g., "+85%", "+120%")
 - score: Recommendation score 0-100
-- basedOnTrends: Referenced trend titles (array)`;
+- basedOnTrends: Referenced trend titles (array)
+
+**CRITICAL: JSON Response Rules**
+1. Return ONLY a pure JSON array - no other text
+2. NEVER use code blocks (\`\`\`)
+3. NO trailing comma after the last array item
+4. Escape quotes inside strings (use \\")
+5. Write in a single line without line breaks`;
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Clean and extract JSON array from potentially malformed AI response
+ */
+function cleanJsonResponse(text: string): string {
+  // 1. Remove code block markers
+  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
+
+  // 2. Extract JSON array
+  const match = cleaned.match(/\[[\s\S]*\]/);
+  if (!match) return "[]";
+
+  cleaned = match[0];
+
+  // 3. Fix common JSON errors
+  // Remove trailing commas before ] or }
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, "$1");
+
+  // Fix unescaped quotes in strings (basic heuristic)
+  // This handles cases like "title": "Something "quoted" here"
+  cleaned = cleaned.replace(
+    /"([^"]*)":\s*"([^"]*)"/g,
+    (match, key, value) => {
+      // If value contains unescaped quotes, try to fix them
+      const fixedValue = value.replace(/(?<!\\)"/g, '\\"');
+      return `"${key}": "${fixedValue}"`;
+    }
+  );
+
+  return cleaned;
+}
 
 // =============================================================================
 // Main Function
@@ -171,21 +216,20 @@ Important:
       return [];
     }
 
-    // Parse JSON response
-    const jsonText = text.trim();
-
-    // Try to extract JSON array from response
+    // Parse JSON response with cleanup
     let recommendations: AIGeneratedRecommendation[];
     try {
       // Try direct parse first
-      recommendations = JSON.parse(jsonText);
-    } catch {
-      // Try to find JSON array in response
-      const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        recommendations = JSON.parse(jsonMatch[0]);
-      } else {
-        console.error("Failed to parse Gemini response as JSON:", jsonText);
+      recommendations = JSON.parse(text.trim());
+    } catch (parseError) {
+      // Apply cleanup and try again
+      const cleanedJson = cleanJsonResponse(text);
+      try {
+        recommendations = JSON.parse(cleanedJson);
+      } catch (cleanupError) {
+        console.error("Failed to parse Gemini response as JSON");
+        console.error("Original text:", text.substring(0, 500));
+        console.error("Cleaned JSON:", cleanedJson.substring(0, 500));
         return [];
       }
     }
