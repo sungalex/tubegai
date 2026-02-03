@@ -365,6 +365,10 @@ export interface ProjectFullDetail {
     id: string;
     name: string;
     avatarUrl: string | null;
+    description: string | null;
+    subscriberCount: number | null;
+    videoCount: number | null;
+    viewCount: number | null;
   } | null;
   labels: Array<{
     id: string;
@@ -391,6 +395,10 @@ export async function getProjectById(
           id: true,
           name: true,
           avatarUrl: true,
+          description: true,
+          subscriberCount: true,
+          videoCount: true,
+          viewCount: true,
         },
       },
       labels: {
