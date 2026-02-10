@@ -1,9 +1,111 @@
 // =============================================================================
-// Ideation Hub Types
+// Ideation Hub Types (Unified)
 // =============================================================================
 
 /**
- * AI-generated idea from trend analysis
+ * Idea source type - distinguishes AI-generated vs user-created ideas
+ */
+export type IdeaSource = "ai_generated" | "user_created";
+
+/**
+ * Idea difficulty level
+ */
+export type IdeaDifficulty = "easy" | "medium" | "hard";
+
+/**
+ * Unified Idea interface
+ * Combines SavedIdea and AIRecommendation into a single type.
+ *
+ * - source: Distinguishes AI-generated vs user-created ideas
+ * - isSaved: When AI idea is bookmarked, this becomes true
+ * - expiresAt: AI ideas expire after 24h unless saved
+ */
+export interface Idea {
+  id: string;
+  userId: string;
+
+  // Core content
+  title: string;
+  description?: string;
+  hooks: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: IdeaDifficulty;
+
+  // Source tracking
+  source: IdeaSource;
+  basedOnTrends: string[];
+  trendId?: string;
+
+  // AI-specific fields (optional for user_created)
+  reason?: string;
+  growthRate?: string;
+  score?: number;
+  contentTone?: ContentTone;
+  videoType?: VideoType;
+  category?: string;
+
+  // State management
+  isSaved: boolean;
+  isUsed: boolean;
+  usedForProjectId?: string;
+
+  // Expiration
+  expiresAt?: Date;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Input for creating a new idea
+ */
+export interface CreateIdeaInput {
+  title: string;
+  description?: string;
+  hooks?: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: IdeaDifficulty;
+  source: IdeaSource;
+  basedOnTrends?: string[];
+  trendId?: string;
+  reason?: string;
+  growthRate?: string;
+  score?: number;
+  contentTone?: ContentTone;
+  videoType?: VideoType;
+  category?: string;
+}
+
+/**
+ * Input for updating an existing idea
+ */
+export interface UpdateIdeaInput {
+  title?: string;
+  description?: string;
+  hooks?: string[];
+  targetAudience?: string;
+  estimatedViews?: string;
+  difficulty?: IdeaDifficulty;
+}
+
+/**
+ * Filter options for querying ideas
+ */
+export interface IdeaFilter {
+  source?: IdeaSource;
+  isSaved?: boolean;
+  includeExpired?: boolean;
+}
+
+// =============================================================================
+// Legacy Types (Backward Compatibility)
+// =============================================================================
+
+/**
+ * @deprecated Use Idea with source='user_created' instead
  */
 export interface GeneratedIdea {
   id: string;
@@ -12,13 +114,13 @@ export interface GeneratedIdea {
   hooks: string[];
   targetAudience: string;
   estimatedViews: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: IdeaDifficulty;
   basedOnTrend: string;
   trendId?: number;
 }
 
 /**
- * Saved idea in database
+ * @deprecated Use Idea instead
  */
 export interface SavedIdea {
   id: string;
@@ -28,13 +130,49 @@ export interface SavedIdea {
   hooks: string[];
   targetAudience: string;
   estimatedViews: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: IdeaDifficulty;
   basedOnTrend: string;
   trendId?: number;
   usedForProjectId?: string;
   isUsed: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * Convert legacy SavedIdea to unified Idea
+ */
+export function savedIdeaToIdea(savedIdea: SavedIdea): Idea {
+  return {
+    ...savedIdea,
+    source: "user_created",
+    basedOnTrends: [savedIdea.basedOnTrend],
+    trendId: savedIdea.trendId?.toString(),
+    isSaved: true,
+    hooks: savedIdea.hooks || [],
+  };
+}
+
+/**
+ * Convert Idea to legacy SavedIdea format
+ */
+export function ideaToSavedIdea(idea: Idea): SavedIdea {
+  return {
+    id: idea.id,
+    userId: idea.userId,
+    title: idea.title,
+    description: idea.description || "",
+    hooks: idea.hooks,
+    targetAudience: idea.targetAudience || "",
+    estimatedViews: idea.estimatedViews || "",
+    difficulty: idea.difficulty || "medium",
+    basedOnTrend: idea.basedOnTrends[0] || "",
+    trendId: idea.trendId ? parseInt(idea.trendId, 10) : undefined,
+    usedForProjectId: idea.usedForProjectId,
+    isUsed: idea.isUsed,
+    createdAt: idea.createdAt,
+    updatedAt: idea.updatedAt,
+  };
 }
 
 /**

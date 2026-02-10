@@ -78,7 +78,7 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
     setIsSaving(true);
 
     try {
-      const response = await fetch("/api/saved-ideas", {
+      const response = await fetch("/api/ideas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

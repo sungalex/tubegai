@@ -39,10 +39,10 @@ import {
 import { Separator } from "~/common/components/ui/separator";
 
 import { getChannelsForSelect, getLabels, createProject } from "~/common/data/project.data.server";
-import { getSavedIdeas } from "~/common/data/ideation.data.server";
+import { getIdeas } from "~/common/data/idea.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { Route } from "./+types/new-project-page";
-import type { SavedIdea } from "~/common/types/ideation.types";
+import type { Idea } from "~/common/types/ideation.types";
 
 export const meta = () => {
   return [
@@ -114,7 +114,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const [channels, labels, savedIdeas] = await Promise.all([
     getChannelsForSelect(userId),
     getLabels(),
-    getSavedIdeas(userId),
+    getIdeas(userId, { isSaved: true }),
   ]);
   return { channels, labels, savedIdeas };
 }
@@ -204,7 +204,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
   // Get source data from navigation state
   const sourceData = location.state as {
     topic?: string;
-    idea?: SavedIdea;
+    idea?: Idea;
     fromTrend?: boolean;
     trendId?: number;
     hooks?: string[];
@@ -226,8 +226,8 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
       targetAudience: sourceData?.targetAudience || sourceData?.idea?.targetAudience || "",
       estimatedViews: sourceData?.estimatedViews || sourceData?.idea?.estimatedViews || "",
       difficulty: (sourceData?.difficulty || sourceData?.idea?.difficulty || "medium") as "easy" | "medium" | "hard",
-      basedOnTrend: sourceData?.idea?.basedOnTrend || sourceData?.topic || "",
-      basedOnTrendId: sourceData?.trendId || sourceData?.idea?.trendId,
+      basedOnTrend: sourceData?.idea?.basedOnTrends?.[0] || sourceData?.topic || "",
+      basedOnTrendId: typeof sourceData?.trendId === "number" ? sourceData.trendId : undefined,
       sourceIdeaId: sourceData?.idea?.id,
     },
   });
@@ -258,15 +258,16 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
   };
 
   // Select from saved ideas
-  const handleSelectIdea = (idea: SavedIdea) => {
+  const handleSelectIdea = (idea: Idea) => {
+    const basedOnTrend = idea.basedOnTrends?.[0] || "";
     form.setValue("title", idea.title);
-    form.setValue("description", idea.description);
-    form.setValue("topic", idea.basedOnTrend || idea.title);
+    form.setValue("description", idea.description || "");
+    form.setValue("topic", basedOnTrend || idea.title);
     form.setValue("hooks", idea.hooks || []);
     form.setValue("targetAudience", idea.targetAudience || "");
     form.setValue("estimatedViews", idea.estimatedViews || "");
     form.setValue("difficulty", idea.difficulty || "medium");
-    form.setValue("basedOnTrend", idea.basedOnTrend || "");
+    form.setValue("basedOnTrend", basedOnTrend);
     form.setValue("sourceIdeaId", idea.id);
     toast.success("아이디어가 적용되었습니다!");
   };

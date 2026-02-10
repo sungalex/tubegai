@@ -2,7 +2,7 @@
 // YouTube Data API v3 Integration with Supabase Cache
 // =============================================================================
 
-import { desc, gte, sql, eq, and, ilike, or } from "drizzle-orm";
+import { desc, gte, sql, eq, and, ilike, or, inArray } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import type { TrendItem } from "../types/project.types";
 import type {
@@ -80,6 +80,31 @@ const CATEGORY_ALIASES: Record<string, string> = {
   trailers: "44",
 };
 
+// Category normalization map: old/variant format → standard format
+const CATEGORY_NORMALIZATION: Record<string, string> = {
+  // "&" 형식 → "/" 형식
+  "영화 & 애니메이션": "영화/애니메이션",
+  "자동차 & 교통": "자동차/교통",
+  "여행 & 이벤트": "여행/이벤트",
+  "인물 & 블로그": "인물/블로그",
+  "뉴스 & 정치": "뉴스/정치",
+  "노하우 & 스타일": "노하우/스타일",
+  "과학 & 기술": "과학기술",
+  "반려동물 & 동물": "반려동물/동물",
+  "비영리 & 사회운동": "비영리/사회운동",
+  // 축약형 → 전체 형식
+  자동차: "자동차/교통",
+  동물: "반려동물/동물",
+};
+
+/**
+ * Normalize category name to standard format
+ * Converts "&" separator to "/" and handles abbreviated names
+ */
+function normalizeCategory(category: string): string {
+  return CATEGORY_NORMALIZATION[category] ?? category;
+}
+
 /**
  * Get YouTube category ID from category name
  */
@@ -127,7 +152,7 @@ async function getCachedTrends(
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: trend.category,
+    category: normalizeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -570,13 +595,76 @@ export async function getStoredTrends(
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: trend.category,
+    category: normalizeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
     tags: trend.tags ?? [],
     videoUrl: trend.externalUrl ?? undefined,
   }));
+}
+
+/**
+ * Get stored trends from Supabase with filters applied
+ * Filters are applied at the database level for category, and client-side for others
+ *
+ * @param filters - Filter options including regionCode, category, minViews, keywords
+ */
+export async function getStoredTrendsWithFilters(
+  filters: TrendFilterOptions = {},
+): Promise<TrendItem[]> {
+  const regionCode = filters.regionCode ?? "KR";
+
+  // Build where conditions
+  const conditions = [
+    eq(schema.trends.source, "youtube_api"),
+    eq(schema.trends.regionCode, regionCode),
+  ];
+
+  // Add category filter at database level if specified
+  if (filters.category) {
+    conditions.push(eq(schema.trends.category, filters.category));
+  }
+
+  const storedTrends = await db.query.trends.findMany({
+    where: and(...conditions),
+    orderBy: [desc(schema.trends.fetchedAt)],
+    limit: 100, // Fetch more to allow for client-side filtering
+  });
+
+  if (storedTrends.length === 0) {
+    console.log(
+      `[YouTube API] No stored trends found for region ${regionCode} with filters`,
+    );
+    return [];
+  }
+
+  // Map to TrendItem format
+  let trends: TrendItem[] = storedTrends.map((trend, index) => ({
+    id: index + 1,
+    trendUuid: trend.id,
+    title: trend.title,
+    category: normalizeCategory(trend.category),
+    views: trend.viewsCount ?? "0",
+    growth: trend.growthRate ?? "+NEW",
+    thumbnail: trend.thumbnailUrl ?? "",
+    tags: trend.tags ?? [],
+    videoUrl: trend.externalUrl ?? undefined,
+  }));
+
+  // Apply remaining client-side filters (minViews, keywords, excludeKeywords)
+  const clientSideFilters: TrendFilterOptions = {
+    ...filters,
+    category: undefined, // Already filtered at DB level
+  };
+
+  trends = applyFilters(trends, clientSideFilters);
+
+  console.log(
+    `[YouTube API] Returning ${trends.length} stored trends from Supabase for region ${regionCode} with filters`,
+  );
+
+  return trends;
 }
 
 /**
@@ -595,7 +683,7 @@ export async function getSavedTrends(userId: string): Promise<TrendItem[]> {
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: trend.category,
+    category: normalizeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -672,7 +760,7 @@ export async function getTrendByExternalId(externalId: string): Promise<{
   return {
     id: trend.id,
     title: trend.title,
-    category: trend.category,
+    category: normalizeCategory(trend.category),
     tags: trend.tags ?? [],
     viewsCount: trend.viewsCount,
     growthRate: trend.growthRate,
@@ -683,12 +771,43 @@ export async function getTrendByExternalId(externalId: string): Promise<{
 
 /**
  * Get all unique categories from cached trends
+ * Normalizes category names to standard format before deduplication
  */
 export async function getTrendCategories(): Promise<string[]> {
   const trends = await db.query.trends.findMany({
     columns: { category: true },
   });
 
-  const categories = [...new Set(trends.map((t) => t.category))];
+  // Normalize and deduplicate categories
+  const normalizedCategories = trends.map((t) => normalizeCategory(t.category));
+  const categories = [...new Set(normalizedCategories)];
   return categories.sort();
+}
+
+/**
+ * Get trends by their UUIDs (batch query)
+ * Used for AI recommendations to fetch trend details from Supabase
+ */
+export async function getTrendsByIds(trendIds: string[]): Promise<TrendItem[]> {
+  if (trendIds.length === 0) return [];
+
+  const trends = await db.query.trends.findMany({
+    where: inArray(schema.trends.id, trendIds),
+  });
+
+  if (trends.length === 0) {
+    return [];
+  }
+
+  return trends.map((trend, index) => ({
+    id: index + 1,
+    trendUuid: trend.id,
+    title: trend.title,
+    category: normalizeCategory(trend.category),
+    views: trend.viewsCount ?? "0",
+    growth: trend.growthRate ?? "+NEW",
+    thumbnail: trend.thumbnailUrl ?? "",
+    tags: trend.tags ?? [],
+    videoUrl: trend.externalUrl ?? undefined,
+  }));
 }

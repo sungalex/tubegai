@@ -27,22 +27,23 @@ import { useTranslation } from "~/i18n/context";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
-  recommendations: AIRecommendation[];
+  savedIdeas: SavedIdea[];
   channels?: Channel[];
   onSaveIdea?: (idea: SavedIdea) => void;
-  onRefreshRecommendations?: (newRecommendations: AIRecommendation[]) => void;
+  onUpdateSavedIdeas?: (newSavedIdeas: SavedIdea[]) => void;
   isLoading?: boolean;
 }
 
-export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveIdea, onRefreshRecommendations, isLoading = false }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, onUpdateSavedIdeas, isLoading = false }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
   const [isAIProjectDialogOpen, setIsAIProjectDialogOpen] = useState(false);
   const [selectedTrendForAI, setSelectedTrendForAI] = useState<TrendItem | null>(null);
-  const [savingRecommendationIdx, setSavingRecommendationIdx] = useState<number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [usingIdeaIdx, setUsingIdeaIdx] = useState<number | null>(null);
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation("project");
   const { t: tc } = useTranslation("common");
@@ -118,38 +119,68 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
   // Save recommendation as idea to Supabase
   const handleSaveRecommendation = async (recommendation: AIRecommendation) => {
     try {
-      const idea = {
-        id: crypto.randomUUID(),
-        title: recommendation.title,
-        description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
-        hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
-        targetAudience: recommendation.targetAudience || "일반 시청자",
-        estimatedViews: recommendation.estimatedViews || "10K-50K",
-        difficulty: "medium" as const,
-        basedOnTrend: recommendation.title,
-      };
+      // If the recommendation has an ID, use the save intent to mark it as saved
+      if (recommendation.id) {
+        const response = await fetch("/api/ideas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent: "save", ideaId: recommendation.id }),
+        });
 
-      const response = await fetch("/api/saved-ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
-      });
+        const data = await response.json();
 
-      const data = await response.json();
+        if (data.error) {
+          toast.error("아이디어 저장 실패", { description: data.error });
+          return;
+        }
 
-      if (data.error) {
-        toast.error("아이디어 저장 실패", { description: data.error });
-        return;
+        // Update local state to reflect saved status
+        setAiRecommendations((prev) =>
+          prev.filter((rec) => rec.id !== recommendation.id)
+        );
+
+        // Notify parent component of saved idea
+        if (data.idea && onSaveIdea) {
+          onSaveIdea(data.idea);
+        }
+
+        toast.success("아이디어가 저장되었습니다!", {
+          description: "저장된 아이디어 탭에서 확인하세요.",
+        });
+      } else {
+        // Fallback for recommendations without ID - create new idea
+        const idea = {
+          title: recommendation.title,
+          description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
+          hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`],
+          targetAudience: recommendation.targetAudience || "일반 시청자",
+          estimatedViews: recommendation.estimatedViews || "10K-50K",
+          difficulty: "medium" as const,
+          source: "user_created" as const,
+          basedOnTrends: [recommendation.title],
+        };
+
+        const response = await fetch("/api/ideas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent: "create", idea }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error("아이디어 저장 실패", { description: data.error });
+          return;
+        }
+
+        if (data.idea && onSaveIdea) {
+          onSaveIdea(data.idea);
+        }
+
+        toast.success("아이디어가 저장되었습니다!", {
+          description: "저장된 아이디어 탭에서 확인하세요.",
+        });
       }
-
-      // Notify parent component of saved idea
-      if (data.idea && onSaveIdea) {
-        onSaveIdea(data.idea);
-      }
-
-      toast.success("아이디어가 저장되었습니다!", {
-        description: "저장된 아이디어 탭에서 확인하세요.",
-      });
     } catch (error) {
       toast.error("아이디어 저장 실패");
     }
@@ -170,72 +201,147 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
     setIsIdeaDialogOpen(true);
   };
 
-  // Refresh AI recommendations
-  const handleRefreshRecommendations = async () => {
-    setIsRefreshing(true);
+  // Generate AI recommendations (lazy loading) - passes only trend IDs
+  const handleGenerateAIRecommendations = async () => {
+    if (trends.length === 0) {
+      toast.error("트렌드 데이터가 없습니다", { description: "먼저 YouTube에서 트렌드를 가져와주세요." });
+      return;
+    }
+
+    // Extract trendUuids from loaded trends (only those with valid UUIDs)
+    const trendIds = trends
+      .slice(0, 10)
+      .filter((t) => t.trendUuid)
+      .map((t) => t.trendUuid as string);
+
+    if (trendIds.length === 0) {
+      toast.error("트렌드 ID가 없습니다", { description: "트렌드 데이터를 다시 가져와주세요." });
+      return;
+    }
+
+    setIsGeneratingAI(true);
     try {
-      const response = await fetch("/api/ai-recommendations", {
+      const response = await fetch("/api/ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: "ko" }),
+        body: JSON.stringify({
+          intent: "generate",
+          language: "ko",
+          trendIds,
+        }),
       });
 
       const data = await response.json();
 
       if (data.error) {
-        toast.error("추천 새로고침 실패", { description: data.error });
+        toast.error("AI 추천 생성 실패", { description: data.error });
         return;
       }
 
-      if (data.recommendations && onRefreshRecommendations) {
-        onRefreshRecommendations(data.recommendations);
-        toast.success("AI 추천이 새로고침 되었습니다!");
+      if (data.ideas) {
+        // Convert Idea type to AIRecommendation format for compatibility
+        const recommendations = data.ideas.map((idea: { id: string; title: string; reason?: string; growthRate?: string; description?: string; hooks?: string[]; targetAudience?: string; estimatedViews?: string }) => ({
+          id: idea.id,
+          title: idea.title,
+          reason: idea.reason || "AI 추천",
+          growth: idea.growthRate || "+50%",
+          description: idea.description,
+          hooks: idea.hooks,
+          targetAudience: idea.targetAudience,
+          estimatedViews: idea.estimatedViews,
+        }));
+        setAiRecommendations(recommendations);
+        toast.success("AI 추천이 생성되었습니다!");
       }
     } catch (error) {
-      toast.error("추천 새로고침 실패");
+      toast.error("AI 추천 생성 실패");
     } finally {
-      setIsRefreshing(false);
+      setIsGeneratingAI(false);
     }
   };
 
-  // Save recommendation as idea and navigate to new project page
-  const handleUseIdea = async (recommendation: AIRecommendation, idx: number) => {
-    setSavingRecommendationIdx(idx);
+  // Use saved idea - navigate to new project page
+  const handleUseSavedIdea = async (idea: SavedIdea, idx: number) => {
+    setUsingIdeaIdx(idx);
     try {
-      const idea = {
-        id: crypto.randomUUID(),
-        title: recommendation.title,
-        description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
-        hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`, `왜 ${recommendation.title}이 중요한지`, `${recommendation.title}의 핵심 포인트`],
-        targetAudience: recommendation.targetAudience || "일반 시청자",
-        estimatedViews: recommendation.estimatedViews || "10K-50K",
-        difficulty: "medium" as const,
-        basedOnTrend: recommendation.title,
-      };
-
-      const response = await fetch("/api/saved-ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
+      navigate("/projects/new", {
+        state: {
+          idea,
+          topic: idea.title,
+          hooks: idea.hooks,
+          targetAudience: idea.targetAudience,
+          estimatedViews: idea.estimatedViews,
+          description: idea.description,
+        }
       });
+    } finally {
+      setUsingIdeaIdx(null);
+    }
+  };
 
-      const data = await response.json();
+  // Use AI recommendation - save and navigate to new project page
+  const handleUseAIRecommendation = async (recommendation: AIRecommendation) => {
+    try {
+      let savedIdea;
 
-      if (data.error) {
-        toast.error("아이디어 저장 실패", { description: data.error });
-        return;
+      // If the recommendation has an ID, use the save intent
+      if (recommendation.id) {
+        const response = await fetch("/api/ideas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent: "save", ideaId: recommendation.id }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error("아이디어 저장 실패", { description: data.error });
+          return;
+        }
+
+        savedIdea = data.idea;
+
+        // Update local state to reflect saved status
+        setAiRecommendations((prev) =>
+          prev.filter((rec) => rec.id !== recommendation.id)
+        );
+      } else {
+        // Fallback for recommendations without ID - create new idea
+        const idea = {
+          title: recommendation.title,
+          description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
+          hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`],
+          targetAudience: recommendation.targetAudience || "일반 시청자",
+          estimatedViews: recommendation.estimatedViews || "10K-50K",
+          difficulty: "medium" as const,
+          source: "user_created" as const,
+          basedOnTrends: [recommendation.title],
+        };
+
+        const response = await fetch("/api/ideas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent: "create", idea }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error("아이디어 저장 실패", { description: data.error });
+          return;
+        }
+
+        savedIdea = data.idea;
       }
 
-      // Notify parent component of saved idea
-      if (data.idea && onSaveIdea) {
-        onSaveIdea(data.idea);
+      if (savedIdea && onSaveIdea) {
+        onSaveIdea(savedIdea);
       }
 
       toast.success("아이디어가 저장되었습니다!");
-      // Pass full idea data to new project page
       navigate("/projects/new", {
         state: {
-          idea: data.idea,
+          idea: savedIdea,
           topic: recommendation.title,
           hooks: recommendation.hooks,
           targetAudience: recommendation.targetAudience,
@@ -245,8 +351,6 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
       });
     } catch (error) {
       toast.error("아이디어 저장 실패");
-    } finally {
-      setSavingRecommendationIdx(null);
     }
   };
 
@@ -444,6 +548,101 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
           </h3>
           <p className="text-muted-foreground text-sm">{t("trends.ideaHubSubtitle")}</p>
         </div>
+
+        {/* Saved Ideas Section */}
+        <section className="bg-linear-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-200/20 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/20 gap-1 px-3 py-1">
+                <Bookmark className="h-3.5 w-3.5" fill="currentColor" />
+                저장된 아이디어
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {savedIdeas.length}개
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-background/80 hover:bg-background"
+              onClick={handleOpenIdeaGenerator}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              {t("trends.newIdea")}
+            </Button>
+          </div>
+
+          {savedIdeas.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Lightbulb className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">저장된 아이디어가 없습니다.</p>
+              <p className="text-xs mt-1">트렌드에서 아이디어를 생성해보세요!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {savedIdeas.map((idea, idx) => (
+                <Card key={idea.id} className="bg-background/60 border-yellow-500/10 hover:border-yellow-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-yellow-500/5">
+                  <CardContent className="p-4 flex flex-col h-full gap-3">
+                    <div className="flex justify-between items-start">
+                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-yellow-200/10">
+                        {idea.difficulty}
+                      </Badge>
+                      {idea.basedOnTrend && (
+                        <span className="text-xs text-muted-foreground truncate max-w-20">
+                          {idea.basedOnTrend}
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="font-medium group-hover:text-yellow-600 transition-colors line-clamp-2">{idea.title}</h4>
+
+                    {idea.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
+                    )}
+
+                    {idea.hooks && idea.hooks.length > 0 && (
+                      <div className="text-xs bg-yellow-500/5 rounded-md p-2 border border-yellow-500/10">
+                        <span className="font-medium text-yellow-600">Hook: </span>
+                        <span className="text-muted-foreground line-clamp-1">{idea.hooks[0]}</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      {idea.targetAudience && (
+                        <div className="flex items-center gap-1">
+                          <Target className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground truncate max-w-24">{idea.targetAudience}</span>
+                        </div>
+                      )}
+                      {idea.estimatedViews && (
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-green-500 font-medium">{idea.estimatedViews}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-auto pt-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
+                        disabled={usingIdeaIdx === idx}
+                        onClick={() => handleUseSavedIdea(idea, idx)}
+                      >
+                        {usingIdeaIdx === idx ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : null}
+                        {t("trends.useIdea")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* AI Recommendations Section */}
         <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -455,109 +654,101 @@ export function TrendAnalyzer({ trends, recommendations, channels = [], onSaveId
                 {t("trends.topPicks")}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-background/80 hover:bg-background"
-                onClick={handleRefreshRecommendations}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
-                {t("trends.refreshIdeas")}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-background/80 hover:bg-background"
-                onClick={handleOpenIdeaGenerator}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                {t("trends.newIdea")}
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-background/80 hover:bg-background"
+              onClick={handleGenerateAIRecommendations}
+              disabled={isGeneratingAI}
+            >
+              {isGeneratingAI ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              {aiRecommendations.length > 0 ? "새로고침" : "AI 추천 생성"}
+            </Button>
           </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {recommendations.map((item, idx) => (
-            <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
-              <CardContent className="p-4 flex flex-col h-full gap-3">
-                {/* Header: Badge + Growth */}
-                <div className="flex justify-between items-start">
-                  <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
-                    {item.reason}
-                  </Badge>
-                  <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
-                    <TrendingUp className="h-3 w-3" /> {item.growth}
-                  </span>
-                </div>
 
-                {/* Title */}
-                <h4 className="font-medium group-hover:text-purple-400 transition-colors line-clamp-2">{item.title}</h4>
-
-                {/* Description */}
-                {item.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                )}
-
-                {/* Hook Preview */}
-                {item.hooks && item.hooks.length > 0 && (
-                  <div className="text-xs bg-purple-500/5 rounded-md p-2 border border-purple-500/10">
-                    <span className="font-medium text-purple-400">Hook: </span>
-                    <span className="text-muted-foreground line-clamp-1">{item.hooks[0]}</span>
-                  </div>
-                )}
-
-                {/* Stats: Audience + Views */}
-                <div className="flex flex-wrap gap-3 text-xs">
-                  {item.targetAudience && (
-                    <div className="flex items-center gap-1">
-                      <Target className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground truncate max-w-24">{item.targetAudience}</span>
+          {aiRecommendations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">AI 추천을 생성해보세요.</p>
+              <p className="text-xs mt-1">현재 트렌드를 분석하여 콘텐츠 아이디어를 추천합니다.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {aiRecommendations.map((item, idx) => (
+                <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
+                  <CardContent className="p-4 flex flex-col h-full gap-3">
+                    <div className="flex justify-between items-start">
+                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
+                        {item.reason}
+                      </Badge>
+                      <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
+                        <TrendingUp className="h-3 w-3" /> {item.growth}
+                      </span>
                     </div>
-                  )}
-                  {item.estimatedViews && (
-                    <div className="flex items-center gap-1">
-                      <Eye className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-green-500 font-medium">{item.estimatedViews}</span>
-                    </div>
-                  )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 mt-auto pt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 bg-background/80 hover:bg-background"
-                    onClick={() => handleGenerateIdeasFromRecommendation(item)}
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    {t("trends.regeneration")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="bg-background/80 hover:bg-background"
-                    onClick={() => handleSaveRecommendation(item)}
-                  >
-                    <Bookmark className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
-                    disabled={savingRecommendationIdx === idx}
-                    onClick={() => handleUseIdea(item, idx)}
-                  >
-                    {savingRecommendationIdx === idx ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : null}
-                    {t("trends.useIdea")}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <h4 className="font-medium group-hover:text-purple-400 transition-colors line-clamp-2">{item.title}</h4>
+
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    )}
+
+                    {item.hooks && item.hooks.length > 0 && (
+                      <div className="text-xs bg-purple-500/5 rounded-md p-2 border border-purple-500/10">
+                        <span className="font-medium text-purple-400">Hook: </span>
+                        <span className="text-muted-foreground line-clamp-1">{item.hooks[0]}</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      {item.targetAudience && (
+                        <div className="flex items-center gap-1">
+                          <Target className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground truncate max-w-24">{item.targetAudience}</span>
+                        </div>
+                      )}
+                      {item.estimatedViews && (
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-green-500 font-medium">{item.estimatedViews}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-auto pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-background/80 hover:bg-background"
+                        onClick={() => handleGenerateIdeasFromRecommendation(item)}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        {t("trends.regeneration")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-background/80 hover:bg-background"
+                        onClick={() => handleSaveRecommendation(item)}
+                      >
+                        <Bookmark className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                        onClick={() => handleUseAIRecommendation(item)}
+                      >
+                        {t("trends.useIdea")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 

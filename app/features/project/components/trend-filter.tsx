@@ -24,7 +24,8 @@ interface TrendFilterProps {
   onFiltersChange: (filters: TrendFilterOptions) => void;
   onFetch?: () => void;
   onFetchSaved?: () => void;
-  isLoading?: boolean;
+  isLoadingYoutube?: boolean;
+  isLoadingSaved?: boolean;
   categories?: string[];
   className?: string;
 }
@@ -34,7 +35,8 @@ export function TrendFilter({
   onFiltersChange,
   onFetch,
   onFetchSaved,
-  isLoading = false,
+  isLoadingYoutube = false,
+  isLoadingSaved = false,
   categories = [],
   className,
 }: TrendFilterProps) {
@@ -194,14 +196,14 @@ export function TrendFilter({
             size="sm"
             className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
             onClick={onFetch}
-            disabled={isLoading}
+            disabled={isLoadingYoutube || isLoadingSaved}
           >
-            {isLoading ? (
+            {isLoadingYoutube ? (
               <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
             ) : (
               <Youtube className="h-3 w-3 mr-1" />
             )}
-            {isLoading ? "가져오는 중..." : "YouTube에서 가져오기"}
+            {isLoadingYoutube ? "가져오는 중..." : "YouTube에서 가져오기"}
           </Button>
         )}
 
@@ -212,10 +214,14 @@ export function TrendFilter({
             variant="outline"
             className="h-8 text-xs"
             onClick={onFetchSaved}
-            disabled={isLoading}
+            disabled={isLoadingYoutube || isLoadingSaved}
           >
-            <Bookmark className="h-3 w-3 mr-1" />
-            저장된 트렌드
+            {isLoadingSaved ? (
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Bookmark className="h-3 w-3 mr-1" />
+            )}
+            저장된 트렌드 가져오기
           </Button>
         )}
 

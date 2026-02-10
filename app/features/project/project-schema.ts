@@ -25,6 +25,7 @@ import {
   projectStatusEnum,
   channelStatusEnum,
   ideaDifficultyEnum,
+  ideaSourceEnum,
   contentToneEnum,
   videoLengthEnum,
 } from "../../drizzle/enums";
@@ -146,9 +147,9 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   mediaAssets: many(mediaAssets),
   labels: many(projectLabels),
-  sourceIdea: one(savedIdeas, {
+  sourceIdea: one(ideas, {
     fields: [projects.sourceIdeaId],
-    references: [savedIdeas.id],
+    references: [ideas.id],
   }),
   // Note: basedOnTrendRef relation is defined in trend-schema.ts to avoid circular import
 }));
@@ -245,40 +246,73 @@ export const projectLabelsRelations = relations(projectLabels, ({ one }) => ({
 }));
 
 // ============================================
-// Ideation Hub Tables
+// Ideation Hub Tables (Unified)
 // ============================================
 
-export const savedIdeas = tubegaiSchema.table("saved_idea", {
+/**
+ * Unified Ideas Table
+ * Combines ai_recommendation and saved_idea into a single table.
+ *
+ * - source: 'ai_generated' | 'user_created' - distinguishes AI vs user ideas
+ * - isSaved: When AI idea is bookmarked, this becomes true (no data duplication)
+ * - expiresAt: AI ideas expire after 24h unless saved (isSaved=true sets this to null)
+ */
+export const ideas = tubegaiSchema.table("idea", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
+
+  // === Core Content Fields ===
   title: text("title").notNull(),
-  description: text("description").notNull(),
-  hooks: text("hooks").array().notNull(),
-  targetAudience: text("target_audience").notNull(),
-  estimatedViews: text("estimated_views").notNull(),
-  difficulty: ideaDifficultyEnum("difficulty").default("medium").notNull(),
-  basedOnTrend: text("based_on_trend").notNull(),
-  trendId: integer("trend_id"),
+  description: text("description"),
+  hooks: text("hooks").array().default([]),
+  targetAudience: text("target_audience"),
+  estimatedViews: text("estimated_views"),
+  difficulty: ideaDifficultyEnum("difficulty").default("medium"),
+
+  // === Source Management ===
+  source: ideaSourceEnum("source").notNull(),
+  basedOnTrends: text("based_on_trends").array().default([]),
+  trendId: uuid("trend_id"),
+
+  // === AI-specific Fields (optional for user_created) ===
+  reason: text("reason"),
+  growthRate: text("growth_rate"),
+  score: integer("score"),
+  contentTone: contentToneEnum("content_tone"),
+  videoType: videoLengthEnum("video_type"),
+  category: text("category"),
+
+  // === State Management ===
+  isSaved: boolean("is_saved").default(false).notNull(),
+  isUsed: boolean("is_used").default(false).notNull(),
   usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
     onDelete: "set null",
   }),
-  isUsed: boolean("is_used").default(false).notNull(),
+
+  // === Expiration Management ===
+  expiresAt: timestamp("expires_at"),
+
+  // === Timestamps ===
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const savedIdeasRelations = relations(savedIdeas, ({ one }) => ({
+export const ideasRelations = relations(ideas, ({ one }) => ({
   user: one(users, {
-    fields: [savedIdeas.userId],
+    fields: [ideas.userId],
     references: [users.id],
   }),
   usedForProject: one(projects, {
-    fields: [savedIdeas.usedForProjectId],
+    fields: [ideas.usedForProjectId],
     references: [projects.id],
   }),
 }));
+
+// Legacy alias for backward compatibility during migration
+export const savedIdeas = ideas;
+export const savedIdeasRelations = ideasRelations;
 
 // ============================================
 // DISABLED: Phase 2+ Tables

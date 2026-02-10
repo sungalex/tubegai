@@ -148,6 +148,11 @@ export const ideaDifficultyEnum = tubegaiSchema.enum("idea_difficulty", [
   "hard",
 ]);
 
+export const ideaSourceEnum = tubegaiSchema.enum("idea_source", [
+  "ai_generated",
+  "user_created",
+]);
+
 // Content Tone (more flexible than project_tone)
 export const contentToneEnum = tubegaiSchema.enum("content_tone", [
   "informative",

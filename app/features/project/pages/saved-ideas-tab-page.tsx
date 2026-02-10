@@ -1,14 +1,15 @@
 import { useState } from "react";
 import type { Route } from "./+types/saved-ideas-tab-page";
-import { SavedIdeasSection } from "../components/saved-ideas-section";
-import { getSavedIdeas } from "~/common/data/ideation.data.server";
+import { IdeasSection } from "../components/ideas-section";
+import { getIdeas } from "~/common/data/idea.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import type { SavedIdea } from "~/common/types/ideation.types";
+import type { Idea } from "~/common/types/ideation.types";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
 
-  const savedIdeas = await getSavedIdeas(userId);
+  // Get only saved ideas (isSaved=true)
+  const savedIdeas = await getIdeas(userId, { isSaved: true });
 
   return {
     savedIdeas,
@@ -17,23 +18,16 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function SavedIdeasTabPage({ loaderData }: Route.ComponentProps) {
   const { savedIdeas: initialSavedIdeas } = loaderData;
-  const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(initialSavedIdeas);
-
-  const handleDeleteIdea = (ideaId: string) => {
-    setSavedIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
-  };
-
-  const handleEditIdea = (updatedIdea: SavedIdea) => {
-    setSavedIdeas((prev) =>
-      prev.map((idea) => (idea.id === updatedIdea.id ? updatedIdea : idea))
-    );
-  };
+  const [ideas, setIdeas] = useState<Idea[]>(initialSavedIdeas);
 
   return (
-    <SavedIdeasSection
-      ideas={savedIdeas}
-      onDelete={handleDeleteIdea}
-      onEdit={handleEditIdea}
+    <IdeasSection
+      ideas={ideas}
+      onIdeasChange={setIdeas}
+      showTabs={false}
+      defaultTab="saved"
+      title="저장된 아이디어"
+      emptyMessage="저장된 아이디어가 없습니다"
     />
   );
 }

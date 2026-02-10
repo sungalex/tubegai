@@ -4,7 +4,7 @@
 // Generates AI content ideas from a trend
 
 import type { Route } from "./+types/generate-ideas";
-import { generateIdeasFromTrend } from "~/common/data/ideation.data.server";
+import { generateIdeasFromTrend } from "~/common/data/idea.data.server";
 import type { GenerateIdeasRequest } from "~/common/types/ideation.types";
 
 export async function action({ request }: Route.ActionArgs) {

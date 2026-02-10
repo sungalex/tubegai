@@ -134,6 +134,27 @@
       "when": 1770100200000,
       "tag": "0018_fix_trend_external_id_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1770200000000,
+      "tag": "0019_rls_policies_public",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1770200100000,
+      "tag": "0020_rls_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1770300000000,
+      "tag": "0021_unified_idea_table",
+      "breakpoints": true
     }
   ]
 }

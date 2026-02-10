@@ -7,11 +7,13 @@ import {
   getYouTubeTrendsWithFilters,
   getTrendCategories,
   getStoredTrends,
+  getStoredTrendsWithFilters,
 } from "~/common/data/youtube.data.server";
-import { getAIRecommendationsForUser } from "~/common/data/ai-recommendation.data.server";
+import { getIdeas } from "~/common/data/idea.data.server";
 import { getChannelsForSelect } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import type { SavedIdea } from "~/common/types/ideation.types";
+import type { Idea, SavedIdea } from "~/common/types/ideation.types";
+import { ideaToSavedIdea } from "~/common/types/ideation.types";
 import type { TrendFilterOptions } from "~/common/types/trend.types";
 import type { TrendItem } from "~/common/types/project.types";
 
@@ -38,24 +40,27 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Fetch trends based on source
   let trends;
-  if (source === "saved") {
-    // 저장된 트렌드: 유튜브에서 가져와 Supabase에 저장된 트렌드
-    trends = await getStoredTrends(regionCode);
+  if (forceRefresh) {
+    // "YouTube에서 가져오기" 버튼 클릭 시 YouTube API 호출 + Supabase 저장
+    trends = await getYouTubeTrendsWithFilters(filters, true);
+  } else if (source === "saved") {
+    // "저장된 트렌드 가져오기" 버튼 클릭 시 필터 적용하여 Supabase에서 가져오기
+    trends = await getStoredTrendsWithFilters(filters);
   } else {
-    trends = await getYouTubeTrendsWithFilters(filters, forceRefresh);
+    // 기본: Supabase 캐시에서 가져오기 (필터 없이 최근 트렌드)
+    trends = await getStoredTrends(regionCode);
   }
 
   const categories = await getTrendCategories();
   const channels = await getChannelsForSelect(userId);
 
-  const recommendations = await getAIRecommendationsForUser(userId, trends, {
-    count: 3,
-    language: "ko",
-  });
+  // Supabase에서 저장된 아이디어 가져오기 (최대 6개)
+  const allIdeas = await getIdeas(userId, { isSaved: true });
+  const savedIdeas = allIdeas.slice(0, 6).map(ideaToSavedIdea);
 
   return {
     trends,
-    recommendations,
+    savedIdeas,
     categories,
     channels,
     initialFilters: filters,
@@ -65,13 +70,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   const {
     trends,
-    recommendations: initialRecommendations,
+    savedIdeas: initialSavedIdeas,
     categories,
     channels,
     initialFilters,
   } = loaderData;
-  const [recommendations, setRecommendations] = useState(initialRecommendations);
+  const [savedIdeas, setSavedIdeas] = useState(initialSavedIdeas);
   const [filters, setFilters] = useState<TrendFilterOptions>(initialFilters);
+  const [loadingSource, setLoadingSource] = useState<"youtube" | "saved" | null>(null);
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof loader>();
 
@@ -80,10 +86,17 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   const currentCategories = fetcher.data?.categories ?? categories;
   const isLoading = fetcher.state === "loading";
 
-  // Update recommendations when fetcher data changes
+  // Reset loading source when fetcher completes
   useEffect(() => {
-    if (fetcher.data?.recommendations) {
-      setRecommendations(fetcher.data.recommendations);
+    if (fetcher.state === "idle") {
+      setLoadingSource(null);
+    }
+  }, [fetcher.state]);
+
+  // Update savedIdeas when fetcher data changes
+  useEffect(() => {
+    if (fetcher.data?.savedIdeas) {
+      setSavedIdeas(fetcher.data.savedIdeas);
     }
   }, [fetcher.data]);
 
@@ -134,6 +147,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   };
 
   const handleFetchTrends = () => {
+    setLoadingSource("youtube");
     const params = new URLSearchParams();
     if (filters.regionCode) params.set("region", filters.regionCode);
     if (filters.category) params.set("category", filters.category);
@@ -145,19 +159,25 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   };
 
   const handleFetchSavedTrends = () => {
+    setLoadingSource("saved");
     const params = new URLSearchParams();
     params.set("source", "saved");
+    // 필터 적용하여 저장된 트렌드 가져오기
+    if (filters.regionCode) params.set("region", filters.regionCode);
+    if (filters.category) params.set("category", filters.category);
+    if (filters.minViews) params.set("minViews", filters.minViews.toString());
+    if (filters.keywords?.length) params.set("keywords", filters.keywords.join(","));
 
     fetcher.load(`/projects/trends?${params.toString()}`);
   };
 
-  const handleSaveIdea = (_idea: SavedIdea) => {
-    // Navigate to saved ideas tab after saving
-    navigate("/projects/saved-ideas");
+  const handleSaveIdea = (idea: SavedIdea) => {
+    // 새 아이디어를 savedIdeas 목록에 추가
+    setSavedIdeas((prev) => [idea, ...prev].slice(0, 6));
   };
 
-  const handleRefreshRecommendations = (newRecommendations: typeof recommendations) => {
-    setRecommendations(newRecommendations);
+  const handleUpdateSavedIdeas = (newSavedIdeas: typeof savedIdeas) => {
+    setSavedIdeas(newSavedIdeas);
   };
 
   return (
@@ -167,7 +187,8 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
         onFiltersChange={handleFiltersChange}
         onFetch={handleFetchTrends}
         onFetchSaved={handleFetchSavedTrends}
-        isLoading={isLoading}
+        isLoadingYoutube={isLoading && loadingSource === "youtube"}
+        isLoadingSaved={isLoading && loadingSource === "saved"}
         categories={currentCategories}
       />
 
@@ -178,10 +199,10 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
 
       <TrendAnalyzer
         trends={filteredTrends}
-        recommendations={recommendations}
+        savedIdeas={savedIdeas}
         channels={channels}
         onSaveIdea={handleSaveIdea}
-        onRefreshRecommendations={handleRefreshRecommendations}
+        onUpdateSavedIdeas={handleUpdateSavedIdeas}
         isLoading={isLoading}
       />
     </div>

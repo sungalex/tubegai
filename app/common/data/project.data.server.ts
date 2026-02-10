@@ -160,13 +160,13 @@ export async function createProject(
   // Mark source idea as used if provided
   if (input.sourceIdeaId) {
     await db
-      .update(schema.savedIdeas)
+      .update(schema.ideas)
       .set({
         isUsed: true,
         usedForProjectId: project.id,
         updatedAt: new Date(),
       })
-      .where(eq(schema.savedIdeas.id, input.sourceIdeaId));
+      .where(eq(schema.ideas.id, input.sourceIdeaId));
   }
 
   // Update trend usage tracking if basedOnTrendUuid is provided

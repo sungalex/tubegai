@@ -1,21 +1,23 @@
 /**
  * ============================================
- * Trend Schema - MVP Version (Phase 3.1 Enhanced)
+ * Trend Schema - MVP Version
  * ============================================
  *
  * Tables:
  * - trend: YouTube/AI-generated trending video topics
- * - ai_recommendation: AI-generated project recommendations (Phase 3.1)
  *
  * Purpose:
  * - Store trending topics from YouTube API or AI generation
  * - Allow users to select trends for project creation
  * - Track which trends were used for projects
- * - Store AI recommendations for better user experience (Phase 3.1)
+ *
+ * NOTE: AI recommendations are now unified into the 'idea' table
+ * in project-schema.ts (see ideaSourceEnum for source distinction)
  */
 
 import { uuid, text, timestamp, bigint, integer, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+// Note: Some imports kept for legacy compatibility even if not directly used
 import { trendSourceEnum } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
@@ -91,70 +93,22 @@ export const trends = tubegaiSchema.table("trend", {
 // Relations
 // ============================================
 
-export const trendsRelations = relations(trends, ({ one, many }) => ({
+export const trendsRelations = relations(trends, ({ one }) => ({
   user: one(users, {
     fields: [trends.userId],
     references: [users.id],
   }),
   // Note: usedForProject relation removed to avoid circular import
   // FK constraint is defined in migration
-  // Phase 3.1: AI Recommendations that reference this trend
-  recommendations: many(aiRecommendations),
+  // Note: AI recommendations are now in the unified 'idea' table (project-schema.ts)
 }));
 
 // ============================================
-// Phase 3.1: AI Recommendation Table
+// Legacy: AI Recommendation (DEPRECATED)
 // ============================================
-
-export const aiRecommendations = tubegaiSchema.table("ai_recommendation", {
-  id: uuid("id").defaultRandom().primaryKey(),
-
-  // User association
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-
-  // Recommendation content
-  title: text("title").notNull(),
-  reason: text("reason").notNull(),
-  description: text("description"),
-  category: text("category"),
-  growthRate: text("growth_rate"),
-
-  // YouTube content parameters
-  hooks: text("hooks").array().default([]),
-  targetAudience: text("target_audience"),
-  estimatedViews: text("estimated_views"),
-  difficulty: text("difficulty"), // easy, medium, hard
-  videoType: text("video_type"), // short, medium, long
-  contentTone: text("content_tone"), // informative, funny, dramatic, casual, professional
-
-  // Scoring
-  score: integer("score"), // Relevance score 0-100
-
-  // References
-  trendId: uuid("trend_id").references(() => trends.id, { onDelete: "set null" }),
-  basedOnTrends: text("based_on_trends").array().default([]), // Trend titles used for generation
-  usedForProjectId: uuid("used_for_project_id"), // FK constraint defined in migration
-  isUsed: integer("is_used").default(0), // 0 = not used, 1 = used
-
-  // Timestamps
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at"), // Auto-expire old recommendations
-});
-
-// ============================================
-// Phase 3.1: AI Recommendation Relations
-// ============================================
-
-export const aiRecommendationsRelations = relations(aiRecommendations, ({ one }) => ({
-  user: one(users, {
-    fields: [aiRecommendations.userId],
-    references: [users.id],
-  }),
-  trend: one(trends, {
-    fields: [aiRecommendations.trendId],
-    references: [trends.id],
-  }),
-  // Note: usedForProject relation removed to avoid circular import
-  // FK constraint is defined in migration
-}));
+// AI recommendations are now unified into the 'idea' table in project-schema.ts
+// Use ideas table with source='ai_generated' instead.
+// This export is kept for backward compatibility during migration.
+import { ideas } from "../project/project-schema";
+export const aiRecommendations = ideas;
+export const aiRecommendationsRelations = {};

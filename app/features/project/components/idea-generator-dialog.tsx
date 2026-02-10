@@ -117,10 +117,17 @@ export function IdeaGeneratorDialog({
 
   const saveIdea = async (idea: GeneratedIdea) => {
     try {
-      const response = await fetch("/api/saved-ideas", {
+      const response = await fetch("/api/ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
+        body: JSON.stringify({
+          intent: "create",
+          idea: {
+            ...idea,
+            source: "user_created",
+            basedOnTrends: idea.basedOnTrend ? [idea.basedOnTrend] : [],
+          },
+        }),
       });
 
       const data = await response.json();
@@ -155,10 +162,17 @@ export function IdeaGeneratorDialog({
     let savedCount = 0;
     for (const idea of unsavedIdeas) {
       try {
-        const response = await fetch("/api/saved-ideas", {
+        const response = await fetch("/api/ideas", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idea }),
+          body: JSON.stringify({
+            intent: "create",
+            idea: {
+              ...idea,
+              source: "user_created",
+              basedOnTrends: idea.basedOnTrend ? [idea.basedOnTrend] : [],
+            },
+          }),
         });
 
         const data = await response.json();

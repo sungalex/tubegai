@@ -93,7 +93,11 @@ export interface LabelColor {
   value: string;
 }
 
+/**
+ * @deprecated Use Idea from ideation.types.ts with source='ai_generated' instead
+ */
 export interface AIRecommendation {
+  id?: string; // Added for save functionality
   title: string;
   reason: string;
   growth: string;
@@ -102,3 +106,6 @@ export interface AIRecommendation {
   targetAudience?: string;
   estimatedViews?: string;
 }
+
+// Re-export Idea type for convenience
+export type { Idea, IdeaSource, IdeaDifficulty } from "./ideation.types";
