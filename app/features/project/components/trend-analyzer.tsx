@@ -86,6 +86,56 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
     setIsIdeaDialogOpen(true);
   };
 
+  // 단일 트렌드 기반 AI 아이디어 즉시 생성
+  const handleGenerateIdeasFromTrend = async (trend: TrendItem) => {
+    if (!trend.trendUuid) {
+      toast.error("트렌드 ID가 없습니다", {
+        description: "트렌드 데이터를 다시 가져와주세요.",
+      });
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent: "generate",
+          language: "ko",
+          trendIds: [trend.trendUuid],
+          count: 3,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("AI 아이디어 생성 실패", { description: data.error });
+        return;
+      }
+
+      if (data.ideas) {
+        const recommendations = data.ideas.map((idea: { id: string; title: string; reason?: string; growthRate?: string; description?: string; hooks?: string[]; targetAudience?: string; estimatedViews?: string }) => ({
+          id: idea.id,
+          title: idea.title,
+          reason: idea.reason || `${trend.title} 기반`,
+          growth: idea.growthRate || trend.growth,
+          description: idea.description,
+          hooks: idea.hooks,
+          targetAudience: idea.targetAudience,
+          estimatedViews: idea.estimatedViews,
+        }));
+        setAiRecommendations(recommendations);
+        toast.success(`"${trend.title}" 기반 아이디어가 생성되었습니다!`);
+      }
+    } catch (error) {
+      toast.error("AI 아이디어 생성 실패");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const handleOpenAIProjectGenerator = (trend: TrendItem) => {
     setSelectedTrendForAI(trend);
     setIsAIProjectDialogOpen(true);
@@ -487,12 +537,17 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
                             size="sm"
                             variant="secondary"
                             className="w-full"
+                            disabled={isGeneratingAI}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleGenerateIdeas(trend);
+                              handleGenerateIdeasFromTrend(trend);
                             }}
                           >
-                            <Sparkles className="h-3 w-3 mr-1" />
+                            {isGeneratingAI ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3 w-3 mr-1" />
+                            )}
                             {t("trends.generateIdeas")}
                           </Button>
                           <Button
