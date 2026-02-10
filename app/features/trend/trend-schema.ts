@@ -93,14 +93,27 @@ export const trends = tubegaiSchema.table("trend", {
 // Relations
 // ============================================
 
-export const trendsRelations = relations(trends, ({ one }) => ({
+import { ideas, ideaTrends } from "../project/project-schema";
+
+export const trendsRelations = relations(trends, ({ one, many }) => ({
   user: one(users, {
     fields: [trends.userId],
     references: [users.id],
   }),
+  ideaTrends: many(ideaTrends),
   // Note: usedForProject relation removed to avoid circular import
   // FK constraint is defined in migration
-  // Note: AI recommendations are now in the unified 'idea' table (project-schema.ts)
+}));
+
+/**
+ * Extended ideaTrends relation to include trend reference
+ * This completes the bidirectional relationship for Drizzle ORM
+ */
+export const ideaTrendsTrendRelation = relations(ideaTrends, ({ one }) => ({
+  trend: one(trends, {
+    fields: [ideaTrends.trendId],
+    references: [trends.id],
+  }),
 }));
 
 // ============================================
@@ -109,6 +122,5 @@ export const trendsRelations = relations(trends, ({ one }) => ({
 // AI recommendations are now unified into the 'idea' table in project-schema.ts
 // Use ideas table with source='ai_generated' instead.
 // This export is kept for backward compatibility during migration.
-import { ideas } from "../project/project-schema";
 export const aiRecommendations = ideas;
 export const aiRecommendationsRelations = {};

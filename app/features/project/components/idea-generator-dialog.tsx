@@ -48,7 +48,7 @@ import type { TrendItem } from "~/common/types/project.types";
 import type {
   GeneratedIdea,
   IdeationOptions,
-  SavedIdea,
+  Idea,
 } from "~/common/types/ideation.types";
 import {
   CONTENT_TONES,
@@ -62,7 +62,7 @@ interface IdeaGeneratorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trend: TrendItem;
-  onSaveIdea?: (idea: SavedIdea) => void;
+  onSaveIdea?: (idea: Idea) => void;
 }
 
 export function IdeaGeneratorDialog({
@@ -125,7 +125,7 @@ export function IdeaGeneratorDialog({
           idea: {
             ...idea,
             source: "user_created",
-            basedOnTrends: idea.basedOnTrend ? [idea.basedOnTrend] : [],
+            trendIds: trend.trendUuid ? [trend.trendUuid] : [],
           },
         }),
       });
@@ -170,7 +170,7 @@ export function IdeaGeneratorDialog({
             idea: {
               ...idea,
               source: "user_created",
-              basedOnTrends: idea.basedOnTrend ? [idea.basedOnTrend] : [],
+              trendIds: trend.trendUuid ? [trend.trendUuid] : [],
             },
           }),
         });

@@ -43,6 +43,7 @@ import { getIdeas } from "~/common/data/idea.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { Route } from "./+types/new-project-page";
 import type { Idea } from "~/common/types/ideation.types";
+import { getPrimaryTrend } from "~/common/types/ideation.types";
 
 export const meta = () => {
   return [
@@ -226,7 +227,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
       targetAudience: sourceData?.targetAudience || sourceData?.idea?.targetAudience || "",
       estimatedViews: sourceData?.estimatedViews || sourceData?.idea?.estimatedViews || "",
       difficulty: (sourceData?.difficulty || sourceData?.idea?.difficulty || "medium") as "easy" | "medium" | "hard",
-      basedOnTrend: sourceData?.idea?.basedOnTrends?.[0] || sourceData?.topic || "",
+      basedOnTrend: (sourceData?.idea ? getPrimaryTrend(sourceData.idea)?.trend?.title : null) || sourceData?.topic || "",
       basedOnTrendId: typeof sourceData?.trendId === "number" ? sourceData.trendId : undefined,
       sourceIdeaId: sourceData?.idea?.id,
     },
@@ -259,7 +260,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
 
   // Select from saved ideas
   const handleSelectIdea = (idea: Idea) => {
-    const basedOnTrend = idea.basedOnTrends?.[0] || "";
+    const basedOnTrend = getPrimaryTrend(idea)?.trend?.title || "";
     form.setValue("title", idea.title);
     form.setValue("description", idea.description || "");
     form.setValue("topic", basedOnTrend || idea.title);

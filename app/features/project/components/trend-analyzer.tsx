@@ -20,17 +20,18 @@ import {
 } from "~/common/components/ui/popover";
 import { Label } from "~/common/components/ui/label";
 import type { TrendItem, AIRecommendation, Channel } from "~/common/types/project.types";
-import type { SavedIdea } from "~/common/types/ideation.types";
+import type { Idea } from "~/common/types/ideation.types";
+import { getPrimaryTrend } from "~/common/types/ideation.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 import { AIProjectGeneratorDialog } from "./ai-project-generator-dialog";
 import { useTranslation } from "~/i18n/context";
 
 interface TrendAnalyzerProps {
   trends: TrendItem[];
-  savedIdeas: SavedIdea[];
+  savedIdeas: Idea[];
   channels?: Channel[];
-  onSaveIdea?: (idea: SavedIdea) => void;
-  onUpdateSavedIdeas?: (newSavedIdeas: SavedIdea[]) => void;
+  onSaveIdea?: (idea: Idea) => void;
+  onUpdateSavedIdeas?: (newSavedIdeas: Idea[]) => void;
   isLoading?: boolean;
 }
 
@@ -157,7 +158,7 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
           estimatedViews: recommendation.estimatedViews || "10K-50K",
           difficulty: "medium" as const,
           source: "user_created" as const,
-          basedOnTrends: [recommendation.title],
+          // Note: trendIds not available for fallback recommendations
         };
 
         const response = await fetch("/api/ideas", {
@@ -261,7 +262,7 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
   };
 
   // Use saved idea - navigate to new project page
-  const handleUseSavedIdea = async (idea: SavedIdea, idx: number) => {
+  const handleUseSavedIdea = async (idea: Idea, idx: number) => {
     setUsingIdeaIdx(idx);
     try {
       navigate("/projects/new", {
@@ -315,7 +316,7 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
           estimatedViews: recommendation.estimatedViews || "10K-50K",
           difficulty: "medium" as const,
           source: "user_created" as const,
-          basedOnTrends: [recommendation.title],
+          // Note: trendIds not available for fallback recommendations
         };
 
         const response = await fetch("/api/ideas", {
@@ -587,9 +588,9 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
                       <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-yellow-200/10">
                         {idea.difficulty}
                       </Badge>
-                      {idea.basedOnTrend && (
+                      {getPrimaryTrend(idea)?.trend?.title && (
                         <span className="text-xs text-muted-foreground truncate max-w-20">
-                          {idea.basedOnTrend}
+                          {getPrimaryTrend(idea)?.trend?.title}
                         </span>
                       )}
                     </div>

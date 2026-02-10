@@ -273,8 +273,7 @@ export const ideas = tubegaiSchema.table("idea", {
 
   // === Source Management ===
   source: ideaSourceEnum("source").notNull(),
-  basedOnTrends: text("based_on_trends").array().default([]),
-  trendId: uuid("trend_id"),
+  // NOTE: Trend relationships are now managed via ideaTrends junction table
 
   // === AI-specific Fields (optional for user_created) ===
   reason: text("reason"),
@@ -299,7 +298,28 @@ export const ideas = tubegaiSchema.table("idea", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const ideasRelations = relations(ideas, ({ one }) => ({
+/**
+ * Junction table: Idea ↔ Trend (N:M relationship)
+ * - An idea can be based on multiple trends
+ * - A trend can be referenced by multiple ideas
+ * - FK constraint for trendId is defined in migration to avoid circular import
+ */
+export const ideaTrends = tubegaiSchema.table(
+  "idea_trend",
+  {
+    ideaId: uuid("idea_id")
+      .references(() => ideas.id, { onDelete: "cascade" })
+      .notNull(),
+    trendId: uuid("trend_id").notNull(), // FK defined in migration
+    isPrimary: boolean("is_primary").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.ideaId, table.trendId] }),
+  })
+);
+
+export const ideasRelations = relations(ideas, ({ one, many }) => ({
   user: one(users, {
     fields: [ideas.userId],
     references: [users.id],
@@ -308,6 +328,15 @@ export const ideasRelations = relations(ideas, ({ one }) => ({
     fields: [ideas.usedForProjectId],
     references: [projects.id],
   }),
+  ideaTrends: many(ideaTrends),
+}));
+
+export const ideaTrendsRelations = relations(ideaTrends, ({ one }) => ({
+  idea: one(ideas, {
+    fields: [ideaTrends.ideaId],
+    references: [ideas.id],
+  }),
+  // Note: trend relation defined in trend-schema.ts to avoid circular import
 }));
 
 // Legacy alias for backward compatibility during migration

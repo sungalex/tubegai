@@ -22,9 +22,24 @@ import type {
   IdeationOptions,
   ContentTone,
   VideoType,
+  IdeaTrend,
 } from "../types/ideation.types";
 import { DEFAULT_IDEATION_OPTIONS } from "../types/ideation.types";
 import type { TrendItem } from "../types/project.types";
+
+// Type for idea with relations from Drizzle query
+type IdeaWithRelations = typeof schema.ideas.$inferSelect & {
+  ideaTrends?: Array<{
+    trendId: string;
+    isPrimary: boolean;
+    trend?: {
+      id: string;
+      title: string;
+      category: string;
+      thumbnailUrl: string | null;
+    };
+  }>;
+};
 
 // =============================================================================
 // Constants
@@ -41,7 +56,21 @@ const MAX_IDEAS_PER_PAGE = 20;
 /**
  * Convert database row to Idea type
  */
-function dbRowToIdea(row: typeof schema.ideas.$inferSelect): Idea {
+function dbRowToIdea(row: IdeaWithRelations): Idea {
+  // Convert ideaTrends relation to IdeaTrend array
+  const trends: IdeaTrend[] = (row.ideaTrends ?? []).map((it) => ({
+    trendId: it.trendId,
+    isPrimary: it.isPrimary,
+    trend: it.trend
+      ? {
+          id: it.trend.id,
+          title: it.trend.title,
+          category: it.trend.category,
+          thumbnailUrl: it.trend.thumbnailUrl ?? undefined,
+        }
+      : undefined,
+  }));
+
   return {
     id: row.id,
     userId: row.userId,
@@ -52,8 +81,7 @@ function dbRowToIdea(row: typeof schema.ideas.$inferSelect): Idea {
     estimatedViews: row.estimatedViews ?? undefined,
     difficulty: row.difficulty as IdeaDifficulty | undefined,
     source: row.source as IdeaSource,
-    basedOnTrends: row.basedOnTrends ?? [],
-    trendId: row.trendId ?? undefined,
+    trends,
     reason: row.reason ?? undefined,
     growthRate: row.growthRate ?? undefined,
     score: row.score ?? undefined,
@@ -104,6 +132,13 @@ export async function getIdeas(
     where: and(...conditions),
     orderBy: [desc(schema.ideas.createdAt)],
     limit: MAX_IDEAS_PER_PAGE,
+    with: {
+      ideaTrends: {
+        with: {
+          trend: true,
+        },
+      },
+    },
   });
 
   return ideas.map(dbRowToIdea);
@@ -132,6 +167,13 @@ export async function getIdeaById(
 ): Promise<Idea | null> {
   const idea = await db.query.ideas.findFirst({
     where: and(eq(schema.ideas.id, ideaId), eq(schema.ideas.userId, userId)),
+    with: {
+      ideaTrends: {
+        with: {
+          trend: true,
+        },
+      },
+    },
   });
 
   return idea ? dbRowToIdea(idea) : null;
@@ -173,7 +215,7 @@ export async function getIdeasCount(
 
 /**
  * Search ideas by keyword across text fields
- * Searches: title, description, hooks (array), basedOnTrends (array)
+ * Searches: title, description, hooks (array), and related trend titles
  */
 export async function searchIdeas(
   userId: string,
@@ -207,12 +249,18 @@ export async function searchIdeas(
   }
 
   // Search across text fields and arrays
-  // For arrays, we use array_to_string to convert to searchable text
+  // For trend titles, we use a subquery to check related trends
   const searchCondition = or(
     ilike(schema.ideas.title, searchPattern),
     ilike(schema.ideas.description, searchPattern),
     sql`array_to_string(${schema.ideas.hooks}, ' ') ILIKE ${searchPattern}`,
-    sql`array_to_string(${schema.ideas.basedOnTrends}, ' ') ILIKE ${searchPattern}`
+    // Search in related trend titles via junction table
+    sql`EXISTS (
+      SELECT 1 FROM public.idea_trend it
+      JOIN public.trend t ON t.id = it.trend_id
+      WHERE it.idea_id = ${schema.ideas.id}
+      AND t.title ILIKE ${searchPattern}
+    )`
   );
 
   conditions.push(searchCondition!);
@@ -221,6 +269,13 @@ export async function searchIdeas(
     where: and(...conditions),
     orderBy: [desc(schema.ideas.createdAt)],
     limit: MAX_IDEAS_PER_PAGE,
+    with: {
+      ideaTrends: {
+        with: {
+          trend: true,
+        },
+      },
+    },
   });
 
   return ideas.map(dbRowToIdea);
@@ -248,8 +303,6 @@ export async function createIdea(
       estimatedViews: input.estimatedViews,
       difficulty: input.difficulty,
       source: input.source,
-      basedOnTrends: input.basedOnTrends ?? [],
-      trendId: input.trendId,
       reason: input.reason,
       growthRate: input.growthRate,
       score: input.score,
@@ -261,7 +314,19 @@ export async function createIdea(
     })
     .returning();
 
-  return dbRowToIdea(idea);
+  // Insert trend relationships into junction table
+  if (input.trendIds && input.trendIds.length > 0) {
+    await db.insert(schema.ideaTrends).values(
+      input.trendIds.map((trendId, idx) => ({
+        ideaId: idea.id,
+        trendId,
+        isPrimary: idx === 0,
+      }))
+    );
+  }
+
+  // Fetch the idea with relations
+  return (await getIdeaById(userId, idea.id))!;
 }
 
 /**
@@ -272,16 +337,19 @@ export async function updateIdea(
   ideaId: string,
   updates: UpdateIdeaInput
 ): Promise<Idea | null> {
-  const [updated] = await db
+  const result = await db
     .update(schema.ideas)
     .set({
       ...updates,
       updatedAt: new Date(),
     })
     .where(and(eq(schema.ideas.id, ideaId), eq(schema.ideas.userId, userId)))
-    .returning();
+    .returning({ id: schema.ideas.id });
 
-  return updated ? dbRowToIdea(updated) : null;
+  if (result.length === 0) return null;
+
+  // Fetch the idea with relations
+  return getIdeaById(userId, ideaId);
 }
 
 /**
@@ -289,7 +357,7 @@ export async function updateIdea(
  * This marks the idea as saved and removes expiration
  */
 export async function saveIdea(userId: string, ideaId: string): Promise<Idea | null> {
-  const [saved] = await db
+  const result = await db
     .update(schema.ideas)
     .set({
       isSaved: true,
@@ -297,9 +365,12 @@ export async function saveIdea(userId: string, ideaId: string): Promise<Idea | n
       updatedAt: new Date(),
     })
     .where(and(eq(schema.ideas.id, ideaId), eq(schema.ideas.userId, userId)))
-    .returning();
+    .returning({ id: schema.ideas.id });
 
-  return saved ? dbRowToIdea(saved) : null;
+  if (result.length === 0) return null;
+
+  // Fetch the idea with relations
+  return getIdeaById(userId, ideaId);
 }
 
 /**
@@ -388,7 +459,7 @@ export async function getAIRecommendationsForUser(
 
   // Save generated recommendations to database
   try {
-    await saveGeneratedRecommendations(userId, generated);
+    await saveGeneratedRecommendations(userId, generated, trends);
   } catch (error) {
     console.error("Failed to save recommendations:", error);
   }
@@ -402,12 +473,20 @@ export async function getAIRecommendationsForUser(
  */
 async function saveGeneratedRecommendations(
   userId: string,
-  recommendations: AIGeneratedRecommendation[]
+  recommendations: AIGeneratedRecommendation[],
+  inputTrends: TrendItem[]
 ): Promise<void> {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + RECOMMENDATION_EXPIRE_HOURS);
 
-  // Delete old unsaved AI recommendations for user
+  // Build a map of trend titles to UUIDs for matching
+  const trendTitleToUuid = new Map(
+    inputTrends
+      .filter((t) => t.trendUuid)
+      .map((t) => [t.title.toLowerCase(), t.trendUuid!])
+  );
+
+  // Delete old unsaved AI recommendations for user (cascade deletes ideaTrends)
   await db
     .delete(schema.ideas)
     .where(
@@ -420,26 +499,49 @@ async function saveGeneratedRecommendations(
 
   // Insert new recommendations
   for (const rec of recommendations) {
-    await db.insert(schema.ideas).values({
-      userId,
-      title: rec.title,
-      description: rec.description,
-      hooks: rec.hooks ?? [],
-      targetAudience: rec.targetAudience,
-      estimatedViews: rec.estimatedViews,
-      difficulty: rec.difficulty as IdeaDifficulty,
-      source: "ai_generated",
-      basedOnTrends: rec.basedOnTrends ?? [],
-      reason: rec.reason,
-      growthRate: rec.growthRate,
-      score: rec.score,
-      contentTone: rec.contentTone as ContentTone,
-      videoType: rec.videoType as VideoType,
-      category: rec.contentTone, // Use contentTone as category
-      isSaved: false,
-      isUsed: false,
-      expiresAt,
-    });
+    const [idea] = await db
+      .insert(schema.ideas)
+      .values({
+        userId,
+        title: rec.title,
+        description: rec.description,
+        hooks: rec.hooks ?? [],
+        targetAudience: rec.targetAudience,
+        estimatedViews: rec.estimatedViews,
+        difficulty: rec.difficulty as IdeaDifficulty,
+        source: "ai_generated",
+        reason: rec.reason,
+        growthRate: rec.growthRate,
+        score: rec.score,
+        contentTone: rec.contentTone as ContentTone,
+        videoType: rec.videoType as VideoType,
+        category: rec.contentTone, // Use contentTone as category
+        isSaved: false,
+        isUsed: false,
+        expiresAt,
+      })
+      .returning();
+
+    // Match basedOnTrends titles to trend UUIDs and insert into junction table
+    const matchedTrends = (rec.basedOnTrends ?? [])
+      .map((title, idx) => ({
+        title: title.toLowerCase(),
+        isPrimary: idx === 0,
+        trendId: trendTitleToUuid.get(title.toLowerCase()),
+      }))
+      .filter((t): t is { title: string; isPrimary: boolean; trendId: string } =>
+        t.trendId !== undefined
+      );
+
+    if (matchedTrends.length > 0) {
+      await db.insert(schema.ideaTrends).values(
+        matchedTrends.map((t) => ({
+          ideaId: idea.id,
+          trendId: t.trendId,
+          isPrimary: t.isPrimary,
+        }))
+      );
+    }
   }
 }
 

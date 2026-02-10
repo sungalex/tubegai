@@ -13,12 +13,27 @@ export type IdeaSource = "ai_generated" | "user_created";
 export type IdeaDifficulty = "easy" | "medium" | "hard";
 
 /**
+ * Trend reference in idea (from junction table)
+ */
+export interface IdeaTrend {
+  trendId: string;
+  isPrimary: boolean;
+  trend?: {
+    id: string;
+    title: string;
+    category: string;
+    thumbnailUrl?: string;
+  };
+}
+
+/**
  * Unified Idea interface
  * Combines SavedIdea and AIRecommendation into a single type.
  *
  * - source: Distinguishes AI-generated vs user-created ideas
  * - isSaved: When AI idea is bookmarked, this becomes true
  * - expiresAt: AI ideas expire after 24h unless saved
+ * - trends: Related trends via junction table (replaces basedOnTrends/trendId)
  */
 export interface Idea {
   id: string;
@@ -34,8 +49,7 @@ export interface Idea {
 
   // Source tracking
   source: IdeaSource;
-  basedOnTrends: string[];
-  trendId?: string;
+  trends: IdeaTrend[]; // Replaces basedOnTrends and trendId
 
   // AI-specific fields (optional for user_created)
   reason?: string;
@@ -69,8 +83,7 @@ export interface CreateIdeaInput {
   estimatedViews?: string;
   difficulty?: IdeaDifficulty;
   source: IdeaSource;
-  basedOnTrends?: string[];
-  trendId?: string;
+  trendIds?: string[]; // UUIDs of related trends
   reason?: string;
   growthRate?: string;
   score?: number;
@@ -146,8 +159,9 @@ export function savedIdeaToIdea(savedIdea: SavedIdea): Idea {
   return {
     ...savedIdea,
     source: "user_created",
-    basedOnTrends: [savedIdea.basedOnTrend],
-    trendId: savedIdea.trendId?.toString(),
+    trends: savedIdea.trendId
+      ? [{ trendId: savedIdea.trendId.toString(), isPrimary: true }]
+      : [],
     isSaved: true,
     hooks: savedIdea.hooks || [],
   };
@@ -157,6 +171,7 @@ export function savedIdeaToIdea(savedIdea: SavedIdea): Idea {
  * Convert Idea to legacy SavedIdea format
  */
 export function ideaToSavedIdea(idea: Idea): SavedIdea {
+  const primaryTrend = idea.trends.find((t) => t.isPrimary) || idea.trends[0];
   return {
     id: idea.id,
     userId: idea.userId,
@@ -166,13 +181,29 @@ export function ideaToSavedIdea(idea: Idea): SavedIdea {
     targetAudience: idea.targetAudience || "",
     estimatedViews: idea.estimatedViews || "",
     difficulty: idea.difficulty || "medium",
-    basedOnTrend: idea.basedOnTrends[0] || "",
-    trendId: idea.trendId ? parseInt(idea.trendId, 10) : undefined,
+    basedOnTrend: primaryTrend?.trend?.title || "",
+    trendId: primaryTrend ? parseInt(primaryTrend.trendId, 10) : undefined,
     usedForProjectId: idea.usedForProjectId,
     isUsed: idea.isUsed,
     createdAt: idea.createdAt,
     updatedAt: idea.updatedAt,
   };
+}
+
+/**
+ * Get trend titles from idea (helper for display)
+ */
+export function getIdeaTrendTitles(idea: Idea): string[] {
+  return idea.trends
+    .filter((t) => t.trend?.title)
+    .map((t) => t.trend!.title);
+}
+
+/**
+ * Get primary trend from idea
+ */
+export function getPrimaryTrend(idea: Idea): IdeaTrend | undefined {
+  return idea.trends.find((t) => t.isPrimary) || idea.trends[0];
 }
 
 /**

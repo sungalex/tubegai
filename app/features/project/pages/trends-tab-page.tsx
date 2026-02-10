@@ -12,8 +12,7 @@ import {
 import { getIdeas } from "~/common/data/idea.data.server";
 import { getChannelsForSelect } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import type { Idea, SavedIdea } from "~/common/types/ideation.types";
-import { ideaToSavedIdea } from "~/common/types/ideation.types";
+import type { Idea } from "~/common/types/ideation.types";
 import type { TrendFilterOptions } from "~/common/types/trend.types";
 import type { TrendItem } from "~/common/types/project.types";
 
@@ -56,7 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Supabase에서 저장된 아이디어 가져오기 (최대 6개)
   const allIdeas = await getIdeas(userId, { isSaved: true });
-  const savedIdeas = allIdeas.slice(0, 6).map(ideaToSavedIdea);
+  const savedIdeas = allIdeas.slice(0, 6);
 
   return {
     trends,
@@ -171,7 +170,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     fetcher.load(`/projects/trends?${params.toString()}`);
   };
 
-  const handleSaveIdea = (idea: SavedIdea) => {
+  const handleSaveIdea = (idea: Idea) => {
     // 새 아이디어를 savedIdeas 목록에 추가
     setSavedIdeas((prev) => [idea, ...prev].slice(0, 6));
   };

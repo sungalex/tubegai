@@ -169,6 +169,71 @@ export async function getProject(id: string) {
 }
 ```
 
+### Supabase 스키마 규칙
+
+**IMPORTANT**: TubeGAI의 모든 테이블은 `public` 스키마를 사용합니다.
+
+- `tubegaiSchema`는 내부적으로 `pgTable`을 래핑하며, 기본 `public` 스키마를 사용
+- 마이그레이션 SQL 작성 시 항상 `public.table_name` 형식 사용
+- Raw SQL 쿼리 작성 시 `public` 스키마 명시 필수
+
+```typescript
+// ✓ 올바른 마이그레이션 SQL
+CREATE TABLE IF NOT EXISTS public.idea_trend (
+  idea_id uuid NOT NULL REFERENCES public.idea(id) ON DELETE CASCADE,
+  ...
+);
+
+// ✓ 올바른 Raw SQL 쿼리
+sql`SELECT 1 FROM public.idea_trend WHERE idea_id = ${ideaId}`
+
+// ❌ 잘못된 스키마 참조 (tubegai 스키마는 존재하지 않음)
+CREATE TABLE tubegai.idea_trend (...)
+```
+
+### RLS 정책 (Row Level Security)
+
+**중요**: RLS 정책은 Supabase 대시보드에서 관리합니다. Drizzle 마이그레이션으로 RLS 정책을 생성하지 마세요.
+
+**문제 상황**:
+- Drizzle은 마이그레이션 순차 적용 방식을 사용
+- RLS 정책 마이그레이션이 실패하면 (`policy already exists`) 후속 마이그레이션이 차단됨
+- `public` 스키마의 일부 테이블 (`profiles`)은 Supabase Auth가 관리
+
+**해결 방법**:
+
+1. **RLS 정책은 Supabase Dashboard에서 설정** (SQL Editor 또는 Authentication > Policies)
+
+2. **마이그레이션에서 RLS 제외**: RLS 관련 마이그레이션 파일은 placeholder로 대체
+   ```sql
+   -- RLS Policies skipped - manage via Supabase Dashboard
+   SELECT 1;
+   ```
+
+3. **idempotent 마이그레이션 작성** (불가피한 경우):
+   ```sql
+   -- DROP 후 CREATE로 idempotent하게 작성
+   DROP POLICY IF EXISTS "policy_name" ON "public"."table_name";
+   CREATE POLICY "policy_name" ON "public"."table_name" ...;
+   ```
+
+**권장 RLS 정책 패턴** (Supabase Dashboard에서 설정):
+
+```sql
+-- 사용자 본인 데이터만 접근
+CREATE POLICY "user_select_own" ON "public"."table_name"
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Junction 테이블은 부모 테이블 기준으로 권한 확인
+CREATE POLICY "junction_select_via_parent" ON "public"."idea_trend"
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM "public"."idea" i
+      WHERE i.id = idea_id AND i.user_id = auth.uid()
+    )
+  );
+```
+
 ## 인증
 
 ### 서버 ([app/lib/auth.server.ts](app/lib/auth.server.ts))
@@ -389,6 +454,13 @@ enum Status {
 
 // ❌ Raw colors instead of semantic tokens
 className = "bg-white text-gray-500";
+
+// ❌ 존재하지 않는 스키마 참조 (tubegai 스키마 사용 금지)
+CREATE TABLE tubegai.my_table (...)  // → public.my_table 사용
+sql`SELECT * FROM tubegai.idea`      // → public.idea 사용
+
+// ❌ Drizzle 마이그레이션에서 RLS 정책 생성
+CREATE POLICY "..." ON "public"."table"  // → Supabase Dashboard 사용
 ```
 
 ## 권장 패턴

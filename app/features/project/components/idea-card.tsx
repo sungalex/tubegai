@@ -103,7 +103,7 @@ export function IdeaCard({
               {idea.title}
             </CardTitle>
             <CardDescription className="text-xs">
-              {idea.basedOnTrends?.[0] && `From: ${idea.basedOnTrends[0]}`}
+              {idea.trends?.[0]?.trend?.title && `From: ${idea.trends[0].trend.title}`}
             </CardDescription>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
