@@ -279,8 +279,9 @@ export const ideas = tubegaiSchema.table("idea", {
   reason: text("reason"),
   growthRate: text("growth_rate"),
   score: integer("score"),
-  contentTone: contentToneEnum("content_tone"),
-  videoType: videoLengthEnum("video_type"),
+  // Changed from enum to text[] to support multiple tones/types from AI
+  contentTones: text("content_tones").array().default([]),
+  videoTypes: text("video_types").array().default([]),
   category: text("category"),
 
   // === State Management ===

@@ -55,8 +55,9 @@ export interface Idea {
   reason?: string;
   growthRate?: string;
   score?: number;
-  contentTone?: ContentTone;
-  videoType?: VideoType;
+  // Changed to arrays to support multiple tones/types from AI
+  contentTones?: string[];
+  videoTypes?: string[];
   category?: string;
 
   // State management
@@ -87,8 +88,8 @@ export interface CreateIdeaInput {
   reason?: string;
   growthRate?: string;
   score?: number;
-  contentTone?: ContentTone;
-  videoType?: VideoType;
+  contentTones?: string[];
+  videoTypes?: string[];
   category?: string;
 }
 

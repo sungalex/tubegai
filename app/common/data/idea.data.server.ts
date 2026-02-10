@@ -20,8 +20,6 @@ import type {
   GeneratedIdea,
   GenerateIdeasRequest,
   IdeationOptions,
-  ContentTone,
-  VideoType,
   IdeaTrend,
 } from "../types/ideation.types";
 import { DEFAULT_IDEATION_OPTIONS } from "../types/ideation.types";
@@ -85,8 +83,8 @@ function dbRowToIdea(row: IdeaWithRelations): Idea {
     reason: row.reason ?? undefined,
     growthRate: row.growthRate ?? undefined,
     score: row.score ?? undefined,
-    contentTone: row.contentTone as ContentTone | undefined,
-    videoType: row.videoType as VideoType | undefined,
+    contentTones: row.contentTones ?? [],
+    videoTypes: row.videoTypes ?? [],
     category: row.category ?? undefined,
     isSaved: row.isSaved,
     isUsed: row.isUsed,
@@ -306,8 +304,8 @@ export async function createIdea(
       reason: input.reason,
       growthRate: input.growthRate,
       score: input.score,
-      contentTone: input.contentTone,
-      videoType: input.videoType,
+      contentTones: input.contentTones ?? [],
+      videoTypes: input.videoTypes ?? [],
       category: input.category,
       isSaved: input.source === "user_created", // User-created ideas are saved by default
       isUsed: false,
@@ -468,23 +466,27 @@ export async function getAIRecommendationsForUser(
   return getIdeas(userId, { source: "ai_generated", isSaved: false });
 }
 
-// Valid enum values
-const VALID_CONTENT_TONES: ContentTone[] = ["informative", "funny", "dramatic", "casual", "professional"];
-const VALID_VIDEO_TYPES: VideoType[] = ["short", "medium", "long"];
+// Valid values for content tones and video types
+const VALID_CONTENT_TONES = ["informative", "funny", "dramatic", "casual", "professional"];
+const VALID_VIDEO_TYPES = ["short", "medium", "long"];
 
 /**
- * Extract first valid enum value from a potentially comma-separated string
+ * Extract all valid values from a potentially comma-separated string
  */
-function parseContentTone(value?: string): ContentTone | undefined {
-  if (!value) return undefined;
-  const candidates = value.split(",").map((s) => s.trim().toLowerCase());
-  return candidates.find((c) => VALID_CONTENT_TONES.includes(c as ContentTone)) as ContentTone | undefined;
+function parseContentTones(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((c) => VALID_CONTENT_TONES.includes(c));
 }
 
-function parseVideoType(value?: string): VideoType | undefined {
-  if (!value) return undefined;
-  const candidates = value.split(",").map((s) => s.trim().toLowerCase());
-  return candidates.find((c) => VALID_VIDEO_TYPES.includes(c as VideoType)) as VideoType | undefined;
+function parseVideoTypes(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((c) => VALID_VIDEO_TYPES.includes(c));
 }
 
 /**
@@ -518,9 +520,9 @@ async function saveGeneratedRecommendations(
 
   // Insert new recommendations
   for (const rec of recommendations) {
-    // Parse and validate enum values (AI may return comma-separated values)
-    const contentTone = parseContentTone(rec.contentTone);
-    const videoType = parseVideoType(rec.videoType);
+    // Parse and validate values (AI may return comma-separated values)
+    const contentTones = parseContentTones(rec.contentTone);
+    const videoTypes = parseVideoTypes(rec.videoType);
 
     const [idea] = await db
       .insert(schema.ideas)
@@ -536,9 +538,9 @@ async function saveGeneratedRecommendations(
         reason: rec.reason,
         growthRate: rec.growthRate,
         score: rec.score,
-        contentTone,
-        videoType,
-        category: contentTone, // Use parsed contentTone as category
+        contentTones,
+        videoTypes,
+        category: contentTones[0], // Use first contentTone as category
         isSaved: false,
         isUsed: false,
         expiresAt,

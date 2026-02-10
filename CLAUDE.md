@@ -510,3 +510,46 @@ className = "bg-card text-muted-foreground";
 - Follow existing patterns, avoid over-engineering
 - Do NOT build Phase 2+ features unless explicitly requested
 - Provide a brief context of the operation and then trigger the approval request, when an agent requires authorization.
+
+## 변경사항 검증 규칙 (필수)
+
+### 사이드 이펙트 점검
+
+**모든 변경사항은 기존 기능에 사이드 이펙트가 발생하지 않았는지 철저히 점검**:
+
+1. 타입 체크 실행: `npm run typecheck`
+2. 관련 코드 전체 검색: `Grep`으로 변경된 함수/타입/컬럼명 사용처 확인
+3. 모든 사용처에서 수정사항 반영 여부 확인
+
+### 마이그레이션 검증
+
+**마이그레이션 실행 후 DB 반영 여부 필수 확인**:
+
+1. `npm run db:migrate` 실행 후 성공 메시지 확인
+2. 실제 DB에 컬럼/테이블 생성 여부 검증 (Drizzle Studio 또는 SQL 쿼리)
+3. 마이그레이션 실패 시, 아래 **수동 마이그레이션 가이드** 제공
+
+**수동 마이그레이션 가이드** (마이그레이션 실패 시):
+
+```
+1. Supabase Dashboard > SQL Editor 접속
+2. 마이그레이션 SQL 파일 내용 복사 (app/drizzle/migrations/XXXX_*.sql)
+3. SQL Editor에서 직접 실행
+4. 결과 확인 후 다시 npm run db:migrate 실행
+```
+
+### 스키마 변경 후 코드 점검
+
+**마이그레이션으로 테이블 스키마 변경 시, 기존 스키마를 사용하던 모든 코드 점검 필수**:
+
+1. **스키마 파일**: `*-schema.ts` 파일에서 컬럼 정의 수정
+2. **타입 파일**: `*.types.ts` 파일에서 인터페이스 수정
+3. **데이터 레이어**: `*.data.server.ts` 파일에서 CRUD 함수 수정
+4. **API 라우트**: 해당 테이블 사용하는 API 수정
+5. **컴포넌트**: 해당 데이터 표시하는 UI 컴포넌트 수정
+6. **Grep으로 전체 검색**: 변경된 컬럼명으로 검색하여 누락 확인
+
+```bash
+# 예: content_tone → content_tones 변경 시
+Grep "contentTone[^s]" app/  # 수정 누락된 곳 찾기
+```
