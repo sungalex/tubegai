@@ -15,13 +15,23 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Search,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
+import { Input } from "~/common/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/common/components/ui/dialog";
 import { IdeaCard } from "./idea-card";
 import { EditIdeaDialog } from "./edit-idea-dialog";
-import type { Idea, IdeaSource, SavedIdea } from "~/common/types/ideation.types";
+import type { Idea, SavedIdea } from "~/common/types/ideation.types";
 import { ideaToSavedIdea } from "~/common/types/ideation.types";
 import { cn } from "~/lib/utils";
 
@@ -58,6 +68,10 @@ export function IdeasSection({
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Idea[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
   // Filter ideas based on active tab
@@ -224,6 +238,53 @@ export function IdeasSection({
     onGenerateAI?.();
   };
 
+  // Handle search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent: "search", query: searchQuery }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("검색 실패", { description: data.error });
+        return;
+      }
+
+      setSearchResults(data.ideas || []);
+    } catch {
+      toast.error("검색 실패");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle applying search results to the main list
+  const handleApplySearchResults = () => {
+    if (onIdeasChange && searchResults.length > 0) {
+      onIdeasChange(searchResults);
+      setIsSearchDialogOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      toast.success(`${searchResults.length}개의 검색 결과를 적용했습니다`);
+    }
+  };
+
+  // Reset search and show all ideas
+  const handleResetSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
   // Empty state
   if (ideas.length === 0 && !isGeneratingAI) {
     return (
@@ -260,26 +321,141 @@ export function IdeasSection({
             총 {ideas.length}개의 아이디어
           </p>
         </div>
-        {onGenerateAI && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onGenerateAI}
-            disabled={isGeneratingAI}
-          >
-            {isGeneratingAI ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                생성 중...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                AI 추천 생성
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Search Dialog */}
+          <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Search className="h-4 w-4 mr-2" />
+                아이디어 검색
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>아이디어 검색</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                {/* Search Input */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="제목, 설명, 훅, 트렌드 키워드로 검색..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleResetSearch}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <Button onClick={handleSearch} disabled={isSearching}>
+                    {isSearching ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Search Results */}
+                <div className="flex-1 overflow-y-auto">
+                  {searchResults.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          {searchResults.length}개의 결과
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={handleApplySearchResults}
+                        >
+                          검색 결과 적용
+                        </Button>
+                      </div>
+                      <div className="grid gap-3">
+                        {searchResults.map((idea) => (
+                          <div
+                            key={idea.id}
+                            className="p-3 border rounded-lg bg-card"
+                          >
+                            <h4 className="font-medium">{idea.title}</h4>
+                            {idea.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                {idea.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              {idea.isSaved && (
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                  저장됨
+                                </span>
+                              )}
+                              {idea.source === "ai_generated" && (
+                                <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded">
+                                  AI 추천
+                                </span>
+                              )}
+                              {idea.hooks && idea.hooks.length > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  훅 {idea.hooks.length}개
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : searchQuery && !isSearching ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">
+                        검색 결과가 없습니다
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">
+                        검색어를 입력하세요
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        제목, 설명, 훅, 트렌드 키워드에서 검색합니다
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* AI Generate Button */}
+          {onGenerateAI && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateAI}
+              disabled={isGeneratingAI}
+            >
+              {isGeneratingAI ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI 추천 생성
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

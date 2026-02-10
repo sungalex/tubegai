@@ -4,7 +4,7 @@
 // Combines AI recommendation and saved idea functionality into a single layer.
 // Uses the unified 'idea' table with source discrimination.
 
-import { desc, eq, and, or, gt, lt, isNull, count, sql } from "drizzle-orm";
+import { desc, eq, and, or, gt, lt, isNull, count, sql, ilike } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import {
   generateAIRecommendations,
@@ -169,6 +169,61 @@ export async function getIdeasCount(
     .where(and(...conditions));
 
   return result?.count ?? 0;
+}
+
+/**
+ * Search ideas by keyword across text fields
+ * Searches: title, description, hooks (array), basedOnTrends (array)
+ */
+export async function searchIdeas(
+  userId: string,
+  query: string,
+  filter?: IdeaFilter
+): Promise<Idea[]> {
+  if (!query.trim()) {
+    return getIdeas(userId, filter);
+  }
+
+  const searchPattern = `%${query.trim()}%`;
+
+  // Build base conditions
+  const conditions = [eq(schema.ideas.userId, userId)];
+
+  if (filter?.source) {
+    conditions.push(eq(schema.ideas.source, filter.source));
+  }
+
+  if (filter?.isSaved !== undefined) {
+    conditions.push(eq(schema.ideas.isSaved, filter.isSaved));
+  }
+
+  if (!filter?.includeExpired) {
+    conditions.push(
+      or(
+        isNull(schema.ideas.expiresAt),
+        gt(schema.ideas.expiresAt, new Date())
+      )!
+    );
+  }
+
+  // Search across text fields and arrays
+  // For arrays, we use array_to_string to convert to searchable text
+  const searchCondition = or(
+    ilike(schema.ideas.title, searchPattern),
+    ilike(schema.ideas.description, searchPattern),
+    sql`array_to_string(${schema.ideas.hooks}, ' ') ILIKE ${searchPattern}`,
+    sql`array_to_string(${schema.ideas.basedOnTrends}, ' ') ILIKE ${searchPattern}`
+  );
+
+  conditions.push(searchCondition!);
+
+  const ideas = await db.query.ideas.findMany({
+    where: and(...conditions),
+    orderBy: [desc(schema.ideas.createdAt)],
+    limit: MAX_IDEAS_PER_PAGE,
+  });
+
+  return ideas.map(dbRowToIdea);
 }
 
 // =============================================================================

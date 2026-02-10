@@ -19,6 +19,7 @@ import {
   markIdeaAsUsed,
   getAIRecommendationsForUser,
   refreshAIRecommendations,
+  searchIdeas,
 } from "~/common/data/idea.data.server";
 import {
   getYouTubeTrends,
@@ -106,6 +107,21 @@ export async function action({ request }: Route.ActionArgs) {
           }
 
           return { success: true, idea: savedIdea };
+        }
+
+        // Search ideas by keyword
+        case "search": {
+          const { query, source, isSaved } = body;
+          if (typeof query !== "string") {
+            return { error: "Missing or invalid query" };
+          }
+
+          const ideas = await searchIdeas(userId, query, {
+            source: source || undefined,
+            isSaved: isSaved ?? undefined,
+          });
+
+          return { success: true, ideas };
         }
 
         // Mark idea as used for a project

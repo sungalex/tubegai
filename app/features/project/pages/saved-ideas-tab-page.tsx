@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/saved-ideas-tab-page";
 import { IdeasSection } from "../components/ideas-section";
 import { getIdeas } from "~/common/data/idea.data.server";
@@ -19,6 +20,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function SavedIdeasTabPage({ loaderData }: Route.ComponentProps) {
   const { savedIdeas: initialSavedIdeas } = loaderData;
   const [ideas, setIdeas] = useState<Idea[]>(initialSavedIdeas);
+  const fetcher = useFetcher<typeof loader>();
+
+  // Reload saved ideas when tab becomes active (component mounts)
+  useEffect(() => {
+    fetcher.load("/projects/saved-ideas");
+  }, []);
+
+  // Update ideas when fetcher returns new data
+  useEffect(() => {
+    if (fetcher.data?.savedIdeas) {
+      setIdeas(fetcher.data.savedIdeas);
+    }
+  }, [fetcher.data]);
 
   return (
     <IdeasSection
