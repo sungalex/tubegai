@@ -101,10 +101,9 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          intent: "generate",
+          intent: "refresh",
           language: "ko",
           trendIds: [trend.trendUuid],
-          count: 3,
         }),
       });
 
@@ -276,7 +275,7 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          intent: "generate",
+          intent: "refresh",
           language: "ko",
           trendIds,
         }),
