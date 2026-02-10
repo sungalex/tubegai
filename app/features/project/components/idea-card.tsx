@@ -106,7 +106,7 @@ export function IdeaCard({
               {idea.trends?.[0]?.trend?.title && `From: ${idea.trends[0].trend.title}`}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Source Badge */}
             {isAI && !isSaved && (
               <Badge
