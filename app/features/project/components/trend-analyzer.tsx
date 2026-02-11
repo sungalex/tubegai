@@ -12,6 +12,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
 } from "~/common/components/ui/carousel";
 import {
   Popover,
@@ -26,16 +28,30 @@ import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 import { AIProjectGeneratorDialog } from "./ai-project-generator-dialog";
 import { useTranslation } from "~/i18n/context";
 
+function ideaToAIRecommendation(idea: Idea): AIRecommendation {
+  return {
+    id: idea.id,
+    title: idea.title,
+    reason: idea.reason || "AI 추천",
+    growth: idea.growthRate || "+50%",
+    description: idea.description,
+    hooks: idea.hooks,
+    targetAudience: idea.targetAudience,
+    estimatedViews: idea.estimatedViews,
+  };
+}
+
 interface TrendAnalyzerProps {
   trends: TrendItem[];
   savedIdeas: Idea[];
+  initialAiRecommendations?: Idea[];
   channels?: Channel[];
   onSaveIdea?: (idea: Idea) => void;
   onUpdateSavedIdeas?: (newSavedIdeas: Idea[]) => void;
   isLoading?: boolean;
 }
 
-export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, onUpdateSavedIdeas, isLoading = false }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, channels = [], onSaveIdea, onUpdateSavedIdeas, isLoading = false }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
@@ -43,7 +59,9 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
   const [isAIProjectDialogOpen, setIsAIProjectDialogOpen] = useState(false);
   const [selectedTrendForAI, setSelectedTrendForAI] = useState<TrendItem | null>(null);
   const [usingIdeaIdx, setUsingIdeaIdx] = useState<number | null>(null);
-  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>(
+    () => (initialAiRecommendations ?? []).map(ideaToAIRecommendation)
+  );
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation("project");
@@ -732,76 +750,91 @@ export function TrendAnalyzer({ trends, savedIdeas, channels = [], onSaveIdea, o
               <p className="text-xs mt-1">현재 트렌드를 분석하여 콘텐츠 아이디어를 추천합니다.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {aiRecommendations.map((item, idx) => (
-                <Card key={idx} className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5">
-                  <CardContent className="p-4 flex flex-col h-full gap-3">
-                    <div className="flex justify-between items-start">
-                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
-                        {item.reason}
-                      </Badge>
-                      <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
-                        <TrendingUp className="h-3 w-3" /> {item.growth}
-                      </span>
-                    </div>
+            <div className="px-10 relative">
+              <Carousel
+                opts={{
+                  align: "start",
+                  dragFree: true,
+                  skipSnaps: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {aiRecommendations.map((item, idx) => (
+                    <CarouselItem key={item.id ?? idx} className="basis-full md:basis-1/2 lg:basis-1/3">
+                      <Card className="bg-background/60 border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-purple-500/5 h-full">
+                        <CardContent className="p-4 flex flex-col h-full gap-3">
+                          <div className="flex justify-between items-start">
+                            <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
+                              {item.reason}
+                            </Badge>
+                            <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
+                              <TrendingUp className="h-3 w-3" /> {item.growth}
+                            </span>
+                          </div>
 
-                    <h4 className="font-medium group-hover:text-purple-400 transition-colors line-clamp-2">{item.title}</h4>
+                          <h4 className="font-medium group-hover:text-purple-400 transition-colors line-clamp-2">{item.title}</h4>
 
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                    )}
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                          )}
 
-                    {item.hooks && item.hooks.length > 0 && (
-                      <div className="text-xs bg-purple-500/5 rounded-md p-2 border border-purple-500/10">
-                        <span className="font-medium text-purple-400">Hook: </span>
-                        <span className="text-muted-foreground line-clamp-1">{item.hooks[0]}</span>
-                      </div>
-                    )}
+                          {item.hooks && item.hooks.length > 0 && (
+                            <div className="text-xs bg-purple-500/5 rounded-md p-2 border border-purple-500/10">
+                              <span className="font-medium text-purple-400">Hook: </span>
+                              <span className="text-muted-foreground line-clamp-1">{item.hooks[0]}</span>
+                            </div>
+                          )}
 
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      {item.targetAudience && (
-                        <div className="flex items-center gap-1">
-                          <Target className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground truncate max-w-24">{item.targetAudience}</span>
-                        </div>
-                      )}
-                      {item.estimatedViews && (
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-green-500 font-medium">{item.estimatedViews}</span>
-                        </div>
-                      )}
-                    </div>
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            {item.targetAudience && (
+                              <div className="flex items-center gap-1">
+                                <Target className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground truncate max-w-24">{item.targetAudience}</span>
+                              </div>
+                            )}
+                            {item.estimatedViews && (
+                              <div className="flex items-center gap-1">
+                                <Eye className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-green-500 font-medium">{item.estimatedViews}</span>
+                              </div>
+                            )}
+                          </div>
 
-                    <div className="flex gap-2 mt-auto pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 bg-background/80 hover:bg-background"
-                        onClick={() => handleGenerateIdeasFromRecommendation(item)}
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        {t("trends.regeneration")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-background/80 hover:bg-background"
-                        onClick={() => handleSaveRecommendation(item)}
-                      >
-                        <Bookmark className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
-                        onClick={() => handleUseAIRecommendation(item)}
-                      >
-                        {t("trends.useIdea")}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          <div className="flex gap-2 mt-auto pt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-background/80 hover:bg-background"
+                              onClick={() => handleGenerateIdeasFromRecommendation(item)}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              {t("trends.regeneration")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-background/80 hover:bg-background"
+                              onClick={() => handleSaveRecommendation(item)}
+                            >
+                              <Bookmark className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                              onClick={() => handleUseAIRecommendation(item)}
+                            >
+                              {t("trends.useIdea")}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="-left-8 bg-background/90 border-purple-500/20 hover:bg-background hover:border-purple-500/40" />
+                <CarouselNext className="-right-8 bg-background/90 border-purple-500/20 hover:bg-background hover:border-purple-500/40" />
+              </Carousel>
             </div>
           )}
         </section>

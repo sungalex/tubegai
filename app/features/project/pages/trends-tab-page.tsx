@@ -9,7 +9,7 @@ import {
   getStoredTrends,
   getStoredTrendsWithFilters,
 } from "~/common/data/youtube.data.server";
-import { getIdeas } from "~/common/data/idea.data.server";
+import { getIdeas, getAIRecommendations } from "~/common/data/idea.data.server";
 import { getChannelsForSelect } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { Idea } from "~/common/types/ideation.types";
@@ -57,9 +57,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const allIdeas = await getIdeas(userId, { isSaved: true });
   const savedIdeas = allIdeas.slice(0, 6);
 
+  // Supabase에서 AI 추천 아이디어 가져오기 (만료되지 않은 unsaved)
+  const aiRecommendations = await getAIRecommendations(userId);
+
   return {
     trends,
     savedIdeas,
+    aiRecommendations,
     categories,
     channels,
     initialFilters: filters,
@@ -70,6 +74,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   const {
     trends,
     savedIdeas: initialSavedIdeas,
+    aiRecommendations: initialAiRecommendations,
     categories,
     channels,
     initialFilters,
@@ -199,6 +204,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
       <TrendAnalyzer
         trends={filteredTrends}
         savedIdeas={savedIdeas}
+        initialAiRecommendations={initialAiRecommendations}
         channels={channels}
         onSaveIdea={handleSaveIdea}
         onUpdateSavedIdeas={handleUpdateSavedIdeas}

@@ -507,17 +507,6 @@ async function saveGeneratedRecommendations(
       .map((t) => [t.title.toLowerCase(), t.trendUuid!])
   );
 
-  // Delete old unsaved AI recommendations for user (cascade deletes ideaTrends)
-  await db
-    .delete(schema.ideas)
-    .where(
-      and(
-        eq(schema.ideas.userId, userId),
-        eq(schema.ideas.source, "ai_generated"),
-        eq(schema.ideas.isSaved, false)
-      )
-    );
-
   // Insert new recommendations
   for (const rec of recommendations) {
     // Parse and validate values (AI may return comma-separated values)
