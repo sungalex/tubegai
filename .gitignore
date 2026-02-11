@@ -6,7 +6,7 @@
 /.react-router/
 /build/
 
-/docs/
+/docs/Assignments/
 
 package-lock.json
 .vercel
