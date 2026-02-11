@@ -128,9 +128,6 @@ export async function action({ request }: Route.ActionArgs) {
   // Check if caller wants JSON response (for fetcher calls)
   const returnJson = data._returnJson === "true";
 
-  // Debug: log received form data
-  console.log("[CreateProject] Form data received:", JSON.stringify(data, null, 2));
-
   try {
     // Parse arrays and JSON fields
     const hooks = data.hooks ? JSON.parse(data.hooks as string) : undefined;
