@@ -73,6 +73,7 @@ export default [
     route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
     route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
     route("studio/generate-scene-image", "features/studio/api/generate-scene-image.ts"),
+    route("studio/trendtube-generate-stream", "features/studio/api/trendtube-generate-stream.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)
@@ -114,9 +115,9 @@ export default [
         "features/studio/pages/studio-export-page.tsx"
       ),
 
-      // DISABLED: Studio Dashboard (Phase 2)
-      // route("dashboard", "features/studio/pages/studio-dashboard-page.tsx", { id: "studio-dashboard-static" }),
-      // route("dashboard/:projectId", "features/studio/pages/studio-dashboard-page.tsx"),
+      // TrendTube Dashboard
+      route("dashboard", "features/studio/pages/studio-dashboard-page.tsx", { id: "studio-dashboard-static" }),
+      route("dashboard/:projectId", "features/studio/pages/studio-dashboard-page.tsx"),
 
       // ============================================
       // DISABLED: Phase 2+ Studio Routes

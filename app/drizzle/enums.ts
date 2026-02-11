@@ -153,6 +153,17 @@ export const ideaSourceEnum = tubegaiSchema.enum("idea_source", [
   "user_created",
 ]);
 
+// TrendTube Pipeline
+export const trendtubePipelineStatusEnum = tubegaiSchema.enum(
+  "trendtube_pipeline_status",
+  ["pending", "extracting", "generating_ideas", "generating_media", "completed", "failed"]
+);
+
+export const trendtubeMediaTypeEnum = tubegaiSchema.enum(
+  "trendtube_media_type",
+  ["video_image", "background_music", "voiceover"]
+);
+
 // Content Tone (more flexible than project_tone)
 export const contentToneEnum = tubegaiSchema.enum("content_tone", [
   "informative",

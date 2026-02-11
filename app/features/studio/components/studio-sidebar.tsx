@@ -18,6 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Scissors,
+  Sparkles,
 } from "lucide-react";
 import { useTranslation } from "~/i18n/context";
 
@@ -49,6 +50,13 @@ export function StudioSidebar({
    * - Dashboard & Others: Disabled (Phase 2+)
    */
   const items = [
+    // TrendTube Dashboard
+    {
+      title: "TrendTube",
+      href: getPath("dashboard"),
+      icon: Sparkles,
+      disabled: false,
+    },
     // MVP Features
     {
       title: t("studio.script.name"),
@@ -75,12 +83,6 @@ export function StudioSidebar({
       disabled: false,
     },
     // Phase 2+ Features (Disabled)
-    {
-      title: t("studio.dashboard.name"),
-      href: "#",
-      icon: LayoutDashboard,
-      disabled: true,
-    },
     { title: t("studio.broll.name"), href: "#", icon: Film, disabled: true },
     { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
     {
