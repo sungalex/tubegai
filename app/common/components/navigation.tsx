@@ -111,18 +111,23 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
     items: [
       // MVP Features
       {
+        name: t("studio.dashboard.name"),
+        description: t("studio.dashboard.description"),
+        to: "/studio/dashboard",
+        icon: LayoutDashboard,
+        featured: true,
+      },
+      {
         name: t("studio.script.name"),
         description: t("studio.script.description"),
         to: "/studio/script",
         icon: FileText,
-        featured: true,
       },
       {
         name: t("studio.storyboard.name"),
         description: t("studio.storyboard.description"),
         to: "/studio/storyboard",
         icon: Image,
-        featured: true,
       },
       {
         name: t("studio.scene.name"),
@@ -137,13 +142,6 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
         icon: Download,
       },
       // DISABLED: Phase 2+ Features
-      {
-        name: t("studio.dashboard.name"),
-        description: t("studio.dashboard.description"),
-        to: "#",
-        icon: LayoutDashboard,
-        disabled: true,
-      },
       {
         name: t("studio.broll.name"),
         description: t("studio.broll.description"),
@@ -183,7 +181,11 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
   },
 ];
 
-export default function Navigation({ user, hasNotifications, hasMessages }: NavigationProps) {
+export default function Navigation({
+  user,
+  hasNotifications,
+  hasMessages,
+}: NavigationProps) {
   const params = useParams();
   const projectId = params.projectId || "1";
   const { t } = useTranslation("navigation");
@@ -195,7 +197,11 @@ export default function Navigation({ user, hasNotifications, hasMessages }: Navi
       <div className="w-full px-4 md:px-8">
         <div className="flex h-16 justify-between items-center">
           <div className="flex items-center gap-6">
-            <MobileNavigation navItems={navItems} isOpen={isOpen} setIsOpen={setIsOpen} />
+            <MobileNavigation
+              navItems={navItems}
+              isOpen={isOpen}
+              setIsOpen={setIsOpen}
+            />
             <Link to="/">
               <span className="text-xl font-bold bg-linear-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent hidden sm:inline-block">
                 {t("brand")}
@@ -219,5 +225,3 @@ export default function Navigation({ user, hasNotifications, hasMessages }: Navi
     </nav>
   );
 }
-
-
