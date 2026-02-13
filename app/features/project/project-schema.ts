@@ -119,6 +119,8 @@ export const projects = tubegaiSchema.table("project", {
   trendSnapshot: jsonb("trend_snapshot").$type<TrendSnapshot>(),
   // AI-generated script guidelines
   scriptGuidelines: jsonb("script_guidelines").$type<ScriptGuidelines>(),
+  // YouTube reference video URL
+  referenceUrl: text("reference_url"),
 });
 
 // ============================================
@@ -290,6 +292,9 @@ export const ideas = tubegaiSchema.table("idea", {
   usedForProjectId: uuid("used_for_project_id").references(() => projects.id, {
     onDelete: "set null",
   }),
+
+  // === Reference URL (YouTube video URL) ===
+  referenceUrl: text("reference_url"),
 
   // === Expiration Management ===
   expiresAt: timestamp("expires_at"),

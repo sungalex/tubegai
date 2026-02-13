@@ -183,6 +183,13 @@
       "when": 1770796842157,
       "tag": "0025_trendtube_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1770967902028,
+      "tag": "0026_oval_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

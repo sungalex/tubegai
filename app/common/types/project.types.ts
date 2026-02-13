@@ -18,6 +18,7 @@ export interface RecentProject {
   difficulty?: string;
   basedOnTrend?: string;
   thumbnailUrl?: string;
+  referenceUrl?: string;
 }
 
 export interface Project {

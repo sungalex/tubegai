@@ -126,6 +126,7 @@ export function IdeaGeneratorDialog({
             ...idea,
             source: "user_created",
             trendIds: trend.trendUuid ? [trend.trendUuid] : [],
+            referenceUrl: trend.videoUrl,
           },
         }),
       });
@@ -171,6 +172,7 @@ export function IdeaGeneratorDialog({
               ...idea,
               source: "user_created",
               trendIds: trend.trendUuid ? [trend.trendUuid] : [],
+              referenceUrl: trend.videoUrl,
             },
           }),
         });

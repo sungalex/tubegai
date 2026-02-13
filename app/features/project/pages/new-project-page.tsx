@@ -82,6 +82,8 @@ const projectFormSchema = z.object({
   styleNotes: z.string().optional(),
   scriptGuidelines: z.string().optional(),
   callToAction: z.string().optional(),
+  // Reference URL
+  referenceUrl: z.string().url().optional().or(z.literal("")),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -104,6 +106,7 @@ const defaultValues: Partial<ProjectFormValues> = {
   styleNotes: "",
   scriptGuidelines: "",
   callToAction: "",
+  referenceUrl: "",
 };
 
 // =============================================================================
@@ -173,6 +176,7 @@ export async function action({ request }: Route.ActionArgs) {
       sourceIdeaId: (data.sourceIdeaId as string) || undefined,
       aiContext: Object.keys(aiContext).length > 0 ? aiContext : undefined,
       scriptGuidelines,
+      referenceUrl: (data.referenceUrl as string) || undefined,
     });
 
     // Return JSON for fetcher calls, redirect for regular form submissions
@@ -210,6 +214,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
     estimatedViews?: string;
     difficulty?: string;
     description?: string;
+    referenceUrl?: string;
   } | null;
 
   const form = useForm<ProjectFormValues>({
@@ -227,6 +232,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
       basedOnTrend: (sourceData?.idea ? getPrimaryTrend(sourceData.idea)?.trend?.title : null) || sourceData?.topic || "",
       basedOnTrendId: typeof sourceData?.trendId === "number" ? sourceData.trendId : undefined,
       sourceIdeaId: sourceData?.idea?.id,
+      referenceUrl: sourceData?.referenceUrl || sourceData?.idea?.referenceUrl || "",
     },
   });
 
@@ -267,6 +273,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
     form.setValue("difficulty", idea.difficulty || "medium");
     form.setValue("basedOnTrend", basedOnTrend);
     form.setValue("sourceIdeaId", idea.id);
+    form.setValue("referenceUrl", idea.referenceUrl || "");
     toast.success("아이디어가 적용되었습니다!");
   };
 
@@ -369,6 +376,7 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
           <input type="hidden" name="keywords" value={form.watch("keywords") || ""} />
           <input type="hidden" name="scriptGuidelines" value={form.watch("scriptGuidelines") || ""} />
           <input type="hidden" name="callToAction" value={form.watch("callToAction") || ""} />
+          <input type="hidden" name="referenceUrl" value={form.watch("referenceUrl") || ""} />
           {form.watch("sourceIdeaId") && (
             <input type="hidden" name="sourceIdeaId" value={form.watch("sourceIdeaId")} />
           )}
@@ -470,6 +478,27 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
                         name="description"
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="referenceUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Youtube 참고 영상</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        {...field}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      참고할 YouTube 영상 URL (선택사항)
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

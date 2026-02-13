@@ -257,7 +257,7 @@ Grep "변경된이름" app/
 
 # 4. 마이그레이션 후 DB 반영 확인
 npm run db:migrate
-# 실패 시 Supabase SQL Editor에서 직접 실행
+# 가급적 항상 npm run db:migrate로 적용하고, 부득이하게 SQL Editor를 사용해야 할 경우 추적 레코드(__drizzle_migrations) 정보도 함께 INSERT 하도록 SQL문 제공
 ```
 
 ---

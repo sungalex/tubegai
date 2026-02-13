@@ -340,6 +340,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
           targetAudience: idea.targetAudience,
           estimatedViews: idea.estimatedViews,
           description: idea.description,
+          referenceUrl: idea.referenceUrl,
         }
       });
     } finally {
@@ -415,6 +416,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
           targetAudience: recommendation.targetAudience,
           estimatedViews: recommendation.estimatedViews,
           description: recommendation.description,
+          referenceUrl: savedIdea?.referenceUrl,
         }
       });
     } catch (error) {

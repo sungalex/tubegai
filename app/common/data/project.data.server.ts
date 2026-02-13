@@ -83,6 +83,7 @@ export interface CreateProjectInput {
   basedOnTrendUuid?: string;
   trendSnapshot?: TrendSnapshot;
   scriptGuidelines?: ScriptGuidelines;
+  referenceUrl?: string;
 }
 
 // =============================================================================
@@ -132,6 +133,7 @@ export async function createProject(
       basedOnTrendUuid: emptyToNull(input.basedOnTrendUuid),
       trendSnapshot: input.trendSnapshot,
       scriptGuidelines: input.scriptGuidelines,
+      referenceUrl: emptyToNull(input.referenceUrl),
     })
     .returning({ id: schema.projects.id });
 

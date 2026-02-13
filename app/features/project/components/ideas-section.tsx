@@ -145,6 +145,7 @@ export function IdeasSection({
         topic: idea.title,
         hooks: idea.hooks,
         ideaId: idea.id,
+        referenceUrl: idea.referenceUrl,
       },
     });
   };

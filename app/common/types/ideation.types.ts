@@ -46,6 +46,7 @@ export interface Idea {
   targetAudience?: string;
   estimatedViews?: string;
   difficulty?: IdeaDifficulty;
+  referenceUrl?: string;
 
   // Source tracking
   source: IdeaSource;
@@ -91,6 +92,7 @@ export interface CreateIdeaInput {
   contentTones?: string[];
   videoTypes?: string[];
   category?: string;
+  referenceUrl?: string;
 }
 
 /**

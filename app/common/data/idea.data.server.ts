@@ -86,6 +86,7 @@ function dbRowToIdea(row: IdeaWithRelations): Idea {
     contentTones: row.contentTones ?? [],
     videoTypes: row.videoTypes ?? [],
     category: row.category ?? undefined,
+    referenceUrl: row.referenceUrl ?? undefined,
     isSaved: row.isSaved,
     isUsed: row.isUsed,
     usedForProjectId: row.usedForProjectId ?? undefined,
@@ -307,6 +308,7 @@ export async function createIdea(
       contentTones: input.contentTones ?? [],
       videoTypes: input.videoTypes ?? [],
       category: input.category,
+      referenceUrl: input.referenceUrl,
       isSaved: input.source === "user_created", // User-created ideas are saved by default
       isUsed: false,
     })
@@ -507,11 +509,24 @@ async function saveGeneratedRecommendations(
       .map((t) => [t.title.toLowerCase(), t.trendUuid!])
   );
 
+  // Build a map of trend titles to videoUrls
+  const trendTitleToVideoUrl = new Map(
+    inputTrends
+      .filter((t) => t.videoUrl)
+      .map((t) => [t.title.toLowerCase(), t.videoUrl!])
+  );
+
   // Insert new recommendations
   for (const rec of recommendations) {
     // Parse and validate values (AI may return comma-separated values)
     const contentTones = parseContentTones(rec.contentTone);
     const videoTypes = parseVideoTypes(rec.videoType);
+
+    // Get reference URL from primary trend
+    const primaryTrendTitle = (rec.basedOnTrends ?? [])[0]?.toLowerCase();
+    const referenceUrl = primaryTrendTitle
+      ? trendTitleToVideoUrl.get(primaryTrendTitle)
+      : undefined;
 
     const [idea] = await db
       .insert(schema.ideas)
@@ -530,6 +545,7 @@ async function saveGeneratedRecommendations(
         contentTones,
         videoTypes,
         category: contentTones[0], // Use first contentTone as category
+        referenceUrl,
         isSaved: false,
         isUsed: false,
         expiresAt,

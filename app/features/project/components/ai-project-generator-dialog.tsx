@@ -299,6 +299,10 @@ export function AIProjectGeneratorDialog({
     if (trend.thumbnail) {
       formData.set("thumbnailUrl", trend.thumbnail);
     }
+    // Reference URL (YouTube video URL)
+    if (trend.videoUrl) {
+      formData.set("referenceUrl", trend.videoUrl);
+    }
 
     console.log("[AI Dialog] Submitting project creation to /projects/new");
     projectFetcher.submit(formData, {
