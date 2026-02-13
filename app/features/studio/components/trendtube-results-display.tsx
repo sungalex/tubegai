@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  ImageIcon,
+  Video,
   Music,
   Mic,
   Lightbulb,
@@ -10,8 +10,7 @@ import {
   TrendingUp,
   Copy,
   Check,
-  ChevronLeft,
-  ChevronRight,
+  Download,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
@@ -22,7 +21,6 @@ import {
   CardTitle,
 } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
-
 import { Separator } from "~/common/components/ui/separator";
 import { toast } from "sonner";
 import type { TrendTubeResults } from "~/common/types/trendtube.types";
@@ -36,7 +34,6 @@ export function TrendTubeResultsDisplay({
   results,
   onReset,
 }: TrendTubeResultsDisplayProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleCopy = async (text: string, field: string) => {
@@ -46,17 +43,15 @@ export function TrendTubeResultsDisplay({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const nextImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev < results.imageUrls.length - 1 ? prev + 1 : 0
-    );
+  const handleDownload = (url: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
   };
 
-  const prevImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev > 0 ? prev - 1 : results.imageUrls.length - 1
-    );
-  };
+  // Determine hero video: prefer composited, fallback to raw video
+  const heroVideoUrl = results.compositedVideoUrl || results.videoUrl;
 
   return (
     <div className="space-y-6">
@@ -74,70 +69,79 @@ export function TrendTubeResultsDisplay({
         </Button>
       </div>
 
-      {/* Hero: Generated Images Carousel */}
-      {results.imageUrls.length > 0 && (
+      {/* Hero: Composited Video Player */}
+      {heroVideoUrl ? (
         <Card className="overflow-hidden">
-          <div className="relative aspect-video bg-muted">
-            <img
-              src={results.imageUrls[currentImageIndex]}
-              alt={`생성된 이미지 ${currentImageIndex + 1}`}
-              className="h-full w-full object-cover"
-            />
-            {/* Navigation Arrows */}
-            {results.imageUrls.length > 1 && (
-              <>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full opacity-80 hover:opacity-100"
-                  onClick={prevImage}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full opacity-80 hover:opacity-100"
-                  onClick={nextImage}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-                {/* Dots Indicator */}
-                <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                  {results.imageUrls.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentImageIndex(i)}
-                      className={`h-2 w-2 rounded-full transition-colors ${
-                        i === currentImageIndex
-                          ? "bg-primary"
-                          : "bg-primary/30"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-            {/* Image Counter */}
+          <div className="relative bg-muted">
+            <video
+              controls
+              className="w-full aspect-video"
+              src={heroVideoUrl}
+            >
+              브라우저가 비디오를 지원하지 않습니다.
+            </video>
             <Badge
               variant="secondary"
               className="absolute top-3 right-3 opacity-80"
             >
-              <ImageIcon className="mr-1 h-3 w-3" />
-              {currentImageIndex + 1} / {results.imageUrls.length}
+              <Video className="mr-1 h-3 w-3" />
+              {results.compositedVideoUrl ? "합성 영상" : "원본 영상"}
+              {results.compositedDuration ? ` ${results.compositedDuration}초` : ""}
             </Badge>
           </div>
+          {heroVideoUrl && (
+            <div className="p-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(heroVideoUrl, "trendtube-video.mp4")}
+              >
+                <Download className="mr-1 h-3 w-3" />
+                다운로드
+              </Button>
+            </div>
+          )}
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <Video className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm">영상이 생성되지 않았습니다</p>
+            <p className="text-xs">Veo 3 API 키를 설정하면 영상이 자동 생성됩니다</p>
+          </CardContent>
         </Card>
       )}
 
-      {/* Audio Section: Music + Voiceover */}
+      {/* Individual Assets: Video + Music + Voiceover */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Raw Video (if composited exists, show raw separately) */}
+        {results.compositedVideoUrl && results.videoUrl && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Video className="h-4 w-4 text-primary" />
+                원본 영상
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <video controls className="w-full rounded-md" src={results.videoUrl}>
+                브라우저가 비디오를 지원하지 않습니다.
+              </video>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Background Music */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Music className="h-4 w-4 text-primary" />
               배경 음악
+              {results.musicDuration ? (
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {results.musicDuration}초
+                </Badge>
+              ) : null}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -148,14 +152,7 @@ export function TrendTubeResultsDisplay({
             ) : (
               <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-6 text-sm text-muted-foreground">
                 <Music className="h-8 w-8 text-muted-foreground/40" />
-                {results.musicGenre ? (
-                  <div className="text-center">
-                    <p>추천 장르: <Badge variant="outline">{results.musicGenre}</Badge></p>
-                    <p className="mt-1 text-xs">음악 API 연동 시 자동 생성됩니다</p>
-                  </div>
-                ) : (
-                  <p>음악이 생성되지 않았습니다</p>
-                )}
+                <p>Lyria 2 API를 설정하면 음악이 생성됩니다</p>
               </div>
             )}
           </CardContent>
@@ -169,8 +166,7 @@ export function TrendTubeResultsDisplay({
               나레이션
               {results.voiceoverDuration ? (
                 <Badge variant="secondary" className="ml-auto text-xs">
-                  약 {Math.floor(results.voiceoverDuration / 60)}분{" "}
-                  {results.voiceoverDuration % 60}초
+                  약 {results.voiceoverDuration}초
                 </Badge>
               ) : null}
             </CardTitle>

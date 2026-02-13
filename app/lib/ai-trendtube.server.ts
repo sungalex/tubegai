@@ -2,10 +2,9 @@
 // TrendTube AI Pipeline Service (Google Gemini API)
 // =============================================================================
 // Server-side AI pipeline for TrendTube: trend extraction, idea generation,
-// image generation, narration script writing, and BGM selection.
+// and narration script writing (8-second format).
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateImage, generatePlaceholderImage } from "./ai-imagen.server";
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -100,80 +99,7 @@ ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDesc
 }
 
 // =============================================================================
-// Step 3: Generate Video Images (Key Frames)
-// =============================================================================
-
-export async function generateVideoImages(
-  videoIdeas: string
-): Promise<string[]> {
-  if (!genAI) {
-    throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
-  }
-
-  // First, generate visual prompts from video ideas
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
-  const promptResult = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `Based on the following video ideas, create exactly 4 short English visual prompts for key frame images. Each prompt should describe a single cinematic scene that could be a key moment in the video.
-
-Video Ideas:
-${videoIdeas}
-
-Return ONLY a JSON array of 4 strings, each being a visual prompt. No code blocks, no explanation.
-Example: ["A person sitting at a modern desk with multiple screens showing AI dashboards, cinematic lighting", "Close-up of hands typing on keyboard with holographic data visualizations floating above", ...]`,
-          },
-        ],
-      },
-    ],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-  });
-
-  let visualPrompts: string[] = [];
-  try {
-    const rawText = promptResult.response.text();
-    const cleaned = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (match) {
-      visualPrompts = JSON.parse(match[0]);
-    }
-  } catch {
-    visualPrompts = [
-      "A creative workspace with modern technology, cinematic lighting, professional quality",
-      "Dynamic scene with vibrant colors and engaging composition, YouTube thumbnail style",
-      "Person presenting content with energy and enthusiasm, studio lighting setup",
-      "Abstract visualization of trending topics and viral content, modern design",
-    ];
-  }
-
-  // Generate images from visual prompts
-  const imageUrls: string[] = [];
-
-  for (const prompt of visualPrompts.slice(0, 4)) {
-    try {
-      const image = await generateImage(prompt, {
-        aspectRatio: "16:9",
-        style: "cinematic",
-      });
-      const base64 = image.buffer.toString("base64");
-      imageUrls.push(`data:${image.mimeType};base64,${base64}`);
-    } catch {
-      // Fallback to placeholder
-      const placeholder = generatePlaceholderImage({ aspectRatio: "16:9" });
-      const base64 = placeholder.buffer.toString("base64");
-      imageUrls.push(`data:${placeholder.mimeType};base64,${base64}`);
-    }
-  }
-
-  return imageUrls;
-}
-
-// =============================================================================
-// Step 4: Generate Narration Script
+// Step 5: Generate Narration Script (8-second format)
 // =============================================================================
 
 export async function generateNarrationScript(
@@ -190,110 +116,27 @@ export async function generateNarrationScript(
 ## 영상 아이디어:
 ${videoIdeas}
 
-위 아이디어 중 첫 번째 아이디어를 기반으로 **YouTube 나레이션 스크립트**를 작성해주세요.
+위 아이디어 중 첫 번째 아이디어를 기반으로 **8초 분량의 오프닝 나레이션**을 작성해주세요.
 
-### 스크립트 형식:
-**[인트로 - 15초]**
-시청자의 관심을 끄는 강력한 오프닝. 질문이나 놀라운 사실로 시작.
-
-**[본문 1 - 30초]**
-핵심 내용의 첫 번째 포인트. 구체적인 예시와 데이터 포함.
-
-**[본문 2 - 30초]**
-두 번째 핵심 포인트. 시각적 설명과 함께.
-
-**[본문 3 - 30초]**
-세 번째 핵심 포인트. 실용적인 팁이나 방법.
-
-**[아웃트로 - 15초]**
-핵심 메시지 요약 + 구독/좋아요 유도.
-
-### 작성 규칙:
+### 스크립트 요구사항:
+- **총 길이**: 정확히 8초 분량 (한국어 약 40자, 영어 약 20단어)
+- **목적**: 영상 첫 8초의 강력한 오프닝 훅
+- **스타일**: 시청자를 즉시 끌어들이는 질문이나 놀라운 사실
 - 자연스러운 구어체 사용
 - 보이스오버에 최적화된 짧은 문장
 - 감정 표현 지시 포함 (예: [열정적으로], [차분하게])
-- 총 2분 내외 분량`;
+
+### 예시:
+[열정적으로] "AI가 당신의 월급을 대체할 수 있다면, 어떻게 하시겠습니까?"
+
+한국어로 작성해주세요. 스크립트 텍스트만 반환하세요.`;
 
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
   });
 
   const text = result.response.text();
   if (!text) throw new Error("나레이션 스크립트 생성 응답이 비어있습니다");
   return text;
-}
-
-// =============================================================================
-// Step 5: Background Music Selection (Preset-based)
-// =============================================================================
-
-export interface BGMTrack {
-  genre: string;
-  label: string;
-  description: string;
-}
-
-const BGM_PRESETS: BGMTrack[] = [
-  {
-    genre: "upbeat",
-    label: "활기찬 일렉트로닉",
-    description: "에너지 넘치는 테크/IT 콘텐츠에 어울리는 업비트 BGM",
-  },
-  {
-    genre: "calm",
-    label: "잔잔한 어쿠스틱",
-    description: "설명형/교육 콘텐츠에 어울리는 차분한 BGM",
-  },
-  {
-    genre: "dramatic",
-    label: "드라마틱 오케스트라",
-    description: "충격적인 사실/리뷰 콘텐츠에 어울리는 극적인 BGM",
-  },
-  {
-    genre: "cinematic",
-    label: "시네마틱 앰비언트",
-    description: "브이로그/다큐멘터리에 어울리는 분위기 있는 BGM",
-  },
-  {
-    genre: "tech",
-    label: "테크 퓨처리스틱",
-    description: "AI/기술 관련 콘텐츠에 어울리는 미래적 BGM",
-  },
-];
-
-export async function selectBackgroundMusic(
-  videoIdeas: string
-): Promise<{ genre: string; label: string; description: string }> {
-  if (!genAI) {
-    return BGM_PRESETS[0];
-  }
-
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
-  const genreOptions = BGM_PRESETS.map((t) => t.genre).join(", ");
-
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `Based on these video ideas, choose the most appropriate background music genre.
-Options: ${genreOptions}
-
-Video Ideas:
-${videoIdeas.substring(0, 1000)}
-
-Return ONLY the genre name as a single word. No explanation.`,
-          },
-        ],
-      },
-    ],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 50 },
-  });
-
-  const selectedGenre = result.response.text().trim().toLowerCase();
-  const matched = BGM_PRESETS.find((t) => selectedGenre.includes(t.genre));
-  return matched ?? BGM_PRESETS[0];
 }

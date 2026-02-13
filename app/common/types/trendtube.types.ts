@@ -1,5 +1,5 @@
 // =============================================================================
-// TrendTube Types - Studio Dashboard Pipeline
+// TrendTube Types - Studio Dashboard Pipeline (7-Step)
 // =============================================================================
 
 // ---------------------------
@@ -10,10 +10,16 @@ export type TrendTubePipelineStatus =
   | "extracting"
   | "generating_ideas"
   | "generating_media"
+  | "compositing"
   | "completed"
   | "failed";
 
-export type TrendTubeMediaType = "video_image" | "background_music" | "voiceover";
+export type TrendTubeMediaType =
+  | "video_image"
+  | "background_music"
+  | "voiceover"
+  | "generated_video"
+  | "composited_video";
 
 export type TrendTubeVoiceOption =
   | "male_ko"
@@ -78,13 +84,38 @@ export interface TrendTubeMediaItem {
 }
 
 // ---------------------------
+// Step IO (AI Input / Output per step)
+// ---------------------------
+export interface TrendTubeStepIO {
+  type: "text" | "video" | "audio" | "mixed";
+  label: string;
+  text?: string;
+  textPreview?: string;
+  mediaUrl?: string;
+  mediaDuration?: number;
+  items?: TrendTubeStepIO[];
+}
+
+// ---------------------------
+// Pipeline Step
+// ---------------------------
+export interface TrendTubePipelineStep {
+  step: number;
+  name: string;
+  status: "pending" | "in_progress" | "completed" | "failed";
+  input?: TrendTubeStepIO;
+  output?: TrendTubeStepIO;
+  error?: string;
+}
+
+// ---------------------------
 // SSE Stream Events
 // ---------------------------
 export type TrendTubeStreamEvent =
   | { type: "pipeline_start"; sessionId: string }
-  | { type: "step_start"; step: number; stepName: string; total: number }
+  | { type: "step_start"; step: number; stepName: string; total: number; input?: TrendTubeStepIO }
   | { type: "step_progress"; step: number; text: string }
-  | { type: "step_complete"; step: number; stepName: string; data: unknown }
+  | { type: "step_complete"; step: number; stepName: string; output?: TrendTubeStepIO }
   | { type: "pipeline_complete"; sessionId: string; results: TrendTubeResults }
   | { type: "pipeline_error"; step: number; error: string };
 
@@ -95,20 +126,11 @@ export interface TrendTubeResults {
   extractedTrends: string;
   videoIdeas: string;
   narrationScript: string;
-  imageUrls: string[];
+  videoUrl?: string;
   musicUrl?: string;
-  musicGenre?: string;
+  musicDuration?: number;
   voiceoverUrl?: string;
   voiceoverDuration?: number;
-}
-
-// ---------------------------
-// Pipeline Step
-// ---------------------------
-export interface TrendTubePipelineStep {
-  step: number;
-  name: string;
-  status: "pending" | "in_progress" | "completed" | "failed";
-  data?: unknown;
-  error?: string;
+  compositedVideoUrl?: string;
+  compositedDuration?: number;
 }

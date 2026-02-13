@@ -81,15 +81,16 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
 
 type DashboardMode = "input" | "generating" | "results";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const INITIAL_STEPS: TrendTubePipelineStep[] = [
   { step: 1, name: "트렌드 추출", status: "pending" },
   { step: 2, name: "영상 아이디어 생성", status: "pending" },
-  { step: 3, name: "영상 이미지 생성", status: "pending" },
-  { step: 4, name: "나레이션 스크립트 작성", status: "pending" },
-  { step: 5, name: "배경 음악 선택", status: "pending" },
-  { step: 6, name: "음성 나레이션 생성", status: "pending" },
+  { step: 3, name: "영상 생성 (Veo 3)", status: "pending" },
+  { step: 4, name: "배경음악 생성 (Lyria 2)", status: "pending" },
+  { step: 5, name: "나레이션 스크립트 생성", status: "pending" },
+  { step: 6, name: "보이스오버 생성", status: "pending" },
+  { step: 7, name: "영상 합성", status: "pending" },
 ];
 
 export default function StudioDashboardPage({ loaderData }: Route.ComponentProps) {
@@ -197,18 +198,21 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
                 updateStep(event.step, {
                   status: "in_progress",
                   name: event.stepName,
+                  input: event.input,
                 });
                 break;
 
               case "step_progress":
-                updateStep(event.step, { data: { preview: event.text } });
+                updateStep(event.step, {
+                  output: { type: "text", label: "진행 중", textPreview: event.text },
+                });
                 break;
 
               case "step_complete":
                 updateStep(event.step, {
                   status: "completed",
                   name: event.stepName,
-                  data: event.data,
+                  output: event.output,
                 });
                 break;
 

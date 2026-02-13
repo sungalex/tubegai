@@ -190,6 +190,13 @@
       "when": 1770967902028,
       "tag": "0026_oval_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1770987184360,
+      "tag": "0027_easy_raider",
+      "breakpoints": true
     }
   ]
 }

@@ -6,7 +6,10 @@
 import type { TrendTubeVoiceOption } from "~/common/types/trendtube.types";
 
 // Voice mapping for Google Cloud TTS API
-const VOICE_MAP: Record<TrendTubeVoiceOption, { languageCode: string; name: string }> = {
+const VOICE_MAP: Record<
+  TrendTubeVoiceOption,
+  { languageCode: string; name: string }
+> = {
   male_ko: { languageCode: "ko-KR", name: "ko-KR-Standard-C" },
   female_ko: { languageCode: "ko-KR", name: "ko-KR-Standard-A" },
   male_en: { languageCode: "en-US", name: "en-US-Standard-B" },
@@ -24,22 +27,33 @@ export interface VoiceoverResult {
  */
 export async function generateVoiceover(
   script: string,
-  voiceOption: TrendTubeVoiceOption = "female_ko"
+  voiceOption: TrendTubeVoiceOption = "female_ko",
+  options?: { targetDuration?: number },
 ): Promise<VoiceoverResult> {
-  const apiKey = process.env.GOOGLE_CLOUD_TTS_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.warn("GOOGLE_CLOUD_TTS_API_KEY not set, returning placeholder");
+    console.warn("GEMINI_API_KEY not set, returning placeholder");
     return createPlaceholderVoiceover(script);
   }
 
   // Clean script: remove stage directions like [열정적으로], timing markers, etc.
-  const cleanedScript = script
+  let cleanedScript = script
     .replace(/\[.*?\]/g, "")
     .replace(/\*\*.*?\*\*/g, "")
     .replace(/#{1,3}\s/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  // If target duration specified, truncate script to match
+  if (options?.targetDuration) {
+    const isKorean = voiceOption.endsWith("_ko");
+    // Korean: ~5 chars/sec, English: ~15 chars/sec (~2.5 words/sec)
+    const targetChars = isKorean
+      ? options.targetDuration * 5
+      : options.targetDuration * 15;
+    cleanedScript = cleanedScript.substring(0, targetChars);
+  }
 
   // Truncate to TTS limit (5000 bytes for standard voices)
   const truncated = cleanedScript.substring(0, 4500);
@@ -66,7 +80,7 @@ export async function generateVoiceover(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -96,7 +110,9 @@ export async function generateVoiceover(
  * Create a placeholder voiceover result when TTS API is not available
  */
 function createPlaceholderVoiceover(script: string): VoiceoverResult {
-  const charCount = script.replace(/\[.*?\]/g, "").replace(/\*\*.*?\*\*/g, "").length;
+  const charCount = script
+    .replace(/\[.*?\]/g, "")
+    .replace(/\*\*.*?\*\*/g, "").length;
   const estimatedDuration = Math.ceil(charCount / 5);
 
   return {
