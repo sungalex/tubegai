@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
-import { ScrollArea } from "~/common/components/ui/scroll-area";
+
 import { Separator } from "~/common/components/ui/separator";
 import { toast } from "sonner";
 import type { TrendTubeResults } from "~/common/types/trendtube.types";
@@ -213,11 +213,11 @@ export function TrendTubeResultsDisplay({
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="max-h-64">
+          <div className="max-h-64 overflow-y-auto">
             <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
               {results.videoIdeas}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -244,11 +244,11 @@ export function TrendTubeResultsDisplay({
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="max-h-80">
+          <div className="max-h-80 overflow-y-auto">
             <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
               {results.narrationScript}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
@@ -275,11 +275,11 @@ export function TrendTubeResultsDisplay({
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="max-h-64">
+          <div className="max-h-64 overflow-y-auto">
             <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
               {results.extractedTrends}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
