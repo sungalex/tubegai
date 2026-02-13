@@ -328,6 +328,18 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
     }
   };
 
+  // Resolve referenceUrl: use idea's own referenceUrl, or fall back to the related trend's videoUrl
+  const resolveReferenceUrl = (idea: Idea): string | undefined => {
+    if (idea.referenceUrl) return idea.referenceUrl;
+    const primaryTrend = idea.trends?.find(t => t.isPrimary) || idea.trends?.[0];
+    if (!primaryTrend) return undefined;
+    const matched = trends.find(
+      t => t.trendUuid === primaryTrend.trendId ||
+           t.title.toLowerCase() === primaryTrend.trend?.title?.toLowerCase()
+    );
+    return matched?.videoUrl;
+  };
+
   // Use saved idea - navigate to new project page
   const handleUseSavedIdea = async (idea: Idea, idx: number) => {
     setUsingIdeaIdx(idx);
@@ -340,7 +352,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
           targetAudience: idea.targetAudience,
           estimatedViews: idea.estimatedViews,
           description: idea.description,
-          referenceUrl: idea.referenceUrl,
+          referenceUrl: resolveReferenceUrl(idea),
         }
       });
     } finally {
@@ -416,7 +428,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
           targetAudience: recommendation.targetAudience,
           estimatedViews: recommendation.estimatedViews,
           description: recommendation.description,
-          referenceUrl: savedIdea?.referenceUrl,
+          referenceUrl: savedIdea ? resolveReferenceUrl(savedIdea) : undefined,
         }
       });
     } catch (error) {

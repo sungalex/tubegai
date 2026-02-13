@@ -1,8 +1,9 @@
-"use client";
-
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useParams } from "react-router";
 import { toast } from "sonner";
+import type { Route } from "./+types/studio-dashboard-page";
+import { requireAuth } from "~/lib/auth.server";
+import { getProjectById } from "~/common/data/project.data.server";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { TrendTubeInputForm } from "../components/trendtube-input-form";
 import { TrendTubePipelineProgress } from "../components/trendtube-pipeline-progress";
@@ -25,6 +26,59 @@ export const meta = () => {
   ];
 };
 
+// =============================================================================
+// Loader
+// =============================================================================
+
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const userId = await requireAuth(request);
+  const { projectId } = params;
+  if (!projectId) return { project: null };
+  const project = await getProjectById(projectId, userId);
+  return { project };
+}
+
+// =============================================================================
+// Helper: Build userIdea text from project data
+// =============================================================================
+
+function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof getProjectById>>>) {
+  const lines: string[] = [];
+
+  if (project.title) lines.push(`[제목] ${project.title}`);
+  if (project.description) lines.push(`[설명] ${project.description}`);
+  if (project.topic) lines.push(`[주제] ${project.topic}`);
+  if (project.hooks?.length) lines.push(`[훅] ${project.hooks.join(", ")}`);
+  if (project.targetAudience) lines.push(`[타겟] ${project.targetAudience}`);
+
+  // AI Context
+  const ctx = project.aiContext;
+  if (ctx) {
+    if (ctx.keywords?.length) lines.push(`[키워드] ${ctx.keywords.join(", ")}`);
+    if (ctx.styleNotes) lines.push(`[스타일] ${ctx.styleNotes}`);
+    if (ctx.callToAction) lines.push(`[CTA] ${ctx.callToAction}`);
+  }
+
+  // Script Guidelines
+  const sg = project.scriptGuidelines;
+  if (sg) {
+    lines.push("[스크립트 가이드]");
+    if (sg.openingStrategy) lines.push(`- 도입: ${sg.openingStrategy}`);
+    if (sg.mainPoints?.length) lines.push(`- 핵심: ${sg.mainPoints.join(" / ")}`);
+    if (sg.ctaStrategy) lines.push(`- CTA: ${sg.ctaStrategy}`);
+    if (sg.closingStrategy) lines.push(`- 마무리: ${sg.closingStrategy}`);
+    if (sg.targetLength) lines.push(`- 목표 길이: ${sg.targetLength}`);
+    if (sg.keyMessages?.length) lines.push(`- 핵심 메시지: ${sg.keyMessages.join(", ")}`);
+    if (sg.avoidTopics?.length) lines.push(`- 피할 주제: ${sg.avoidTopics.join(", ")}`);
+  }
+
+  return lines.join("\n");
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
 type DashboardMode = "input" | "generating" | "results";
 
 const TOTAL_STEPS = 6;
@@ -38,12 +92,22 @@ const INITIAL_STEPS: TrendTubePipelineStep[] = [
   { step: 6, name: "음성 나레이션 생성", status: "pending" },
 ];
 
-export default function StudioDashboardPage() {
+export default function StudioDashboardPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
+  const project = loaderData.project;
   const [mode, setMode] = useState<DashboardMode>("input");
   const [steps, setSteps] = useState<TrendTubePipelineStep[]>(INITIAL_STEPS);
   const [results, setResults] = useState<TrendTubeResults | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Pre-fill initial values from project data
+  const initialValues = useMemo(() => {
+    if (!project) return undefined;
+    const trendsUrl = project.referenceUrl || undefined;
+    const userIdea = buildUserIdeaFromProject(project) || undefined;
+    if (!trendsUrl && !userIdea) return undefined;
+    return { trendsUrl, userIdea };
+  }, [project]);
 
   const updateStep = useCallback(
     (stepNumber: number, updates: Partial<TrendTubePipelineStep>) => {
@@ -200,6 +264,7 @@ export default function StudioDashboardPage() {
         <TrendTubeInputForm
           onSubmit={handleSubmit}
           isLoading={false}
+          initialValues={initialValues}
         />
       )}
 

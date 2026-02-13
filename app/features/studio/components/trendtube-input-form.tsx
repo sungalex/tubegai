@@ -54,11 +54,16 @@ interface TrendTubeInputFormProps {
     voiceOption: TrendTubeVoiceOption;
   }) => void;
   isLoading?: boolean;
+  initialValues?: {
+    trendsUrl?: string;
+    userIdea?: string;
+  };
 }
 
 export function TrendTubeInputForm({
   onSubmit,
   isLoading,
+  initialValues,
 }: TrendTubeInputFormProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -66,8 +71,8 @@ export function TrendTubeInputForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      trendsUrl: "",
-      userIdea: "",
+      trendsUrl: initialValues?.trendsUrl || "",
+      userIdea: initialValues?.userIdea || "",
       referenceImageUrl: "",
       voiceOption: "female_ko",
     },

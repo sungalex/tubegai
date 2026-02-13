@@ -350,6 +350,7 @@ export interface ProjectFullDetail {
   basedOnTrendUuid: string | null;
   trendSnapshot: TrendSnapshot | null;
   scriptGuidelines: ScriptGuidelines | null;
+  referenceUrl: string | null;
   // Relations
   channel: {
     id: string;
@@ -436,6 +437,7 @@ export async function getProjectById(
     basedOnTrendUuid: project.basedOnTrendUuid,
     trendSnapshot: project.trendSnapshot as TrendSnapshot | null,
     scriptGuidelines: project.scriptGuidelines as ScriptGuidelines | null,
+    referenceUrl: project.referenceUrl,
     // Relations
     channel: project.channel,
     labels: project.labels.map((pl) => pl.label),
