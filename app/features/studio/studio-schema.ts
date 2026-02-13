@@ -1,6 +1,6 @@
 /**
  * ============================================
- * Studio Schema - MVP Version (Phase 1 Enabled)
+ * Studio Schema - Full Version (Phase 1 + Phase 2+)
  * ============================================
  *
  * MVP Tables:
@@ -8,14 +8,21 @@
  * - studio_script_segment: Script segments (hook, intro, body, cta, outro)
  * - studio_storyboard: Visual scene descriptions
  * - studio_video: Generated scene videos
- * - studio_video_part: Video parts for auto-split scenes (ENABLED in Phase 1)
+ * - studio_video_part: Video parts for auto-split scenes
  * - studio_export_history: Export records
  * - studio_subtitle: Subtitle segments
  * - studio_seo: SEO metadata
  *
- * DISABLED (Phase 2+):
- * - studio_b_roll, studio_rough_cut_*
- * - studio_coloring_*, studio_thumbnail_*
+ * Phase 2+ Tables:
+ * - studio_b_roll: B-Roll assignments
+ * - studio_coloring_preset: Color grading presets
+ * - studio_coloring_setting: Per-project color settings
+ * - studio_thumbnail: Thumbnail container
+ * - studio_thumbnail_candidate: Thumbnail AI candidates
+ * - studio_thumbnail_overlay: Thumbnail text/image overlays
+ * - studio_rough_cut_timeline: Timeline state
+ * - studio_rough_cut_timeline_segment: Timeline segments
+ * - studio_rough_cut_version: Version history
  */
 
 import {
@@ -26,6 +33,7 @@ import {
   doublePrecision,
   unique,
   boolean,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import {
@@ -35,6 +43,10 @@ import {
   exportResolutionEnum,
   exportStatusEnum,
   uploadStatusEnum,
+  bRollProviderEnum,
+  thumbnailOverlayTypeEnum,
+  timelineTrackTypeEnum,
+  timelineResourceTypeEnum,
 } from "../../drizzle/enums";
 import { projects, mediaAssets } from "../project/project-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
@@ -272,5 +284,216 @@ export const seosRelations = relations(seos, ({ one }) => ({
   project: one(projects, {
     fields: [seos.projectId],
     references: [projects.id],
+  }),
+}));
+
+// ============================================
+// Phase 2+ Tables: B-Roll
+// ============================================
+
+export const bRolls = tubegaiSchema.table("studio_b_roll", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  storyboardId: uuid("storyboard_id").references(() => storyboards.id, {
+    onDelete: "set null",
+  }),
+  assetId: uuid("asset_id").references(() => mediaAssets.id, {
+    onDelete: "set null",
+  }),
+  sourceProvider: bRollProviderEnum("source_provider").notNull(),
+  sourceUrl: text("source_url"),
+  startTime: doublePrecision("start_time").default(0),
+  endTime: doublePrecision("end_time"),
+});
+
+// ============================================
+// Phase 2+ Tables: Coloring
+// ============================================
+
+export const coloringPresets = tubegaiSchema.table("studio_coloring_preset", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  filterParameters: jsonb("filter_parameters").notNull(),
+});
+
+export const coloringSettings = tubegaiSchema.table("studio_coloring_setting", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .unique()
+    .notNull(),
+  presetId: text("preset_id").references(() => coloringPresets.id, {
+    onDelete: "set null",
+  }),
+  customParameters: jsonb("custom_parameters"),
+});
+
+// ============================================
+// Phase 2+ Tables: Thumbnail
+// ============================================
+
+export const thumbnails = tubegaiSchema.table("studio_thumbnail", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .unique()
+    .notNull(),
+});
+
+export const thumbnailCandidates = tubegaiSchema.table("studio_thumbnail_candidate", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectThumbnailId: uuid("project_thumbnail_id")
+    .references(() => thumbnails.id, { onDelete: "cascade" })
+    .notNull(),
+  imageAssetId: uuid("image_asset_id")
+    .references(() => mediaAssets.id, { onDelete: "cascade" })
+    .notNull(),
+  isFavorite: boolean("is_favorite").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const thumbnailOverlays = tubegaiSchema.table("studio_thumbnail_overlay", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectThumbnailId: uuid("project_thumbnail_id")
+    .references(() => thumbnails.id, { onDelete: "cascade" })
+    .notNull(),
+  type: thumbnailOverlayTypeEnum("type").notNull(),
+  properties: jsonb("properties").notNull(),
+});
+
+// ============================================
+// Phase 2+ Tables: Rough Cut
+// ============================================
+
+export const roughCutTimelines = tubegaiSchema.table("studio_rough_cut_timeline", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .unique()
+    .notNull(),
+  zoomScale: doublePrecision("zoom_scale").default(30),
+  playheadPosition: doublePrecision("playhead_position").default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const roughCutTimelineSegments = tubegaiSchema.table("studio_rough_cut_timeline_segment", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  timelineId: uuid("timeline_id")
+    .references(() => roughCutTimelines.id, { onDelete: "cascade" })
+    .notNull(),
+  trackId: text("track_id").default("V1").notNull(),
+  type: timelineTrackTypeEnum("type").notNull(),
+  resourceType: timelineResourceTypeEnum("resource_type").notNull(),
+  resourceId: uuid("resource_id").notNull(),
+  startTime: doublePrecision("start_time").notNull(),
+  duration: doublePrecision("duration").notNull(),
+  trimStart: doublePrecision("trim_start").default(0),
+  trimEnd: doublePrecision("trim_end"),
+  playbackSpeed: doublePrecision("playback_speed").default(1),
+  volume: doublePrecision("volume").default(1),
+  zIndex: integer("z_index").default(0),
+});
+
+export const roughCutVersions = tubegaiSchema.table("studio_rough_cut_version", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  versionNumber: integer("version_number").notNull(),
+  videoAssetId: uuid("video_asset_id").references(() => mediaAssets.id, {
+    onDelete: "set null",
+  }),
+  duration: doublePrecision("duration"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================
+// Phase 2+ Relations
+// ============================================
+
+export const bRollsRelations = relations(bRolls, ({ one }) => ({
+  project: one(projects, {
+    fields: [bRolls.projectId],
+    references: [projects.id],
+  }),
+  storyboard: one(storyboards, {
+    fields: [bRolls.storyboardId],
+    references: [storyboards.id],
+  }),
+  asset: one(mediaAssets, {
+    fields: [bRolls.assetId],
+    references: [mediaAssets.id],
+  }),
+}));
+
+export const coloringPresetsRelations = relations(coloringPresets, ({ many }) => ({
+  settings: many(coloringSettings),
+}));
+
+export const coloringSettingsRelations = relations(coloringSettings, ({ one }) => ({
+  project: one(projects, {
+    fields: [coloringSettings.projectId],
+    references: [projects.id],
+  }),
+  preset: one(coloringPresets, {
+    fields: [coloringSettings.presetId],
+    references: [coloringPresets.id],
+  }),
+}));
+
+export const thumbnailsRelations = relations(thumbnails, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [thumbnails.projectId],
+    references: [projects.id],
+  }),
+  candidates: many(thumbnailCandidates),
+  overlays: many(thumbnailOverlays),
+}));
+
+export const thumbnailCandidatesRelations = relations(thumbnailCandidates, ({ one }) => ({
+  thumbnail: one(thumbnails, {
+    fields: [thumbnailCandidates.projectThumbnailId],
+    references: [thumbnails.id],
+  }),
+  imageAsset: one(mediaAssets, {
+    fields: [thumbnailCandidates.imageAssetId],
+    references: [mediaAssets.id],
+  }),
+}));
+
+export const thumbnailOverlaysRelations = relations(thumbnailOverlays, ({ one }) => ({
+  thumbnail: one(thumbnails, {
+    fields: [thumbnailOverlays.projectThumbnailId],
+    references: [thumbnails.id],
+  }),
+}));
+
+export const roughCutTimelinesRelations = relations(roughCutTimelines, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [roughCutTimelines.projectId],
+    references: [projects.id],
+  }),
+  segments: many(roughCutTimelineSegments),
+}));
+
+export const roughCutTimelineSegmentsRelations = relations(roughCutTimelineSegments, ({ one }) => ({
+  timeline: one(roughCutTimelines, {
+    fields: [roughCutTimelineSegments.timelineId],
+    references: [roughCutTimelines.id],
+  }),
+}));
+
+export const roughCutVersionsRelations = relations(roughCutVersions, ({ one }) => ({
+  project: one(projects, {
+    fields: [roughCutVersions.projectId],
+    references: [projects.id],
+  }),
+  videoAsset: one(mediaAssets, {
+    fields: [roughCutVersions.videoAssetId],
+    references: [mediaAssets.id],
   }),
 }));

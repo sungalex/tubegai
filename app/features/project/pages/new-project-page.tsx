@@ -114,7 +114,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
   const [channels, labels, savedIdeas] = await Promise.all([
     getChannelsForSelect(userId),
-    getLabels(),
+    getLabels(userId),
     getIdeas(userId, { isSaved: true }),
   ]);
   return { channels, labels, savedIdeas };

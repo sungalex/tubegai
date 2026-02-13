@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui
 import { Card } from "~/common/components/ui/card";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
-import { getThumbnailImages } from "~/common/data/studio.data";
+import { getThumbnailImages } from "~/common/data/studio.data.server";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 export async function loader({ params }: LoaderFunctionArgs) {

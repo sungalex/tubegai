@@ -70,6 +70,7 @@ export default [
     route("channels", "features/project/pages/channels-api.tsx"),
     route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
     // Studio API
+    route("studio/projects", "features/studio/api/studio-projects.ts"),
     route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
     route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
     route("studio/generate-scene-image", "features/studio/api/generate-scene-image.ts"),

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useFetcher } from "react-router";
 import {
   Plus,
   ArrowRight,
@@ -17,7 +17,8 @@ import {
   Download,
   Search,
   Filter,
-  Scissors
+  Scissors,
+  Loader2,
 } from "lucide-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { Button } from "~/common/components/ui/button";
@@ -52,6 +53,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
+import type { StudioProject } from "~/common/types/studio.types";
 
 const QUICK_ACCESS_STEPS = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -68,10 +70,6 @@ const QUICK_ACCESS_STEPS = [
   { id: "export", icon: Download, label: "Export" },
 ];
 
-import { SELECTOR_RECENT_PROJECTS, SELECTOR_ALL_PROJECTS } from "~/common/mocks/studio-mock";
-
-const UNIQUE_CHANNELS = Array.from(new Set(SELECTOR_ALL_PROJECTS.map(p => p.channel))).sort();
-
 const ITEMS_PER_PAGE = 6;
 
 interface StudioProjectSelectorProps {
@@ -85,6 +83,21 @@ export function StudioProjectSelector({
   description = "Select a project to continue your work or start a new one.",
   context = "dashboard"
 }: StudioProjectSelectorProps) {
+
+  const fetcher = useFetcher<{ projects: StudioProject[] }>();
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && !fetcher.data) {
+      fetcher.load("/api/studio/projects");
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const allProjects = fetcher.data?.projects ?? [];
+  const recentProjects = allProjects.slice(0, 5);
+  const uniqueChannels = useMemo(
+    () => Array.from(new Set(allProjects.map(p => p.channel))).filter(Boolean).sort(),
+    [allProjects]
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchScope, setSearchScope] = useState("title"); // title, labels
@@ -124,7 +137,7 @@ export function StudioProjectSelector({
   const { label: primaryLabel, segment: primarySegment } = getPrimaryAction();
 
   // Filter & Sort Logic
-  const filteredAndSortedProjects = SELECTOR_ALL_PROJECTS
+  const filteredAndSortedProjects = allProjects
     .filter(project => {
       // 1. Search Logic based on Scope (Title or Labels)
       const term = searchTerm.toLowerCase();
@@ -180,6 +193,15 @@ export function StudioProjectSelector({
     }
   };
 
+  // Loading state
+  if (fetcher.state === "loading" && !fetcher.data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-12 p-8 h-full flex flex-col overflow-y-auto">
       {/* Header */}
@@ -226,7 +248,7 @@ export function StudioProjectSelector({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Channels</SelectItem>
-              {UNIQUE_CHANNELS.map(channel => (
+              {uniqueChannels.map(channel => (
                 <SelectItem key={channel} value={channel}>{channel}</SelectItem>
               ))}
             </SelectContent>
@@ -251,7 +273,7 @@ export function StudioProjectSelector({
       </div>
 
       {/* 2. Recent Projects (Carousel) */}
-      {!searchTerm && statusFilter === "all" && channelFilter === "all" && (
+      {!searchTerm && statusFilter === "all" && channelFilter === "all" && recentProjects.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <LayoutDashboard className="h-5 w-5 text-primary" />
@@ -270,7 +292,7 @@ export function StudioProjectSelector({
               ]}
             >
               <CarouselContent className="-ml-4">
-                {SELECTOR_RECENT_PROJECTS.map((project) => (
+                {recentProjects.map((project) => (
                   <CarouselItem key={project.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                     <ProjectCard project={project} primaryLabel={primaryLabel} primarySegment={primarySegment} />
                   </CarouselItem>
@@ -367,7 +389,7 @@ export function StudioProjectSelector({
 }
 
 // Extracted Project Card Component for Reusability
-function ProjectCard({ project, primaryLabel, primarySegment }: { project: any, primaryLabel: string, primarySegment: string }) {
+function ProjectCard({ project, primaryLabel, primarySegment }: { project: StudioProject, primaryLabel: string, primarySegment: string }) {
   return (
     <Card className="hover:border-primary/50 transition-colors flex flex-col group h-full">
       <CardHeader className="pb-4">

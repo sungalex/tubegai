@@ -3,9 +3,22 @@
 // =============================================================================
 // This layer handles all Supabase database operations for the Studio feature.
 
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, desc } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
-import type { ScriptSegment } from "../types/studio.types";
+import { formatDistanceToNow } from "date-fns";
+import type {
+  ScriptSegment,
+  SceneScriptSegment,
+  SceneVideo,
+  VideoPart,
+  StudioProject,
+  SubtitleSegment,
+  ColorPreset,
+  StockVideo,
+  BRollSceneContext,
+  BRollColor,
+} from "../types/studio.types";
+import { BROLL_COLORS } from "../constants/colors";
 
 // =============================================================================
 // Types
@@ -420,4 +433,230 @@ export async function addStoryboardScene(
     .returning({ id: schema.storyboards.id });
 
   return newScene.id;
+}
+
+// =============================================================================
+// Scene Data Functions
+// =============================================================================
+
+/**
+ * Fetch scene segments for the scene video page
+ * Joins scripts → segments → storyboards → sceneVideos → videoParts
+ */
+export async function getSceneSegments(
+  projectId: string
+): Promise<SceneScriptSegment[]> {
+  // 1. Script with segments
+  const script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+    with: {
+      segments: { orderBy: [asc(schema.scriptSegments.orderIndex)] },
+    },
+  });
+  if (!script || script.segments.length === 0) return [];
+
+  // 2. Storyboards with sceneVideo + videoParts
+  const storyboards = await db.query.storyboards.findMany({
+    where: eq(schema.storyboards.projectId, projectId),
+    orderBy: [asc(schema.storyboards.sceneNumber)],
+    with: {
+      imageAsset: true,
+      sceneVideo: {
+        with: {
+          parts: { orderBy: [asc(schema.videoParts.partNumber)] },
+          videoAsset: true,
+        },
+      },
+    },
+  });
+
+  // 3. Group by script segment
+  const segmentMap = new Map<string, SceneVideo[]>();
+  for (const sb of storyboards) {
+    if (!segmentMap.has(sb.scriptSegmentId)) {
+      segmentMap.set(sb.scriptSegmentId, []);
+    }
+
+    let parts: VideoPart[];
+    if (sb.sceneVideo && sb.sceneVideo.parts.length > 0) {
+      parts = sb.sceneVideo.parts.map((p) => ({
+        id: p.id,
+        duration: p.duration,
+        status: p.status as VideoPart["status"],
+      }));
+    } else {
+      // No video/parts yet → default pending part
+      parts = [{
+        id: `pending-${sb.id}`,
+        duration: sb.duration ?? 5,
+        status: "pending" as const,
+      }];
+    }
+
+    segmentMap.get(sb.scriptSegmentId)!.push({
+      sceneId: sb.id,
+      sceneNumber: sb.sceneNumber,
+      description: sb.description ?? "",
+      thumbnailUrl: sb.imageAsset?.publicUrl ?? "",
+      totalDuration: sb.duration ?? 5,
+      parts,
+    });
+  }
+
+  // 4. Build result
+  return script.segments.map((seg, idx) => ({
+    id: seg.id,
+    order: idx + 1,
+    content: seg.content,
+    scenes: segmentMap.get(seg.id) ?? [],
+  }));
+}
+
+// =============================================================================
+// Studio Project Data Functions
+// =============================================================================
+
+const STATUS_DISPLAY_MAP: Record<string, string> = {
+  draft: "Draft",
+  in_progress: "In Progress",
+  completed: "Completed",
+  archived: "Archived",
+};
+
+/**
+ * Fetch all projects for a user formatted for StudioProjectSelector
+ */
+export async function getStudioProjects(userId: string): Promise<StudioProject[]> {
+  const projectList = await db.query.projects.findMany({
+    where: eq(schema.projects.ownerId, userId),
+    orderBy: [desc(schema.projects.updatedAt)],
+    with: {
+      channel: { columns: { name: true } },
+      labels: { with: { label: { columns: { name: true } } } },
+    },
+  });
+
+  return projectList.map((p) => ({
+    id: p.id,
+    title: p.title,
+    status: STATUS_DISPLAY_MAP[p.status] ?? p.status,
+    lastEdited: formatDistanceToNow(p.updatedAt, { addSuffix: true }),
+    progress: p.progress,
+    channel: p.channel?.name ?? "",
+    labels: p.labels.map((pl) => pl.label.name),
+  }));
+}
+
+// =============================================================================
+// Phase 2+ Data Functions (Subtitles, Coloring, Thumbnail, SEO, B-Roll)
+// =============================================================================
+
+/**
+ * Fetch subtitles for a project
+ */
+export async function getSubtitles(
+  projectId: string
+): Promise<SubtitleSegment[]> {
+  const subs = await db.query.subtitles.findMany({
+    where: eq(schema.subtitles.projectId, projectId),
+    orderBy: [asc(schema.subtitles.startTime)],
+  });
+  return subs.map((s) => ({
+    id: s.id,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    text: s.text,
+  }));
+}
+
+/**
+ * Fetch color grading presets
+ */
+export async function getColorPresets(): Promise<ColorPreset[]> {
+  const presets = await db.query.coloringPresets.findMany();
+  return presets.map((p) => ({
+    id: p.id,
+    name: p.name,
+    filter: (p.filterParameters as { filter: string }).filter ?? "none",
+    previewColor:
+      (p.filterParameters as { previewColor: string }).previewColor ??
+      "bg-zinc-500",
+  }));
+}
+
+/**
+ * Fetch thumbnail candidate image URLs for a project
+ */
+export async function getThumbnailImages(
+  projectId: string
+): Promise<string[]> {
+  const thumbnail = await db.query.thumbnails.findFirst({
+    where: eq(schema.thumbnails.projectId, projectId),
+    with: {
+      candidates: { with: { imageAsset: true } },
+    },
+  });
+  if (!thumbnail?.candidates) return [];
+  return thumbnail.candidates
+    .map((c) => c.imageAsset?.publicUrl)
+    .filter((url): url is string => url != null);
+}
+
+/**
+ * Fetch SEO title suggestions for a project
+ * Returns saved title(s) from DB; AI-generated suggestions are transient
+ */
+export async function getSEOTitles(
+  projectId: string
+): Promise<string[]> {
+  const seo = await db.query.seos.findFirst({
+    where: eq(schema.seos.projectId, projectId),
+  });
+  return seo?.title ? [seo.title] : [];
+}
+
+/**
+ * Fetch SEO tags for a project
+ */
+export async function getSEOTags(
+  projectId: string
+): Promise<string[]> {
+  const seo = await db.query.seos.findFirst({
+    where: eq(schema.seos.projectId, projectId),
+  });
+  return seo?.tags ?? [];
+}
+
+/**
+ * Fetch stock videos (external API search results - not stored in DB)
+ */
+export async function getStockVideos(): Promise<StockVideo[]> {
+  return [];
+}
+
+/**
+ * Fetch B-Roll scene contexts for a project
+ * Constructs from storyboard scenes with potential b-roll assignments
+ */
+export async function getBRollScenes(
+  projectId: string
+): Promise<BRollSceneContext[]> {
+  const storyboardList = await db.query.storyboards.findMany({
+    where: eq(schema.storyboards.projectId, projectId),
+    orderBy: [asc(schema.storyboards.sceneNumber)],
+  });
+  return storyboardList.map((sb, idx) => ({
+    id: sb.id,
+    order: idx + 1,
+    content: sb.description ?? "",
+    keyword: (sb.description ?? "").split(" ").slice(0, 2).join(" "),
+    assignedVideo: undefined,
+  }));
+}
+
+/**
+ * Get B-Roll color filter options (UI constant)
+ */
+export function getBRollColors(): BRollColor[] {
+  return BROLL_COLORS;
 }

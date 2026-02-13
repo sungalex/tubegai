@@ -27,9 +27,7 @@ import type {
   Channel,
   Label,
   TrendItem,
-  ProjectDetail,
   LabelColor,
-  AIRecommendation,
 } from "../types/project.types";
 
 import type {
@@ -37,17 +35,7 @@ import type {
   ScriptGuidelines,
 } from "../types/trend.types";
 
-import {
-  PROJECTS,
-  PROJECT_DETAIL,
-  CHANNELS,
-  LABELS,
-  INITIAL_CHANNELS,
-  LABEL_COLORS,
-  INITIAL_LABELS,
-  AI_RECOMMENDATIONS,
-} from "../mocks/project-mock";
-
+import { LABEL_COLORS } from "../constants/colors";
 import { getYouTubeTrends } from "./youtube.data.server";
 
 // Status mapping: DB enum -> UI display
@@ -556,10 +544,31 @@ export async function getChannelsForSelect(userId: string): Promise<Channel[]> {
 
 /**
  * Fetch channels with full details
- * TODO: Replace with API call
  */
-export async function getChannelsWithDetails(): Promise<Channel[]> {
-  return INITIAL_CHANNELS;
+export async function getChannelsWithDetails(userId: string): Promise<Channel[]> {
+  const channelList = await db.query.channels.findMany({
+    where: eq(schema.channels.userId, userId),
+    orderBy: [desc(schema.channels.createdAt)],
+  });
+
+  return channelList.map((ch) => ({
+    id: ch.id,
+    name: ch.name,
+    handle: ch.handle ?? "",
+    avatar: ch.avatarUrl ?? undefined,
+    subscribers: ch.subscriberCount != null ? formatSubscribers(ch.subscriberCount) : undefined,
+    videos: ch.videoCount ?? undefined,
+    status: (ch.status === "syncing" ? "active" : ch.status) as Channel["status"],
+    lastSynced: ch.lastSyncedAt
+      ? formatDistanceToNow(ch.lastSyncedAt, { addSuffix: true })
+      : undefined,
+  }));
+}
+
+function formatSubscribers(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
+  return count.toString();
 }
 
 // =============================================================================
@@ -568,18 +577,39 @@ export async function getChannelsWithDetails(): Promise<Channel[]> {
 
 /**
  * Fetch labels for dropdown/selector
- * TODO: Replace with API call
  */
-export async function getLabels(): Promise<Label[]> {
-  return LABELS;
+export async function getLabels(userId: string): Promise<Label[]> {
+  const labelList = await db.query.labels.findMany({
+    where: eq(schema.labels.userId, userId),
+    orderBy: [asc(schema.labels.name)],
+  });
+
+  return labelList.map((label) => ({
+    id: label.id,
+    name: label.name,
+    color: label.color,
+  }));
 }
 
 /**
- * Fetch labels with full details
- * TODO: Replace with API call
+ * Fetch labels with full details (includes project count)
  */
-export async function getLabelsWithDetails(): Promise<Label[]> {
-  return INITIAL_LABELS;
+export async function getLabelsWithDetails(userId: string): Promise<Label[]> {
+  const labelList = await db.query.labels.findMany({
+    where: eq(schema.labels.userId, userId),
+    orderBy: [asc(schema.labels.name)],
+    with: {
+      projectLabels: true,
+    },
+  });
+
+  return labelList.map((label) => ({
+    id: label.id,
+    name: label.name,
+    color: label.color,
+    description: label.description ?? undefined,
+    projectCount: label.projectLabels.length,
+  }));
 }
 
 /**
@@ -600,14 +630,6 @@ export function getLabelColors(): LabelColor[] {
  */
 export async function getTrends(): Promise<TrendItem[]> {
   return getYouTubeTrends("KR");
-}
-
-/**
- * Get AI recommendations
- * TODO: Replace with API call
- */
-export async function getAIRecommendations(): Promise<AIRecommendation[]> {
-  return AI_RECOMMENDATIONS;
 }
 
 /**

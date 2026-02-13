@@ -23,7 +23,7 @@ import {
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
 import type { SubtitleSegment } from "~/common/types/studio.types";
-import { getSubtitles } from "~/common/data/studio.data";
+import { getSubtitles } from "~/common/data/studio.data.server";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 export async function loader({ params }: LoaderFunctionArgs) {

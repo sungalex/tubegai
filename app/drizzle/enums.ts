@@ -179,3 +179,24 @@ export const videoLengthEnum = tubegaiSchema.enum("video_length", [
   "medium",  // 2-10 min
   "long",    // 10+ min
 ]);
+
+// ============================================
+// Phase 2+ Enums (Thumbnail, Timeline)
+// ============================================
+
+export const thumbnailOverlayTypeEnum = tubegaiSchema.enum("thumbnail_overlay_type", [
+  "text",
+  "image",
+]);
+
+export const timelineTrackTypeEnum = tubegaiSchema.enum("timeline_track_type", [
+  "video",
+  "audio",
+]);
+
+export const timelineResourceTypeEnum = tubegaiSchema.enum("timeline_resource_type", [
+  "scene",
+  "b_roll",
+  "upload",
+  "audio",
+]);

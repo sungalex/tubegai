@@ -15,12 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
 import type { ColorPreset } from "~/common/types/studio.types";
-import { getColorPresets } from "~/common/data/studio.data";
+import { getColorPresets } from "~/common/data/studio.data.server";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   // Color presets might be global, but following pattern
-  const colorPresets = getColorPresets();
+  const colorPresets = await getColorPresets();
   return { colorPresets };
 }
 

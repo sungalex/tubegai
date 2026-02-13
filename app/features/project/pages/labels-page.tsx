@@ -41,11 +41,13 @@ import { cn } from "~/lib/utils";
 import type { Label } from "~/common/types/project.types";
 import { useLoaderData } from "react-router";
 import { getLabelsWithDetails, getLabelColors } from "~/common/data/project.data.server";
+import { requireAuth } from "~/lib/auth.server";
 
-export async function loader() {
+export async function loader({ request }: { request: Request }) {
+  const userId = await requireAuth(request);
   const [initialLabels, labelColors] = await Promise.all([
-    getLabelsWithDetails(),
-    Promise.resolve(getLabelColors()), // Ensure it's treated as promise if needed, or just call it.
+    getLabelsWithDetails(userId),
+    Promise.resolve(getLabelColors()),
   ]);
   return { initialLabels, labelColors };
 }

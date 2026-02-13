@@ -10,7 +10,6 @@ import type {
   YouTubeVideoItem,
 } from "../types/youtube.types";
 import type { TrendFilterOptions } from "../types/trend.types";
-import { TRENDS_DATA } from "../mocks/project-mock";
 
 // =============================================================================
 // Configuration
@@ -360,9 +359,9 @@ export async function getYouTubeTrends(
 
   if (!apiKey) {
     console.warn(
-      "[YouTube API] YOUTUBE_API_KEY not configured, using mock data",
+      "[YouTube API] YOUTUBE_API_KEY not configured, returning empty",
     );
-    return TRENDS_DATA;
+    return [];
   }
 
   try {
@@ -394,8 +393,7 @@ export async function getYouTubeTrends(
 
     if (!data.items || data.items.length === 0) {
       console.warn("[YouTube API] No videos returned for this filter");
-      // Return empty array instead of mock data when filtering by category
-      return videoCategoryId ? [] : TRENDS_DATA;
+      return [];
     }
 
     // Save to Supabase cache (upsert mode handles duplicates)
@@ -414,7 +412,7 @@ export async function getYouTubeTrends(
     return trends;
   } catch (error) {
     console.error("[YouTube API] Failed to fetch trends:", error);
-    return videoCategoryId ? [] : TRENDS_DATA;
+    return [];
   }
 }
 

@@ -17,7 +17,7 @@ import {
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
 import type { StockVideo, BRollSceneContext } from "~/common/types/studio.types";
-import { getStockVideos, getBRollScenes, getBRollColors } from "~/common/data/studio.data";
+import { getStockVideos, getBRollScenes, getBRollColors } from "~/common/data/studio.data.server";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 export async function loader({ params }: LoaderFunctionArgs) {
