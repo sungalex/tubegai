@@ -1,12 +1,13 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npm run build:*)",
       "Bash(npm run typecheck:*)",
       "Bash(npm run db:generate:*)",
-      "Bash(npm run db:migrate:*)",
       "Bash(npx eslint:*)",
       "Bash(npm run lint:*)",
-      "Bash(npx react-router typegen:*)"
+      "Bash(npx react-router typegen:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
