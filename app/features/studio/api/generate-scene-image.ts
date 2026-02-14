@@ -5,7 +5,7 @@
 
 import type { Route } from "./+types/generate-scene-image";
 import { requireAuth } from "~/lib/auth.server";
-import { generateImage, generatePlaceholderImage } from "~/lib/ai-imagen.server";
+import { generateImage, generatePlaceholderImage } from "~/lib/ai-image.server";
 import { uploadStoryboardImage } from "~/lib/supabase-storage.server";
 import {
   createMediaAsset,

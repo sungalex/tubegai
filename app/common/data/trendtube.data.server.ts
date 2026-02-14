@@ -9,6 +9,7 @@ import type {
   TrendTubePipelineStatus,
   TrendTubeMediaType,
   TrendTubeVoiceOption,
+  TrendTubeResults,
 } from "~/common/types/trendtube.types";
 
 // =============================================================================
@@ -178,4 +179,114 @@ export async function getTrendTubeMediaBySession(
   return db.query.trendtubeMedia.findMany({
     where: eq(schema.trendtubeMedia.sessionId, sessionId),
   });
+}
+
+// =============================================================================
+// Session with Ownership Verification
+// =============================================================================
+
+export async function getTrendTubeSessionForUser(
+  sessionId: string,
+  userId: string
+) {
+  const session = await db.query.trendtubeSessions.findFirst({
+    where: and(
+      eq(schema.trendtubeSessions.id, sessionId),
+      eq(schema.trendtubeSessions.userId, userId)
+    ),
+    with: {
+      result: true,
+      media: true,
+    },
+  });
+  return session ?? null;
+}
+
+// =============================================================================
+// Session Progress Derivation
+// =============================================================================
+
+export function deriveSessionProgress(session: {
+  status: string;
+  result?: { extractedTrends?: string | null; videoIdeas?: string | null; narrationScript?: string | null } | null;
+  media?: Array<{ mediaType: string; publicUrl?: string | null }>;
+}): { completedSteps: number[]; nextStep: number | null } {
+  const completed: number[] = [];
+
+  if (session.result?.extractedTrends) completed.push(1);
+  if (session.result?.videoIdeas) completed.push(2);
+
+  const mediaTypes = new Set(
+    (session.media ?? [])
+      .filter((m) => m.publicUrl)
+      .map((m) => m.mediaType)
+  );
+
+  if (mediaTypes.has("generated_video")) completed.push(3);
+  if (mediaTypes.has("background_music")) completed.push(4);
+  if (session.result?.narrationScript) completed.push(5);
+  if (mediaTypes.has("voiceover")) completed.push(6);
+  if (mediaTypes.has("composited_video")) completed.push(7);
+
+  if (session.status === "completed" || session.status === "failed") {
+    return { completedSteps: completed, nextStep: null };
+  }
+
+  // Determine next step based on 4-step grouping
+  if (!completed.includes(1)) return { completedSteps: completed, nextStep: 1 };
+  if (!completed.includes(2)) return { completedSteps: completed, nextStep: 2 };
+  if (
+    !completed.includes(3) ||
+    !completed.includes(4) ||
+    !completed.includes(5) ||
+    !completed.includes(6)
+  ) {
+    return { completedSteps: completed, nextStep: 3 };
+  }
+  if (!completed.includes(7)) return { completedSteps: completed, nextStep: 4 };
+  return { completedSteps: completed, nextStep: null };
+}
+
+// =============================================================================
+// Build TrendTubeResults from Session Data
+// =============================================================================
+
+export function buildResultsFromSession(session: {
+  result?: {
+    extractedTrends?: string | null;
+    videoIdeas?: string | null;
+    narrationScript?: string | null;
+  } | null;
+  media?: Array<{
+    mediaType: string;
+    publicUrl?: string | null;
+    metadata?: unknown;
+    createdAt: Date;
+  }>;
+}): TrendTubeResults {
+  const result = session.result;
+  const media = session.media ?? [];
+
+  const findLatestMedia = (type: string) =>
+    media
+      .filter((m) => m.mediaType === type && m.publicUrl)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+  const video = findLatestMedia("generated_video");
+  const music = findLatestMedia("background_music");
+  const voiceover = findLatestMedia("voiceover");
+  const composited = findLatestMedia("composited_video");
+
+  return {
+    extractedTrends: result?.extractedTrends ?? "",
+    videoIdeas: result?.videoIdeas ?? "",
+    narrationScript: result?.narrationScript ?? "",
+    videoUrl: video?.publicUrl ?? undefined,
+    musicUrl: music?.publicUrl ?? undefined,
+    musicDuration: (music?.metadata as Record<string, unknown> | null)?.duration as number | undefined,
+    voiceoverUrl: voiceover?.publicUrl ?? undefined,
+    voiceoverDuration: (voiceover?.metadata as Record<string, unknown> | null)?.duration as number | undefined,
+    compositedVideoUrl: composited?.publicUrl ?? undefined,
+    compositedDuration: (composited?.metadata as Record<string, unknown> | null)?.duration as number | undefined,
+  };
 }

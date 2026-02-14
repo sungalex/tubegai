@@ -7,8 +7,8 @@
 import type { AIGeneratedRecommendation } from "../ai.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
 import type { AIProjectGenerationOutput } from "../ai-project-generator.server";
-import type { VideoGenerationResult } from "../ai-veo.server";
-import type { MusicGenerationResult } from "../ai-lyria.server";
+import type { VideoGenerationResult } from "../ai-video.server";
+import type { MusicGenerationResult } from "../ai-music.server";
 import type { StoryboardScene } from "../ai-storyboard.server";
 
 // =============================================================================
@@ -268,14 +268,14 @@ export const MOCK_PROJECT_CONTEXT: AIProjectGenerationOutput = {
 };
 
 // =============================================================================
-// ai-veo.server.ts - generateVideoPrompt (internal)
+// ai-video.server.ts - generateVideoPrompt (internal)
 // =============================================================================
 
 export const MOCK_VIDEO_PROMPT =
   "A dynamic cinematic shot of a person working on a laptop in a modern office, with holographic AI interfaces floating around them, professional lighting, shallow depth of field";
 
 // =============================================================================
-// ai-lyria.server.ts - generateMusicPrompt (internal)
+// ai-music.server.ts - generateMusicPrompt (internal)
 // =============================================================================
 
 export const MOCK_MUSIC_PROMPT = {
@@ -285,7 +285,7 @@ export const MOCK_MUSIC_PROMPT = {
 };
 
 // =============================================================================
-// ai-veo.server.ts - generateVideo
+// ai-video.server.ts - generateVideo
 // =============================================================================
 
 export const MOCK_VIDEO_RESULT: VideoGenerationResult = {
@@ -295,7 +295,7 @@ export const MOCK_VIDEO_RESULT: VideoGenerationResult = {
 };
 
 // =============================================================================
-// ai-lyria.server.ts - generateMusic
+// ai-music.server.ts - generateMusic
 // =============================================================================
 
 export const MOCK_MUSIC_RESULT: MusicGenerationResult = {

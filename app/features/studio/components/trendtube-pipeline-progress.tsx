@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Loader2, Circle, AlertCircle, ChevronDown } from "lucide-react";
+import { CheckCircle2, Loader2, Circle, AlertCircle, ChevronDown, RotateCcw } from "lucide-react";
 import { Progress } from "~/common/components/ui/progress";
+import { Button } from "~/common/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import {
@@ -16,6 +17,7 @@ import type { TrendTubePipelineStep, TrendTubeStepIO } from "~/common/types/tren
 interface TrendTubePipelineProgressProps {
   steps: TrendTubePipelineStep[];
   totalSteps: number;
+  onRetryStep?: (step: number) => void;
 }
 
 const STEP_ICONS = {
@@ -28,6 +30,7 @@ const STEP_ICONS = {
 export function TrendTubePipelineProgress({
   steps,
   totalSteps,
+  onRetryStep,
 }: TrendTubePipelineProgressProps) {
   const completedCount = steps.filter((s) => s.status === "completed").length;
   const progressPercent = Math.round((completedCount / totalSteps) * 100);
@@ -169,9 +172,22 @@ export function TrendTubePipelineProgress({
                       )}
                       {step.output && <StepIODisplay io={step.output} />}
                       {step.error && (
-                        <p className="text-xs text-destructive bg-destructive/10 rounded-md p-2">
-                          {step.error}
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-destructive bg-destructive/10 rounded-md p-2">
+                            {step.error}
+                          </p>
+                          {onRetryStep && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => onRetryStep(step.step)}
+                            >
+                              <RotateCcw className="mr-1.5 h-3 w-3" />
+                              이 단계부터 다시 시도
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

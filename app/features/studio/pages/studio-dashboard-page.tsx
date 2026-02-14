@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useParams } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/studio-dashboard-page";
@@ -8,12 +8,8 @@ import { StudioProjectSelector } from "../components/studio-project-selector";
 import { TrendTubeInputForm } from "../components/trendtube-input-form";
 import { TrendTubePipelineProgress } from "../components/trendtube-pipeline-progress";
 import { TrendTubeResultsDisplay } from "../components/trendtube-results-display";
-import type {
-  TrendTubeVoiceOption,
-  TrendTubeResults,
-  TrendTubePipelineStep,
-  TrendTubeStreamEvent,
-} from "~/common/types/trendtube.types";
+import { useTrendTubePipeline } from "../hooks/use-trendtube-pipeline";
+import type { TrendTubeVoiceOption } from "~/common/types/trendtube.types";
 
 export const meta = () => {
   return [
@@ -83,23 +79,26 @@ type DashboardMode = "input" | "generating" | "results";
 
 const TOTAL_STEPS = 7;
 
-const INITIAL_STEPS: TrendTubePipelineStep[] = [
-  { step: 1, name: "트렌드 추출", status: "pending" },
-  { step: 2, name: "영상 아이디어 생성", status: "pending" },
-  { step: 3, name: "영상 생성 (Veo 3)", status: "pending" },
-  { step: 4, name: "배경음악 생성 (Lyria 2)", status: "pending" },
-  { step: 5, name: "나레이션 스크립트 생성", status: "pending" },
-  { step: 6, name: "보이스오버 생성", status: "pending" },
-  { step: 7, name: "영상 합성", status: "pending" },
-];
-
 export default function StudioDashboardPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
   const project = loaderData.project;
-  const [mode, setMode] = useState<DashboardMode>("input");
-  const [steps, setSteps] = useState<TrendTubePipelineStep[]>(INITIAL_STEPS);
-  const [results, setResults] = useState<TrendTubeResults | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+
+  const {
+    phase,
+    steps,
+    results,
+    startPipeline,
+    retryFromStep,
+    reset,
+  } = useTrendTubePipeline();
+
+  // Map phase to mode
+  const mode: DashboardMode =
+    phase === "idle"
+      ? "input"
+      : phase === "completed"
+        ? "results"
+        : "generating";
 
   // Pre-fill initial values from project data
   const initialValues = useMemo(() => {
@@ -109,17 +108,6 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
     if (!trendsUrl && !userIdea) return undefined;
     return { trendsUrl, userIdea };
   }, [project]);
-
-  const updateStep = useCallback(
-    (stepNumber: number, updates: Partial<TrendTubePipelineStep>) => {
-      setSteps((prev) =>
-        prev.map((s) =>
-          s.step === stepNumber ? { ...s, ...updates } : s
-        )
-      );
-    },
-    []
-  );
 
   const handleSubmit = useCallback(
     async (data: {
@@ -132,129 +120,10 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
         toast.error("프로젝트를 선택해주세요");
         return;
       }
-
-      // Reset state
-      setMode("generating");
-      setSteps(INITIAL_STEPS);
-      setResults(null);
-
-      // Abort previous request if any
-      abortRef.current?.abort();
-      const abortController = new AbortController();
-      abortRef.current = abortController;
-
-      try {
-        const response = await fetch(
-          "/api/studio/trendtube-generate-stream",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              projectId,
-              ...data,
-            }),
-            signal: abortController.signal,
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(
-            (errorData as { error?: string })?.error ?? `HTTP ${response.status}`
-          );
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("스트림을 읽을 수 없습니다");
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Process SSE events
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-
-            const jsonStr = line.slice(6).trim();
-            if (!jsonStr) continue;
-
-            let event: TrendTubeStreamEvent;
-            try {
-              event = JSON.parse(jsonStr) as TrendTubeStreamEvent;
-            } catch {
-              continue;
-            }
-
-            switch (event.type) {
-              case "step_start":
-                updateStep(event.step, {
-                  status: "in_progress",
-                  name: event.stepName,
-                  input: event.input,
-                });
-                break;
-
-              case "step_progress":
-                updateStep(event.step, {
-                  output: { type: "text", label: "진행 중", textPreview: event.text },
-                });
-                break;
-
-              case "step_complete":
-                updateStep(event.step, {
-                  status: "completed",
-                  name: event.stepName,
-                  output: event.output,
-                });
-                break;
-
-              case "pipeline_complete":
-                setResults(event.results);
-                setMode("results");
-                toast.success("TrendTube 생성 완료!");
-                break;
-
-              case "pipeline_error":
-                if (event.step > 0) {
-                  updateStep(event.step, {
-                    status: "failed",
-                    error: event.error,
-                  });
-                }
-                toast.error("생성 중 오류가 발생했습니다", {
-                  description: event.error,
-                });
-                break;
-            }
-          }
-        }
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-        console.error("TrendTube stream error:", error);
-        toast.error("TrendTube 생성 실패", {
-          description:
-            error instanceof Error ? error.message : "알 수 없는 오류",
-        });
-        // Stay on generating mode so user can see which steps failed
-      }
+      startPipeline({ projectId, ...data });
     },
-    [projectId, updateStep]
+    [projectId, startPipeline]
   );
-
-  const handleReset = useCallback(() => {
-    abortRef.current?.abort();
-    setMode("input");
-    setSteps(INITIAL_STEPS);
-    setResults(null);
-  }, []);
 
   // If no project selected, show project selector
   if (!projectId) {
@@ -278,10 +147,11 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
           <TrendTubePipelineProgress
             steps={steps}
             totalSteps={TOTAL_STEPS}
+            onRetryStep={phase === "failed" ? retryFromStep : undefined}
           />
           <div className="text-center">
             <button
-              onClick={handleReset}
+              onClick={reset}
               className="text-sm text-muted-foreground hover:text-foreground underline"
             >
               취소하고 돌아가기
@@ -294,7 +164,7 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
       {mode === "results" && results && (
         <TrendTubeResultsDisplay
           results={results}
-          onReset={handleReset}
+          onReset={reset}
         />
       )}
     </div>

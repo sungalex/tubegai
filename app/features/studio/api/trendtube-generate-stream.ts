@@ -1,6 +1,13 @@
 // =============================================================================
 // API Route: POST /api/studio/trendtube-generate-stream
 // =============================================================================
+// @deprecated — 단계별 API로 분리됨. 새로운 엔드포인트 사용:
+//   POST /api/studio/trendtube-step-trends   (Step 1)
+//   POST /api/studio/trendtube-step-ideas    (Step 2)
+//   POST /api/studio/trendtube-step-media    (Step 3, SSE)
+//   POST /api/studio/trendtube-step-compose  (Step 4)
+// 하위 호환을 위해 유지합니다.
+// =============================================================================
 // Streams 7-step TrendTube pipeline progress in real-time using Server-Sent Events
 // Steps: Trends → Ideas → Video(Veo3) + Music(Lyria2) + Script(parallel) → TTS → FFmpeg
 
@@ -18,8 +25,8 @@ import {
   generateVideoIdeas,
   generateNarrationScript,
 } from "~/lib/ai-trendtube.server";
-import { generateVideo } from "~/lib/ai-veo.server";
-import { generateMusic } from "~/lib/ai-lyria.server";
+import { generateVideo } from "~/lib/ai-video.server";
+import { generateMusic } from "~/lib/ai-music.server";
 import { composeVideo } from "~/lib/video-composer.server";
 import { generateVoiceover } from "~/lib/tts.server";
 import type {

@@ -134,3 +134,61 @@ export interface TrendTubeResults {
   compositedVideoUrl?: string;
   compositedDuration?: number;
 }
+
+// ---------------------------
+// Step API Input/Output Types
+// ---------------------------
+
+/** Step 1 input: create session + extract trends */
+export interface TrendTubeStepTrendsInput {
+  projectId: string;
+  trendsUrl: string;
+  userIdea: string;
+  referenceImageUrl?: string;
+  voiceOption?: TrendTubeVoiceOption;
+}
+
+/** Step 1 output */
+export interface TrendTubeStepTrendsOutput {
+  sessionId: string;
+  extractedTrends: string;
+}
+
+/** Steps 2/3/4 input: only sessionId */
+export interface TrendTubeStepSessionInput {
+  sessionId: string;
+}
+
+/** Step 2 output */
+export interface TrendTubeStepIdeasOutput {
+  videoIdeas: string;
+}
+
+/** Step 4 output */
+export interface TrendTubeStepComposeOutput {
+  results: TrendTubeResults;
+}
+
+// ---------------------------
+// Step 3 SSE Events (Media Generation)
+// ---------------------------
+
+export type TrendTubeMediaSubstep = "video" | "music" | "script" | "voiceover";
+
+export type TrendTubeMediaStreamEvent =
+  | { type: "media_start"; substep: TrendTubeMediaSubstep; label: string }
+  | { type: "media_complete"; substep: TrendTubeMediaSubstep; output?: TrendTubeStepIO }
+  | { type: "media_error"; substep: TrendTubeMediaSubstep; error: string }
+  | { type: "media_all_complete" };
+
+// ---------------------------
+// Session Status (for resume)
+// ---------------------------
+
+export interface TrendTubeSessionStatus {
+  sessionId: string;
+  status: TrendTubePipelineStatus;
+  currentStep: number;
+  completedSteps: number[];
+  nextStep: number | null;
+}

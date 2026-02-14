@@ -75,6 +75,12 @@ export default [
     route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
     route("studio/generate-scene-image", "features/studio/api/generate-scene-image.ts"),
     route("studio/trendtube-generate-stream", "features/studio/api/trendtube-generate-stream.ts"),
+    // TrendTube Step APIs (4-step pipeline split)
+    route("studio/trendtube-step-trends", "features/studio/api/trendtube-step-trends.ts"),
+    route("studio/trendtube-step-ideas", "features/studio/api/trendtube-step-ideas.ts"),
+    route("studio/trendtube-step-media", "features/studio/api/trendtube-step-media.ts"),
+    route("studio/trendtube-step-compose", "features/studio/api/trendtube-step-compose.ts"),
+    route("studio/trendtube-session-status", "features/studio/api/trendtube-session-status.ts"),
   ]),
 
   // Studio (MVP - core video creation workflow)

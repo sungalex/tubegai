@@ -43,7 +43,7 @@ export async function generateVideo(
 
   try {
     let operation = await genaiClient.models.generateVideos({
-      model: "veo-3.1-generate-001",
+      model: "veo-3.1-generate-preview",
       prompt: videoPrompt,
       config: {
         aspectRatio: (options?.aspectRatio as "16:9" | "9:16") ?? "16:9",
@@ -95,7 +95,8 @@ export async function generateVideo(
  * Generate a video prompt from video ideas using Gemini
  */
 async function generateVideoPrompt(videoIdeas: string): Promise<string> {
-  const systemInstruction = "You are a visual director. Create concise English video prompts for AI video generation. Return ONLY the prompt text.";
+  const systemInstruction =
+    "You are a visual director. Create concise English video prompts for AI video generation. Return ONLY the prompt text.";
   const model = getTextModel("gemini-2.5-flash-lite", systemInstruction);
 
   if (!model) {
