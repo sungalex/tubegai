@@ -11,7 +11,6 @@ import { getSceneSegments } from "~/common/data/studio.data.server";
 import type { Route } from "./+types/studio-scene-page";
 // import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { SceneScriptSegment } from "~/common/types/studio.types";
-import { useTranslation } from "~/i18n/context";
 
 export async function loader({ params }: Route.LoaderArgs) {
   if (!params.projectId) {
@@ -27,14 +26,13 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
 
   const [segments, setSegments] = useState<SceneScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { t } = useTranslation("studio");
 
   // Handle No Project
   if (!projectId) {
     return (
       <StudioProjectSelector
-        title={t("scene.title")}
-        description={t("scene.subtitle")}
+        title="씬 비디오 생성"
+        description="스토리보드 씬을 역동적인 비디오 클립으로 변환하세요."
         context="scene"
       />
     );
@@ -66,13 +64,13 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
     setTimeout(() => {
       // Success
       updatePartStatus(sceneId, partId, "completed", "https://example.com/video.mp4"); // URL is mock, card uses thumbnail
-      toast.success(t("scene.clipGenerated"));
+      toast.success("비디오 클립 생성됨!");
     }, 2500);
   };
 
   // Generate Single Scene Logic
   const handleGenerateScene = async (sceneId: string) => {
-    toast.info(t("scene.generatingToast"), { description: t("scene.generatingDesc") });
+    toast.info("씬 비디오 생성 중...", { description: "처리 중..." });
     const MAX_DURATION = 4;
 
     setSegments(prev => prev.map(seg => ({
@@ -114,13 +112,13 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
         return scene;
       })
     })));
-    toast.success(t("scene.sceneGenerated"));
+    toast.success("씬 비디오 생성됨!");
   };
 
   // Generate All Logic (The requirement: Split video length)
   const handleGenerateAll = async () => {
     setIsGenerating(true);
-    toast.info(t("scene.generatingAllToast"), { description: t("scene.generatingAllDesc") });
+    toast.info("모든 씬의 비디오 생성 중...", { description: "긴 씬에 AI 분할 로직 적용 중." });
 
     const MAX_DURATION = 4;
 
@@ -159,7 +157,7 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
     })));
 
     setIsGenerating(false);
-    toast.success(t("scene.allGenerated"));
+    toast.success("모든 비디오가 성공적으로 생성되었습니다!");
   };
 
   return (
@@ -171,12 +169,12 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
 
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{t("scene.pageTitle")}</h2>
-              <p className="text-muted-foreground">{t("scene.pageSubtitle")}</p>
+              <h2 className="text-2xl font-bold tracking-tight">씬 생성</h2>
+              <p className="text-muted-foreground">스토리보드를 비디오 시퀀스로 변환하세요.</p>
             </div>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="h-4 w-4" />
-              {t("scene.exportTimeline")}
+              타임라인 내보내기
             </Button>
           </div>
 
@@ -189,7 +187,7 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
                     <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-inset ring-primary/20">
                       {index + 1}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider">{t("scene.segment")}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">세그먼트</span>
                   </div>
                   <div className="bg-background p-3 rounded-lg border text-sm text-muted-foreground">
                     {segment.content}

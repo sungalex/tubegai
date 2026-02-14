@@ -83,7 +83,6 @@ import {
 import { getProjectById } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
 import type { Route } from "./+types/studio-storyboard-page";
-import { useTranslation } from "~/i18n/context";
 
 // =============================================================================
 // Types
@@ -236,7 +235,6 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
   const [isGeneratingImage, setIsGeneratingImage] = useState<string | null>(null);
 
   const fetcher = useFetcher();
-  const { t } = useTranslation("studio");
 
   const isLoading = fetcher.state !== "idle";
   const isSaving = isLoading && fetcher.formData?.get("intent") === "save";
@@ -290,8 +288,8 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
   if (!projectId || !project) {
     return (
       <StudioProjectSelector
-        title={t("storyboard.title")}
-        description={t("storyboard.subtitle")}
+        title="스토리보드"
+        description="장면별로 내러티브를 시각화하세요."
         context="storyboard"
       />
     );
@@ -672,9 +670,9 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("storyboard.title")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">스토리보드</h1>
           <p className="text-muted-foreground">
-            {project.title} - {t("storyboard.subtitle")}
+            {project.title} - 장면별로 내러티브를 시각화하세요.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -711,7 +709,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
           </AlertDialog>
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
-            {t("storyboard.exportPdf")}
+            PDF 내보내기
           </Button>
           <Button size="sm" onClick={handleSave} disabled={isSaving || !hasChanges || isStreaming}>
             {isSaving ? (
@@ -824,7 +822,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                           className="gap-2 text-muted-foreground hover:text-primary"
                         >
                           <Plus className="h-6 w-6" />
-                          {t("storyboard.addScene")}
+                          씬 추가
                         </Button>
                       </div>
                     </StoryboardGrid>
@@ -833,9 +831,9 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                         <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>
-                      <h4 className="text-sm font-semibold mb-1">{t("storyboard.noScenes")}</h4>
+                      <h4 className="text-sm font-semibold mb-1">생성된 씬 없음</h4>
                       <p className="text-xs text-muted-foreground max-w-62.5 mb-4">
-                        {t("storyboard.noScenesDesc")}
+                        이 스크립트 세그먼트에 대한 씬을 시각화하려면 생성기를 사용하세요.
                       </p>
                     </div>
                   )}
@@ -887,7 +885,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
             <CardContent className="space-y-4">
               {/* Visual Style */}
               <div className="space-y-3">
-                <Label className="text-xs">{t("storyboard.generator.visualStyle")}</Label>
+                <Label className="text-xs">비주얼 스타일</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["cinematic", "anime", "lineart", "3d"] as const).map((s) => (
                     <button
@@ -921,7 +919,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
 
               {/* Aspect Ratio */}
               <div className="space-y-3">
-                <Label className="text-xs">{t("storyboard.generator.aspectRatio")}</Label>
+                <Label className="text-xs">화면 비율</Label>
                 <div className="grid grid-cols-4 gap-2">
                   {["16:9", "9:16", "2.35:1", "4:3"].map((ratio) => (
                     <button
@@ -945,13 +943,13 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
               {/* Scene Density */}
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <Label className="text-xs">{t("storyboard.generator.sceneDensity")}</Label>
+                  <Label className="text-xs">씬 밀도</Label>
                   <span className="text-xs text-muted-foreground">
                     {density[0] > 70
-                      ? t("storyboard.generator.high")
+                      ? "높음"
                       : density[0] < 30
-                        ? t("storyboard.generator.low")
-                        : t("storyboard.generator.balanced")}
+                        ? "낮음"
+                        : "균형"}
                   </span>
                 </div>
                 <Slider
@@ -974,7 +972,7 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                   >
                     <span className="flex items-center gap-2">
                       <Settings2 className="w-4 h-4" />
-                      {t("storyboard.generator.advancedSettings")}
+                      고급 설정
                     </span>
                     {isOptionsOpen ? (
                       <ChevronUp className="w-4 h-4" />
@@ -986,45 +984,45 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                 <CollapsibleContent className="space-y-4 pt-4">
                   {/* Camera Movement */}
                   <div className="space-y-2">
-                    <Label className="text-xs">{t("storyboard.generator.cameraMovement")}</Label>
+                    <Label className="text-xs">카메라 움직임</Label>
                     <Select value={camera} onValueChange={setCamera} disabled={isStreaming}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">{t("storyboard.generator.none")}</SelectItem>
-                        <SelectItem value="pan">{t("storyboard.generator.pan")}</SelectItem>
-                        <SelectItem value="tilt">{t("storyboard.generator.tilt")}</SelectItem>
-                        <SelectItem value="zoom">{t("storyboard.generator.zoom")}</SelectItem>
-                        <SelectItem value="handheld">{t("storyboard.generator.handheld")}</SelectItem>
-                        <SelectItem value="drone">{t("storyboard.generator.droneShot")}</SelectItem>
+                        <SelectItem value="none">없음 (고정)</SelectItem>
+                        <SelectItem value="pan">팬</SelectItem>
+                        <SelectItem value="tilt">틸트</SelectItem>
+                        <SelectItem value="zoom">줌</SelectItem>
+                        <SelectItem value="handheld">핸드헬드</SelectItem>
+                        <SelectItem value="drone">드론 샷</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Lighting Style */}
                   <div className="space-y-2">
-                    <Label className="text-xs">{t("storyboard.generator.lightingStyle")}</Label>
+                    <Label className="text-xs">조명 스타일</Label>
                     <Select value={lighting} onValueChange={setLighting} disabled={isStreaming}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cinematic">{t("storyboard.generator.cinematic")}</SelectItem>
-                        <SelectItem value="natural">{t("storyboard.generator.natural")}</SelectItem>
-                        <SelectItem value="studio">{t("storyboard.generator.studio")}</SelectItem>
-                        <SelectItem value="neon">{t("storyboard.generator.neon")}</SelectItem>
-                        <SelectItem value="golden">{t("storyboard.generator.goldenHour")}</SelectItem>
-                        <SelectItem value="lowkey">{t("storyboard.generator.lowKey")}</SelectItem>
+                        <SelectItem value="cinematic">시네마틱</SelectItem>
+                        <SelectItem value="natural">자연광</SelectItem>
+                        <SelectItem value="studio">스튜디오</SelectItem>
+                        <SelectItem value="neon">네온 / 사이버펑크</SelectItem>
+                        <SelectItem value="golden">골든 아워</SelectItem>
+                        <SelectItem value="lowkey">로우키 (어두움)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Negative Prompt */}
                   <div className="space-y-2">
-                    <Label className="text-xs">{t("storyboard.generator.negativePrompt")}</Label>
+                    <Label className="text-xs">네거티브 프롬프트</Label>
                     <Textarea
-                      placeholder={t("storyboard.generator.negativePromptPlaceholder")}
+                      placeholder="예: 흐림, 워터마크, 왜곡된 텍스트, 저화질"
                       className="min-h-15 text-xs resize-none"
                       value={negativePrompt}
                       onChange={(e) => setNegativePrompt(e.target.value)}
@@ -1036,9 +1034,9 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                   <div className="space-y-4 pt-2">
                     <div className="flex items-center justify-between space-x-2">
                       <Label className="flex flex-col space-y-1 cursor-pointer">
-                        <span>{t("storyboard.generator.consistentCharacter")}</span>
+                        <span>일관된 캐릭터</span>
                         <span className="font-normal text-[10px] text-muted-foreground">
-                          {t("storyboard.generator.consistentCharacterDesc")}
+                          샷 전반에서 호스트 얼굴 유지.
                         </span>
                       </Label>
                       <Switch
@@ -1049,9 +1047,9 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                     </div>
                     <div className="flex items-center justify-between space-x-2">
                       <Label className="flex flex-col space-y-1 cursor-pointer">
-                        <span>{t("storyboard.generator.promptMagic")}</span>
+                        <span>프롬프트 매직</span>
                         <span className="font-normal text-[10px] text-muted-foreground">
-                          {t("storyboard.generator.promptMagicDesc")}
+                          AI가 간단한 설명을 다시 작성합니다.
                         </span>
                       </Label>
                       <Switch

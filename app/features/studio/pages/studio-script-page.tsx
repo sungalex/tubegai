@@ -72,7 +72,6 @@ import { getProjectById } from "~/common/data/project.data.server";
 import { refineScriptSegment } from "~/lib/ai-script.server";
 import { saveScript } from "~/common/data/studio.data.server";
 import type { Route } from "./+types/studio-script-page";
-import { useTranslation } from "~/i18n/context";
 import { requireAuth } from "~/lib/auth.server";
 
 // =============================================================================
@@ -212,7 +211,6 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   const [topK, setTopK] = useState(40);
 
   const fetcher = useFetcher();
-  const { t } = useTranslation("studio");
 
   const isLoading = fetcher.state !== "idle";
   const isSaving = isLoading && fetcher.formData?.get("intent") === "save";
@@ -262,8 +260,8 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   if (!projectId || !project) {
     return (
       <StudioProjectSelector
-        title={t("script.title")}
-        description={t("script.subtitle")}
+        title="스크립트 편집기"
+        description="Gemini AI의 도움을 받아 내러티브를 작성하세요."
         context="script"
       />
     );
@@ -479,9 +477,9 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("script.title")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">스크립트 편집기</h1>
           <p className="text-muted-foreground">
-            {project.title} - {t("script.subtitle")}
+            {project.title} - Gemini AI의 도움을 받아 내러티브를 작성하세요.
           </p>
         </div>
         <div className="flex items-center gap-2">

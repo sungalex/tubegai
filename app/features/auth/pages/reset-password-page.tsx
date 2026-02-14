@@ -23,7 +23,6 @@ import {
 } from "~/common/components/ui/form";
 import { Input } from "~/common/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/common/components/ui/card";
-import { useTranslation } from "~/i18n/context";
 
 // =============================================================================
 // Schema
@@ -48,8 +47,6 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
-  const { t } = useTranslation("auth");
-
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -191,10 +188,10 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {t("resetPassword.title")}
+            새 비밀번호 설정
           </CardTitle>
           <CardDescription className="text-center">
-            {t("resetPassword.subtitle")}
+            새로운 비밀번호를 입력해주세요
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -205,7 +202,7 @@ export default function ResetPasswordPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("resetPassword.newPassword")}</FormLabel>
+                    <FormLabel>새 비밀번호</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -227,7 +224,7 @@ export default function ResetPasswordPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("resetPassword.confirmPassword")}</FormLabel>
+                    <FormLabel>비밀번호 확인</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -247,7 +244,7 @@ export default function ResetPasswordPage() {
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? t("resetPassword.submitting") : t("resetPassword.submit")}
+                {isLoading ? "변경 중..." : "비밀번호 변경"}
               </Button>
             </form>
           </Form>

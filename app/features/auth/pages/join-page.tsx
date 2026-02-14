@@ -23,7 +23,6 @@ import {
 import { Input } from "~/common/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Separator } from "~/common/components/ui/separator";
-import { useTranslation } from "~/i18n/context";
 import {
   signUpWithEmail,
   signInWithGitHub,
@@ -55,9 +54,6 @@ export default function JoinPage() {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"github" | "google" | null>(null);
-  const { t } = useTranslation("auth");
-  const { t: tc } = useTranslation("common");
-
   const form = useForm<JoinValues>({
     resolver: zodResolver(joinSchema),
     defaultValues: {
@@ -155,9 +151,9 @@ export default function JoinPage() {
     <div className="flex h-full min-h-[calc(100vh-200px)] items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">{t("join.title")}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">계정 만들기</CardTitle>
           <CardDescription className="text-center">
-            {t("join.subtitle")}
+            아래에 이메일을 입력하여 계정을 만드세요
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -174,7 +170,7 @@ export default function JoinPage() {
               ) : (
                 <Github className="mr-2 h-4 w-4" />
               )}
-              {t("join.signUpWith", { provider: "GitHub" })}
+              GitHub로 가입하기
             </Button>
 
             <Button
@@ -205,13 +201,13 @@ export default function JoinPage() {
                   />
                 </svg>
               )}
-              {t("join.signUpWith", { provider: "Google" })}
+              Google로 가입하기
             </Button>
           </div>
 
           <div className="flex items-center gap-4">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">{tc("misc.or")}</span>
+            <span className="text-xs text-muted-foreground">또는</span>
             <Separator className="flex-1" />
           </div>
 
@@ -223,12 +219,12 @@ export default function JoinPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("join.name")}</FormLabel>
+                    <FormLabel>이름</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder={t("join.namePlaceholder")}
+                          placeholder="홍길동"
                           className="pl-9"
                           {...field}
                           disabled={isAnyLoading}
@@ -244,12 +240,12 @@ export default function JoinPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("join.email")}</FormLabel>
+                    <FormLabel>이메일</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder={t("join.emailPlaceholder")}
+                          placeholder="you@example.com"
                           className="pl-9"
                           {...field}
                           disabled={isAnyLoading}
@@ -265,7 +261,7 @@ export default function JoinPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("join.password")}</FormLabel>
+                    <FormLabel>비밀번호</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -287,7 +283,7 @@ export default function JoinPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("join.confirmPassword")}</FormLabel>
+                    <FormLabel>비밀번호 확인</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -307,20 +303,20 @@ export default function JoinPage() {
 
               <Button type="submit" className="w-full" disabled={isAnyLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? t("join.submitting") : t("join.submit")}
+                {isLoading ? "계정 생성 중..." : "가입하기"}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
-            {t("join.hasAccount")}{" "}
+            이미 계정이 있으신가요?{" "}
             <Link to="/auth/login" className="text-primary hover:underline font-medium">
-              {t("join.signIn")}
+              로그인
             </Link>
           </div>
           <div className="text-center text-xs text-muted-foreground px-8">
-            {t("join.terms")}
+            계속을 클릭하면 서비스 이용약관 및 개인정보 처리방침에 동의하는 것입니다
           </div>
         </CardFooter>
       </Card>

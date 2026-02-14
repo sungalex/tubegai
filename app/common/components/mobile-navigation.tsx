@@ -15,8 +15,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/common/components/ui/accordion";
-import { useTranslation } from "~/i18n/context";
-
 interface NavSubItem {
   name: string;
   description: string;
@@ -40,21 +38,19 @@ interface MobileNavigationProps {
 }
 
 export function MobileNavigation({ navItems, isOpen, setIsOpen }: MobileNavigationProps) {
-  const { t } = useTranslation("navigation");
-
   return (
     <div className="md:hidden mr-2">
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-6 w-6" />
-            <span className="sr-only">{t("toggleMenu")}</span>
+            <span className="sr-only">메뉴 열기/닫기</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-75 sm:w-100">
           <SheetHeader>
             <SheetTitle>
-              <span className="font-bold">{t("brand")}</span>
+              <span className="font-bold">TubeGAI</span>
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-4 py-4">

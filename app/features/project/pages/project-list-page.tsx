@@ -13,13 +13,12 @@ import { ProjectCard } from "../components/project-card";
 import type { Route } from "./+types/project-list-page";
 import { getProjects, type ProjectSortOption } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import { useTranslation } from "~/i18n/context";
 
-const SORT_KEYS: { value: ProjectSortOption; key: string }[] = [
-  { value: "newest", key: "list.sortOptions.newest" },
-  { value: "oldest", key: "list.sortOptions.oldest" },
-  { value: "name", key: "list.sortOptions.name" },
-  { value: "progress", key: "list.sortOptions.progress" },
+const SORT_KEYS: { value: ProjectSortOption; label: string }[] = [
+  { value: "newest", label: "최신순" },
+  { value: "oldest", label: "오래된순" },
+  { value: "name", label: "이름순 (A-Z)" },
+  { value: "progress", label: "진행률순" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,8 +43,6 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
   const { projects, search, sort, totalCount, totalPages, currentPage } = loaderData;
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(search);
-  const { t } = useTranslation("project");
-  const { t: tc } = useTranslation("common");
 
   // Build URL with search params
   function buildUrl(params: { q?: string; sort?: string; page?: number }) {
@@ -74,22 +71,20 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
   }
 
   // Get current sort label
-  const currentSortLabel = SORT_KEYS.find((opt) => opt.value === sort)?.key
-    ? t(SORT_KEYS.find((opt) => opt.value === sort)!.key)
-    : t("list.sort");
+  const currentSortLabel = SORT_KEYS.find((opt) => opt.value === sort)?.label ?? "정렬";
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">{t("list.title")}</h1>
-          <p className="text-muted-foreground">{t("list.subtitle")}</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-1">내 프로젝트</h1>
+          <p className="text-muted-foreground">비디오 제작물을 관리하고 정리하세요.</p>
         </div>
         <Button asChild>
           <Link to="/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            {t("list.newProject")}
+            새 프로젝트
           </Link>
         </Button>
       </div>
@@ -100,7 +95,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={t("list.searchPlaceholder")}
+              placeholder="프로젝트 검색..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -112,7 +107,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
             className="transition-all hover:bg-primary hover:text-primary-foreground"
           >
             <Search className="h-4 w-4 mr-2" />
-            {tc("button.search")}
+            검색
           </Button>
         </form>
         <DropdownMenu>
@@ -129,7 +124,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 onClick={() => handleSortChange(option.value)}
                 className="flex items-center justify-between"
               >
-                {t(option.key)}
+                {option.label}
                 {sort === option.value && <Check className="h-4 w-4 ml-2" />}
               </DropdownMenuItem>
             ))}
@@ -156,7 +151,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                {tc("button.previous")}
+                이전
               </Button>
 
               <div className="flex items-center gap-1">
@@ -198,7 +193,7 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
               >
-                {tc("button.next")}
+                다음
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -206,28 +201,28 @@ export default function ProjectListPage({ loaderData }: Route.ComponentProps) {
 
           {/* Result count */}
           <p className="text-center text-sm text-muted-foreground">
-            {t("list.pagination.showing", { count: projects.length, total: totalCount })}
+            {`총 ${totalCount}개 중 ${projects.length}개 표시`}
           </p>
         </div>
       ) : (
         <div className="text-center py-20 border rounded-lg bg-muted/20 border-dashed">
           <div className="flex flex-col items-center justify-center text-muted-foreground">
             <Search className="h-10 w-10 mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">{t("list.empty.title")}</h3>
+            <h3 className="text-lg font-medium">프로젝트를 찾을 수 없습니다</h3>
             <p className="text-sm max-w-sm mt-1 mb-4">
               {search
-                ? t("list.empty.searchEmpty", { query: search })
-                : t("list.empty.noProjects")}
+                ? `"${search}"에 해당하는 프로젝트를 찾을 수 없습니다. 검색어를 조정해보세요.`
+                : "아직 프로젝트가 없습니다. 새 프로젝트를 만들어보세요."}
             </p>
             {search ? (
               <Button variant="outline" onClick={() => navigate("/projects?tab=active-projects")}>
-                {tc("button.clearSearch")}
+                검색 지우기
               </Button>
             ) : (
               <Button asChild>
                 <Link to="/projects/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  {t("list.empty.createProject")}
+                  프로젝트 만들기
                 </Link>
               </Button>
             )}

@@ -7,8 +7,6 @@ import { ChevronLeft, Sparkles, Loader2, Plus, X, Lightbulb, Target, Eye, Trendi
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/common/components/ui/badge";
-import { useTranslation } from "~/i18n/context";
-
 import { Button } from "~/common/components/ui/button";
 import {
   Form,
@@ -200,8 +198,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [newHook, setNewHook] = useState("");
-  const { t } = useTranslation("project");
-  const { t: tc } = useTranslation("common");
 
   // Get source data from navigation state
   const sourceData = location.state as {

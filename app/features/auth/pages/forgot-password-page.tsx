@@ -22,7 +22,6 @@ import {
 } from "~/common/components/ui/form";
 import { Input } from "~/common/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/common/components/ui/card";
-import { useTranslation } from "~/i18n/context";
 import { sendPasswordResetEmail } from "~/lib/auth.client";
 
 // =============================================================================
@@ -43,8 +42,6 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
-  const { t } = useTranslation("auth");
-
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -131,10 +128,10 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {t("forgotPassword.title")}
+            비밀번호 찾기
           </CardTitle>
           <CardDescription className="text-center">
-            {t("forgotPassword.subtitle")}
+            가입한 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -145,12 +142,12 @@ export default function ForgotPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("forgotPassword.email")}</FormLabel>
+                    <FormLabel>이메일</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder={t("forgotPassword.emailPlaceholder")}
+                          placeholder="you@example.com"
                           className="pl-9"
                           {...field}
                           disabled={isLoading}
@@ -164,7 +161,7 @@ export default function ForgotPasswordPage() {
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? t("forgotPassword.submitting") : t("forgotPassword.submit")}
+                {isLoading ? "이메일 전송 중..." : "재설정 링크 보내기"}
               </Button>
             </form>
           </Form>
@@ -172,7 +169,7 @@ export default function ForgotPasswordPage() {
         <CardFooter className="flex justify-center">
           <Link to="/auth/login" className="text-sm text-primary hover:underline flex items-center gap-1">
             <ArrowLeft className="h-4 w-4" />
-            {t("forgotPassword.backToLogin")}
+            로그인으로 돌아가기
           </Link>
         </CardFooter>
       </Card>

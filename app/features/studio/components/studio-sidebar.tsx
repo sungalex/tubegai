@@ -20,7 +20,6 @@ import {
   Scissors,
   Sparkles,
 } from "lucide-react";
-import { useTranslation } from "~/i18n/context";
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   isCollapsed: boolean;
@@ -36,8 +35,6 @@ export function StudioSidebar({
   const location = useLocation();
   const params = useParams();
   const projectId = params.projectId;
-  const { t } = useTranslation("navigation");
-  const { t: ts } = useTranslation("studio");
 
   // Helper to build path
   const getPath = (segment: string) => {
@@ -59,51 +56,51 @@ export function StudioSidebar({
     },
     // MVP Features
     {
-      title: t("studio.script.name"),
+      title: "스크립트",
       href: getPath("script"),
       icon: FileText,
       disabled: false,
     },
     {
-      title: t("studio.storyboard.name"),
+      title: "스토리보드",
       href: getPath("storyboard"),
       icon: Presentation,
       disabled: false,
     },
     {
-      title: t("studio.scene.name"),
+      title: "씬",
       href: getPath("scene"),
       icon: Clapperboard,
       disabled: false,
     },
     {
-      title: t("studio.exportPublish"),
+      title: "내보내기 & 게시",
       href: getPath("export"),
       icon: Download,
       disabled: false,
     },
     // Phase 2+ Features (Disabled)
-    { title: t("studio.broll.name"), href: "#", icon: Film, disabled: true },
+    { title: "B-Roll", href: "#", icon: Film, disabled: true },
     { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
     {
-      title: t("studio.subtitles.name"),
+      title: "자막",
       href: "#",
       icon: Captions,
       disabled: true,
     },
     {
-      title: t("studio.coloring.name"),
+      title: "색보정",
       href: "#",
       icon: Palette,
       disabled: true,
     },
     {
-      title: t("studio.thumbnail.name"),
+      title: "썸네일",
       href: "#",
       icon: ImageIcon,
       disabled: true,
     },
-    { title: t("studio.seo.name"), href: "#", icon: LineChart, disabled: true },
+    { title: "SEO", href: "#", icon: LineChart, disabled: true },
   ];
 
   return (
@@ -117,7 +114,7 @@ export function StudioSidebar({
       >
         {!isCollapsed && (
           <span className="font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">
-            {t("studio.creatorStudio")}
+            스튜디오
           </span>
         )}
         <button
@@ -128,8 +125,8 @@ export function StudioSidebar({
           )}
           title={
             isCollapsed
-              ? t("studio.expandSidebar")
-              : t("studio.collapseSidebar")
+              ? "사이드바 펼치기"
+              : "사이드바 접기"
           }
         >
           {isCollapsed ? (
@@ -192,7 +189,7 @@ export function StudioSidebar({
       <div className="mt-auto p-2 border-t text-[10px] text-muted-foreground text-center">
         {!isCollapsed && projectId && (
           <div className="px-2 pb-2">
-            {ts("sidebar.project")} {projectId}
+            프로젝트: {projectId}
           </div>
         )}
       </div>

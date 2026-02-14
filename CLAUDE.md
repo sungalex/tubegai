@@ -20,7 +20,7 @@ npm run db:migrate   # 마이그레이션 적용
 | Forms     | React Hook Form + Zod               |
 | Database  | PostgreSQL + Drizzle ORM + Supabase |
 | AI        | Google Gemini                       |
-| i18n      | i18next (ko, en)                    |
+| 언어      | 한국어 전용 (하드코딩)              |
 
 ## 프로젝트 구조
 
@@ -33,7 +33,6 @@ app/
 │   └── types/          # 공유 타입
 ├── drizzle/            # DB 스키마, 마이그레이션
 ├── lib/                # 유틸리티, AI, 인증
-├── i18n/               # 번역 파일
 └── routes.ts           # 라우트 설정
 ```
 
@@ -191,13 +190,6 @@ import {
 import { toast } from "sonner";
 toast.success("저장 완료");
 toast.error("오류 발생", { description: "다시 시도해주세요." });
-```
-
-### 국제화 (i18n)
-
-```typescript
-import { useTranslation } from "~/i18n/context";
-const { t } = useTranslation("project"); // common, auth, project, studio, home
 ```
 
 ### AI (Gemini)

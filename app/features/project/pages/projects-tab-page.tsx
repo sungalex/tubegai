@@ -24,14 +24,13 @@ import {
 import { ProjectCard } from "../components/project-card";
 import { getProjectStats, getProjects, type ProjectSortOption, type ProjectStatusFilter } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import { useTranslation } from "~/i18n/context";
 import { cn } from "~/lib/utils";
 
-const SORT_KEYS: { value: ProjectSortOption; key: string }[] = [
-  { value: "newest", key: "list.sortOptions.newest" },
-  { value: "oldest", key: "list.sortOptions.oldest" },
-  { value: "name", key: "list.sortOptions.name" },
-  { value: "progress", key: "list.sortOptions.progress" },
+const SORT_KEYS: { value: ProjectSortOption; label: string }[] = [
+  { value: "newest", label: "최신순" },
+  { value: "oldest", label: "오래된순" },
+  { value: "name", label: "이름순 (A-Z)" },
+  { value: "progress", label: "진행률순" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -62,8 +61,6 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
 
   const [searchQuery, setSearchQuery] = useState(search);
   const navigate = useNavigate();
-  const { t } = useTranslation("project");
-  const { t: tc } = useTranslation("common");
 
   const { projects, totalCount, totalPages, currentPage } = paginatedProjects;
 
@@ -96,9 +93,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
     navigate(`/projects${buildUrl({ q: search, sort, status, page })}`);
   }
 
-  const currentSortLabel = SORT_KEYS.find((opt) => opt.value === sort)?.key
-    ? t(SORT_KEYS.find((opt) => opt.value === sort)!.key)
-    : t("list.sort");
+  const currentSortLabel = SORT_KEYS.find((opt) => opt.value === sort)?.label ?? "정렬";
 
   return (
     <>
@@ -113,7 +108,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("dashboard.stats.inProgress")}
+              진행 중
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -129,7 +124,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("dashboard.stats.completed")}
+              완료됨
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -145,7 +140,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("dashboard.stats.drafts")}
+              초안
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -160,7 +155,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={t("list.searchPlaceholder")}
+              placeholder="프로젝트 검색..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -172,7 +167,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
             className="transition-all hover:bg-primary hover:text-primary-foreground"
           >
             <Search className="h-4 w-4 mr-2" />
-            {tc("button.search")}
+            검색
           </Button>
         </form>
         <div className="flex gap-2">
@@ -190,7 +185,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
                   onClick={() => handleSortChange(option.value)}
                   className="flex items-center justify-between"
                 >
-                  {t(option.key)}
+                  {option.label}
                   {sort === option.value && <Check className="h-4 w-4 ml-2" />}
                 </DropdownMenuItem>
               ))}
@@ -199,7 +194,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
           <Button asChild>
             <Link to="/projects/new">
               <Plus className="h-4 w-4 mr-2" />
-              {t("list.newProject")}
+              새 프로젝트
             </Link>
           </Button>
         </div>
@@ -224,7 +219,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                {tc("button.previous")}
+                이전
               </Button>
 
               <div className="flex items-center gap-1">
@@ -272,7 +267,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
               >
-                {tc("button.next")}
+                다음
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -280,7 +275,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
 
           {/* Result count */}
           <p className="text-center text-sm text-muted-foreground">
-            {t("list.pagination.showing", { count: projects.length, total: totalCount })}
+            {`총 ${totalCount}개 중 ${projects.length}개 표시`}
           </p>
         </div>
       ) : (
@@ -295,11 +290,11 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
             </div>
             <div>
               <h4 className="font-medium">
-                {search || status ? t("list.empty.title") : "아직 프로젝트가 없습니다"}
+                {search || status ? "프로젝트를 찾을 수 없습니다" : "아직 프로젝트가 없습니다"}
               </h4>
               <p className="text-sm text-muted-foreground mt-1">
                 {search
-                  ? t("list.empty.searchEmpty", { query: search })
+                  ? `"${search}"에 해당하는 프로젝트를 찾을 수 없습니다. 검색어를 조정해보세요.`
                   : status
                     ? "해당 상태의 프로젝트가 없습니다"
                     : "트렌드에서 아이디어를 선택하거나 새 프로젝트를 만들어보세요"}
@@ -313,7 +308,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
                   navigate("/projects");
                 }}
               >
-                {tc("button.clearSearch")}
+                검색 지우기
               </Button>
             ) : (
               <Button asChild>

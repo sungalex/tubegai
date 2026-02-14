@@ -22,9 +22,7 @@ import {
 import { DesktopNavigation } from "./desktop-navigation";
 import { MobileNavigation } from "./mobile-navigation";
 import { UserNavigation } from "./user-navigation";
-import { LanguageSelector } from "./language-selector";
 import { useState } from "react";
-import { useTranslation } from "~/i18n/context";
 import type { UserInfo } from "~/root";
 
 interface NavigationProps {
@@ -39,30 +37,30 @@ interface NavigationProps {
  * - Projects: Dashboard, All Projects, New Project (Channels/Labels disabled)
  * - Studio: Dashboard, Script, Export (other features disabled)
  */
-const getNavItems = (_projectId: string, t: (key: string) => string) => [
+const getNavItems = (_projectId: string) => [
   {
-    name: t("products.title"),
+    name: "제품",
     to: "/products",
     icon: Box,
     items: [
       {
-        name: t("products.tubegai.name"),
-        description: t("products.tubegai.description"),
+        name: "TubeGAI",
+        description: "표준 통합 크리에이터 워크플로우 솔루션.",
         to: "/products",
         icon: Sparkles,
         featured: true,
       },
       // DISABLED: Phase 2+
       {
-        name: t("products.pro.name"),
-        description: t("products.pro.description"),
+        name: "TubeGAI Pro",
+        description: "출시 예정 - 고급 분석 기능.",
         to: "#",
         icon: Crown,
         disabled: true,
       },
       {
-        name: t("products.plus.name"),
-        description: t("products.plus.description"),
+        name: "TubeGAI Plus",
+        description: "출시 예정 - 기업용 솔루션.",
         to: "#",
         icon: Trophy,
         disabled: true,
@@ -71,33 +69,33 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
   },
 
   {
-    name: t("projects.title"),
+    name: "프로젝트",
     to: "/projects",
     icon: FolderKanban,
     items: [
       {
-        name: t("projects.dashboard.name"),
-        description: t("projects.dashboard.description"),
+        name: "프로젝트 대시보드",
+        description: "크리에이티브 워크플로우와 제작을 관리하세요.",
         to: "/projects",
         featured: true,
         icon: LayoutDashboard,
       },
       {
-        name: t("projects.newProject.name"),
-        description: t("projects.newProject.description"),
+        name: "새 프로젝트",
+        description: "새로운 비디오 프로젝트를 시작하세요.",
         to: "/projects/new",
         icon: Plus,
       },
       {
-        name: t("projects.channels.name"),
-        description: t("projects.channels.description"),
+        name: "채널",
+        description: "YouTube 채널 관리.",
         to: "/projects/channels",
         icon: Radio,
       },
       // DISABLED: Phase 2+
       {
-        name: t("projects.labels.name"),
-        description: t("projects.labels.description"),
+        name: "라벨",
+        description: "출시 예정 - 프로젝트 분류.",
         to: "#",
         icon: Tag,
         disabled: true,
@@ -105,77 +103,77 @@ const getNavItems = (_projectId: string, t: (key: string) => string) => [
     ],
   },
   {
-    name: t("studio.title"),
+    name: "스튜디오",
     to: "/studio/script",
     icon: Clapperboard,
     items: [
       // MVP Features
       {
-        name: t("studio.dashboard.name"),
-        description: t("studio.dashboard.description"),
+        name: "스튜디오 대시보드",
+        description: "One Stop 제작 파이프라인 - TrendTube",
         to: "/studio/dashboard",
         icon: LayoutDashboard,
         featured: true,
       },
       {
-        name: t("studio.script.name"),
-        description: t("studio.script.description"),
+        name: "스크립트",
+        description: "AI로 비디오 스크립트를 작성하고 편집하세요.",
         to: "/studio/script",
         icon: FileText,
       },
       {
-        name: t("studio.storyboard.name"),
-        description: t("studio.storyboard.description"),
+        name: "스토리보드",
+        description: "장면과 샷을 시각화하세요.",
         to: "/studio/storyboard",
         icon: Image,
       },
       {
-        name: t("studio.scene.name"),
-        description: t("studio.scene.description"),
+        name: "씬",
+        description: "환경과 에셋을 설정하세요.",
         to: "/studio/scene",
         icon: Film,
       },
-      {
-        name: t("studio.export.name"),
-        description: t("studio.export.description"),
-        to: "/studio/export",
-        icon: Download,
-      },
       // DISABLED: Phase 2+ Features
       {
-        name: t("studio.broll.name"),
-        description: t("studio.broll.description"),
+        name: "B-Roll",
+        description: "출시 예정 - 스톡 영상.",
         to: "#",
         icon: Video,
         disabled: true,
       },
       {
-        name: t("studio.subtitles.name"),
-        description: t("studio.subtitles.description"),
+        name: "자막",
+        description: "출시 예정 - 자막 생성.",
         to: "#",
         icon: Captions,
         disabled: true,
       },
       {
-        name: t("studio.coloring.name"),
-        description: t("studio.coloring.description"),
+        name: "색보정",
+        description: "출시 예정 - 컬러 그레이딩.",
         to: "#",
         icon: Palette,
         disabled: true,
       },
       {
-        name: t("studio.thumbnail.name"),
-        description: t("studio.thumbnail.description"),
+        name: "썸네일",
+        description: "출시 예정 - 썸네일 디자이너.",
         to: "#",
         icon: Image,
         disabled: true,
       },
       {
-        name: t("studio.seo.name"),
-        description: t("studio.seo.description"),
+        name: "SEO",
+        description: "출시 예정 - 검색 최적화.",
         to: "#",
         icon: Search,
         disabled: true,
+      },
+      {
+        name: "내보내기",
+        description: "최종 비디오를 렌더링하고 다운로드하세요.",
+        to: "/studio/export",
+        icon: Download,
       },
     ],
   },
@@ -188,8 +186,7 @@ export default function Navigation({
 }: NavigationProps) {
   const params = useParams();
   const projectId = params.projectId || "1";
-  const { t } = useTranslation("navigation");
-  const navItems = getNavItems(projectId, t);
+  const navItems = getNavItems(projectId);
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -204,7 +201,7 @@ export default function Navigation({
             />
             <Link to="/">
               <span className="text-xl font-bold bg-linear-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent hidden sm:inline-block">
-                {t("brand")}
+                TubeGAI
               </span>
             </Link>
 
@@ -213,7 +210,6 @@ export default function Navigation({
           </div>
 
           <div className="flex items-center space-x-2">
-            <LanguageSelector />
             <UserNavigation
               user={user}
               hasNotifications={hasNotifications}

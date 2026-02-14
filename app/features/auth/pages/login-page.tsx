@@ -23,7 +23,6 @@ import {
 import { Input } from "~/common/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/common/components/ui/card";
 import { Separator } from "~/common/components/ui/separator";
-import { useTranslation } from "~/i18n/context";
 import {
   signInWithEmail,
   signInWithGitHub,
@@ -50,9 +49,6 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<"github" | "google" | null>(null);
-  const { t } = useTranslation("auth");
-  const { t: tc } = useTranslation("common");
-
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -155,9 +151,9 @@ export default function LoginPage() {
     <div className="flex h-full min-h-[calc(100vh-200px)] items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">{t("login.title")}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
           <CardDescription className="text-center">
-            {t("login.subtitle")}
+            이메일과 비밀번호를 입력하여 계정에 접속하세요
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -174,7 +170,7 @@ export default function LoginPage() {
               ) : (
                 <Github className="mr-2 h-4 w-4" />
               )}
-              {t("login.continueWith", { provider: "GitHub" })}
+              GitHub로 계속하기
             </Button>
 
             <Button
@@ -205,13 +201,13 @@ export default function LoginPage() {
                   />
                 </svg>
               )}
-              {t("login.continueWith", { provider: "Google" })}
+              Google로 계속하기
             </Button>
           </div>
 
           <div className="flex items-center gap-4">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">{tc("misc.or")}</span>
+            <span className="text-xs text-muted-foreground">또는</span>
             <Separator className="flex-1" />
           </div>
 
@@ -223,12 +219,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("login.email")}</FormLabel>
+                    <FormLabel>이메일</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder={t("login.emailPlaceholder")}
+                          placeholder="you@example.com"
                           className="pl-9"
                           {...field}
                           disabled={isAnyLoading}
@@ -244,7 +240,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("login.password")}</FormLabel>
+                    <FormLabel>비밀번호</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -264,21 +260,21 @@ export default function LoginPage() {
 
               <Button type="submit" className="w-full" disabled={isAnyLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? t("login.submitting") : t("login.submit")}
+                {isLoading ? "로그인 중..." : "로그인"}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
-            {t("login.noAccount")}{" "}
+            계정이 없으신가요?{" "}
             <Link to="/auth/join" className="text-primary hover:underline font-medium">
-              {t("login.signUp")}
+              가입하기
             </Link>
           </div>
           <div className="text-center text-xs text-muted-foreground">
             <Link to="/auth/forgot-password" className="text-primary hover:underline">
-              {t("login.forgotPassword")}
+              비밀번호를 잊으셨나요?
             </Link>
           </div>
         </CardFooter>

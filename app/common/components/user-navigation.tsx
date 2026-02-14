@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "~/common/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "~/common/components/ui/avatar";
-import { useTranslation } from "~/i18n/context";
 import { signOut } from "~/lib/auth.client";
 import type { UserInfo } from "~/root";
 
@@ -28,8 +27,6 @@ export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavi
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { t } = useTranslation("navigation");
-
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -76,13 +73,13 @@ export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavi
         <Button variant="ghost" asChild className="hidden sm:inline-flex">
           <Link to="/auth/login">
             <LogIn className="mr-2 h-4 w-4" />
-            {t("user.login")}
+            로그인
           </Link>
         </Button>
         <Button asChild>
           <Link to="/auth/join">
             <UserPlus className="mr-2 h-4 w-4" />
-            {t("user.join")}
+            가입
           </Link>
         </Button>
       </>
@@ -109,13 +106,13 @@ export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavi
       {hasNotifications && (
         <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
-          <span className="sr-only">{t("user.notifications")}</span>
+          <span className="sr-only">알림</span>
         </Button>
       )}
       {hasMessages && (
         <Button variant="ghost" size="icon">
           <MessageCircle className="h-5 w-5" />
-          <span className="sr-only">{t("user.messages")}</span>
+          <span className="sr-only">메시지</span>
         </Button>
       )}
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
@@ -156,27 +153,27 @@ export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavi
           {/* DISABLED: Settings (Phase 2+) */}
           <DropdownMenuGroup>
             <DropdownMenuLabel className="text-muted-foreground">
-              {t("user.settings")} <span className="text-xs">({t("misc.comingSoon", { ns: "common" })})</span>
+              설정 <span className="text-xs">(출시 예정)</span>
             </DropdownMenuLabel>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <User className="mr-2 h-4 w-4" />
-              {t("user.profile")}
+              프로필
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <CreditCard className="mr-2 h-4 w-4" />
-              {t("user.account")}
+              계정
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Sun className="mr-2 h-4 w-4" />
-              {t("user.appearance")}
+              화면 설정
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Bell className="mr-2 h-4 w-4" />
-              {t("user.notifications")}
+              알림
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
               <Plug className="mr-2 h-4 w-4" />
-              {t("user.integrations")}
+              연동
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -190,7 +187,7 @@ export function UserNavigation({ user, hasNotifications, hasMessages }: UserNavi
             ) : (
               <LogOut className="mr-2 h-4 w-4" />
             )}
-            {isLoggingOut ? "로그아웃 중..." : t("user.logout")}
+            {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

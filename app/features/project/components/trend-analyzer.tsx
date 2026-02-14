@@ -26,7 +26,6 @@ import type { Idea } from "~/common/types/ideation.types";
 import { getPrimaryTrend } from "~/common/types/ideation.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 import { AIProjectGeneratorDialog } from "./ai-project-generator-dialog";
-import { useTranslation } from "~/i18n/context";
 
 function ideaToAIRecommendation(idea: Idea): AIRecommendation {
   return {
@@ -64,8 +63,6 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
   );
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const navigate = useNavigate();
-  const { t } = useTranslation("project");
-  const { t: tc } = useTranslation("common");
 
   // Get unique categories from trends
   const availableCategories = [...new Set(trends.map((t) => t.category))];
@@ -443,10 +440,10 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-red-500" />
-            {t("trends.title")}
+            실시간 트렌드
           </h3>
           <p className="text-muted-foreground text-sm">
-            {t("trends.subtitle")}
+            인기 상승 주제를 발견하고 바로 콘텐츠를 만들어보세요.
           </p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
@@ -454,7 +451,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder={t("trends.searchPlaceholder")}
+              placeholder="트렌드 또는 주제 검색..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -478,7 +475,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
             <PopoverContent className="w-64" align="end">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">{t("trends.filterByCategory")}</h4>
+                  <h4 className="font-medium text-sm">카테고리 필터</h4>
                   {selectedCategories.length > 0 && (
                     <Button
                       variant="ghost"
@@ -486,7 +483,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                       onClick={clearFilters}
                       className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      {tc("button.clearAll")}
+                      모두 지우기
                     </Button>
                   )}
                 </div>
@@ -561,7 +558,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                               }}
                             >
                               <ExternalLink className="h-3 w-3 mr-1" />
-                              {t("trends.watchVideo")}
+                              영상 보기
                             </Button>
                           )}
                           <Button
@@ -579,7 +576,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                             ) : (
                               <Sparkles className="h-3 w-3 mr-1" />
                             )}
-                            {t("trends.generateIdeas")}
+                            아이디어 생성
                           </Button>
                           <Button
                             size="sm"
@@ -631,9 +628,9 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-500" />
-            {t("trends.ideaHubTitle")}
+            아이디어 허브
           </h3>
-          <p className="text-muted-foreground text-sm">{t("trends.ideaHubSubtitle")}</p>
+          <p className="text-muted-foreground text-sm">인기 있는 주제를 발견하고 바로 콘텐츠를 만들어보세요.</p>
         </div>
 
         {/* Saved Ideas Section */}
@@ -655,7 +652,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
               onClick={handleOpenIdeaGenerator}
             >
               <Plus className="h-3 w-3 mr-1" />
-              {t("trends.newIdea")}
+              아이디어 생성
             </Button>
           </div>
 
@@ -719,7 +716,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                         {usingIdeaIdx === idx ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                         ) : null}
-                        {t("trends.useIdea")}
+                        아이디어 사용
                       </Button>
                     </div>
                   </CardContent>
@@ -735,10 +732,10 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border-purple-500/20 gap-1 px-3 py-1">
                 <Zap className="h-3.5 w-3.5" fill="currentColor" />
-                {t("trends.aiRecommended")}
+                AI 추천
               </Badge>
               <h3 className="text-lg font-semibold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                {t("trends.topPicks")}
+                당신을 위한 TOP 아이디어 추천
               </h3>
             </div>
             <Button
@@ -823,7 +820,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                               onClick={() => handleGenerateIdeasFromRecommendation(item)}
                             >
                               <RefreshCw className="h-3 w-3 mr-1" />
-                              {t("trends.regeneration")}
+                              재생성
                             </Button>
                             <Button
                               size="sm"
@@ -838,7 +835,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                               className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
                               onClick={() => handleUseAIRecommendation(item)}
                             >
-                              {t("trends.useIdea")}
+                              아이디어 사용
                             </Button>
                           </div>
                         </CardContent>

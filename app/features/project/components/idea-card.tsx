@@ -41,7 +41,7 @@ import {
 } from "~/common/components/ui/alert-dialog";
 import { cn } from "~/lib/utils";
 import type { Idea } from "~/common/types/ideation.types";
-import { useTranslation } from "~/i18n/context";
+
 
 export interface IdeaCardProps {
   idea: Idea;
@@ -64,7 +64,6 @@ export function IdeaCard({
   isDeleting = false,
   isSaving = false,
 }: IdeaCardProps) {
-  const { t } = useTranslation("project");
   const isAI = idea.source === "ai_generated";
   const isSaved = idea.isSaved;
 

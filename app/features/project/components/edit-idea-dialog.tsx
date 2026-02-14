@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "~/common/components/ui/select";
 import type { SavedIdea } from "~/common/types/ideation.types";
-import { useTranslation } from "~/i18n/context";
 
 interface EditIdeaDialogProps {
   idea: SavedIdea | null;
@@ -38,7 +37,6 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
   const [estimatedViews, setEstimatedViews] = useState("");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [isSaving, setIsSaving] = useState(false);
-  const { t } = useTranslation("project");
 
   // Reset form when idea changes
   useEffect(() => {
@@ -71,7 +69,7 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
 
     // Validate
     if (!title.trim()) {
-      toast.error(t("savedIdeas.edit.titleRequired"));
+      toast.error("제목을 입력해주세요");
       return;
     }
 
@@ -97,15 +95,15 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
       const data = await response.json();
 
       if (data.error) {
-        toast.error(t("savedIdeas.edit.saveFailed"), { description: data.error });
+        toast.error("아이디어 수정에 실패했습니다", { description: data.error });
         return;
       }
 
-      toast.success(t("savedIdeas.edit.saveSuccess"));
+      toast.success("아이디어가 수정되었습니다");
       onSave(data.idea);
       onOpenChange(false);
     } catch (error) {
-      toast.error(t("savedIdeas.edit.saveFailed"));
+      toast.error("아이디어 수정에 실패했습니다");
     } finally {
       setIsSaving(false);
     }
@@ -115,30 +113,30 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("savedIdeas.edit.title")}</DialogTitle>
-          <DialogDescription>{t("savedIdeas.edit.description")}</DialogDescription>
+          <DialogTitle>아이디어 편집</DialogTitle>
+          <DialogDescription>저장된 아이디어의 내용을 수정합니다.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">{t("savedIdeas.edit.ideaTitle")}</Label>
+            <Label htmlFor="title">제목</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("savedIdeas.edit.titlePlaceholder")}
+              placeholder="아이디어 제목을 입력하세요"
             />
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">{t("savedIdeas.edit.ideaDescription")}</Label>
+            <Label htmlFor="description">설명</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={t("savedIdeas.edit.descriptionPlaceholder")}
+              placeholder="아이디어에 대한 설명을 입력하세요"
               rows={3}
             />
           </div>
@@ -146,10 +144,10 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
           {/* Hooks */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>{t("savedIdeas.edit.hooks")}</Label>
+              <Label>훅 아이디어</Label>
               <Button type="button" variant="outline" size="sm" onClick={handleAddHook}>
                 <Plus className="h-3 w-3 mr-1" />
-                {t("savedIdeas.edit.addHook")}
+                훅 추가
               </Button>
             </div>
             <div className="space-y-2">
@@ -158,7 +156,7 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
                   <Input
                     value={hook}
                     onChange={(e) => handleHookChange(index, e.target.value)}
-                    placeholder={t("savedIdeas.edit.hookPlaceholder")}
+                    placeholder="훅 아이디어를 입력하세요"
                   />
                   <Button
                     type="button"
@@ -172,26 +170,26 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
                 </div>
               ))}
               {hooks.length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("savedIdeas.edit.noHooks")}</p>
+                <p className="text-sm text-muted-foreground">훅이 없습니다. 훅을 추가해보세요.</p>
               )}
             </div>
           </div>
 
           {/* Target Audience */}
           <div className="space-y-2">
-            <Label htmlFor="targetAudience">{t("savedIdeas.edit.targetAudience")}</Label>
+            <Label htmlFor="targetAudience">타겟 오디언스</Label>
             <Input
               id="targetAudience"
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
-              placeholder={t("savedIdeas.edit.audiencePlaceholder")}
+              placeholder="타겟 오디언스를 입력하세요"
             />
           </div>
 
           {/* Estimated Views & Difficulty */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="estimatedViews">{t("savedIdeas.edit.estimatedViews")}</Label>
+              <Label htmlFor="estimatedViews">예상 조회수</Label>
               <Input
                 id="estimatedViews"
                 value={estimatedViews}
@@ -200,15 +198,15 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="difficulty">{t("savedIdeas.edit.difficulty")}</Label>
+              <Label htmlFor="difficulty">난이도</Label>
               <Select value={difficulty} onValueChange={(v) => setDifficulty(v as typeof difficulty)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="easy">{t("savedIdeas.edit.difficultyEasy")}</SelectItem>
-                  <SelectItem value="medium">{t("savedIdeas.edit.difficultyMedium")}</SelectItem>
-                  <SelectItem value="hard">{t("savedIdeas.edit.difficultyHard")}</SelectItem>
+                  <SelectItem value="easy">쉬움</SelectItem>
+                  <SelectItem value="medium">보통</SelectItem>
+                  <SelectItem value="hard">어려움</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -217,11 +215,11 @@ export function EditIdeaDialog({ idea, open, onOpenChange, onSave }: EditIdeaDia
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            {t("savedIdeas.cancel")}
+            취소
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t("savedIdeas.edit.save")}
+            저장
           </Button>
         </DialogFooter>
       </DialogContent>

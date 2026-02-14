@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslation } from "~/i18n/context";
+
 import {
   Dialog,
   DialogContent,
@@ -78,7 +78,6 @@ export function IdeaGeneratorDialog({
   const [options, setOptions] = useState<IdeationOptions>(
     DEFAULT_IDEATION_OPTIONS,
   );
-  const { t } = useTranslation("project");
 
   const generateIdeas = async () => {
     setIsLoading(true);
@@ -222,10 +221,10 @@ export function IdeaGeneratorDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
-            {t("ideaGenerator.title")}
+            AI 아이디어 생성기
           </DialogTitle>
           <DialogDescription>
-            {t("ideaGenerator.basedOn")} <strong>{trend.title}</strong>
+            다음을 기반으로 콘텐츠 아이디어 생성: <strong>{trend.title}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -249,7 +248,7 @@ export function IdeaGeneratorDialog({
               >
                 <span className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4" />
-                  {t("ideaGenerator.adjustOptions")}
+                  옵션 조정
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${showOptions ? "rotate-180" : ""}`}
@@ -261,7 +260,7 @@ export function IdeaGeneratorDialog({
                 {/* Language */}
                 <div className="grid gap-2">
                   <Label htmlFor="language">
-                    {t("ideaGenerator.language")}
+                    언어
                   </Label>
                   <Select
                     value={options.language}
@@ -293,7 +292,7 @@ export function IdeaGeneratorDialog({
                 {/* Content Tone */}
                 <div className="grid gap-2">
                   <Label htmlFor="content-tone">
-                    {t("ideaGenerator.contentTone")}
+                    콘텐츠 톤
                   </Label>
                   <Select
                     value={options.contentTone}
@@ -325,7 +324,7 @@ export function IdeaGeneratorDialog({
                 {/* Video Type */}
                 <div className="grid gap-2">
                   <Label htmlFor="video-type">
-                    {t("ideaGenerator.videoLength")}
+                    비디오 길이
                   </Label>
                   <Select
                     value={options.videoType}
@@ -357,7 +356,7 @@ export function IdeaGeneratorDialog({
                 {/* Target Audience */}
                 <div className="grid gap-2">
                   <Label htmlFor="target-audience">
-                    {t("ideaGenerator.targetAudience")}
+                    타겟 오디언스
                   </Label>
                   <Select
                     value={options.targetAudienceType}
@@ -389,7 +388,7 @@ export function IdeaGeneratorDialog({
                 {/* Number of Ideas */}
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
-                    <Label>{t("ideaGenerator.ideaCount")}</Label>
+                    <Label>아이디어 개수</Label>
                     <span className="text-sm text-muted-foreground">
                       {options.ideaCount}
                     </span>
@@ -409,11 +408,11 @@ export function IdeaGeneratorDialog({
                 {/* Custom Prompt */}
                 <div className="grid gap-2">
                   <Label htmlFor="custom-prompt">
-                    {t("ideaGenerator.customFocus")}
+                    커스텀 포커스 (선택사항)
                   </Label>
                   <Textarea
                     id="custom-prompt"
-                    placeholder={t("ideaGenerator.customFocusPlaceholder")}
+                    placeholder="AI에게 특정 키워드, 관점 또는 요구사항을 추가하세요..."
                     value={options.customPrompt || ""}
                     onChange={(e) =>
                       updateOption("customPrompt", e.target.value)
@@ -432,7 +431,7 @@ export function IdeaGeneratorDialog({
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              {t("ideaGenerator.generate")}
+              콘텐츠 아이디어 생성
             </Button>
           )}
 
@@ -440,7 +439,7 @@ export function IdeaGeneratorDialog({
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-purple-500" />
-              <p className="text-sm">{t("ideaGenerator.generating")}</p>
+              <p className="text-sm">트렌드를 분석하고 아이디어를 생성 중...</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {
                   IDEATION_LANGUAGES.find((l) => l.value === options.language)
@@ -462,7 +461,7 @@ export function IdeaGeneratorDialog({
               {/* Bulk Actions */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
-                  {t("ideaGenerator.ideasGenerated", { count: ideas.length })}
+                  {`${ideas.length}개 아이디어 생성됨`}
                 </span>
                 <Button
                   size="sm"
@@ -471,7 +470,7 @@ export function IdeaGeneratorDialog({
                   disabled={ideas.every((idea) => savedIdeaIds.has(idea.id))}
                 >
                   <Bookmark className="h-3 w-3 mr-1" />
-                  {t("ideaGenerator.saveAll")}
+                  모두 저장
                 </Button>
               </div>
 
@@ -500,7 +499,7 @@ export function IdeaGeneratorDialog({
                         {/* Hooks */}
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-2">
-                            {t("ideaGenerator.hookIdeas")}
+                            훅 아이디어:
                           </p>
                           <ul className="space-y-1">
                             {idea.hooks.map((hook, idx) => (
@@ -520,14 +519,14 @@ export function IdeaGeneratorDialog({
                           <div className="flex items-center gap-1.5">
                             <Target className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">
-                              {t("ideaGenerator.audience")}
+                              오디언스:
                             </span>
                             <span>{idea.targetAudience}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-muted-foreground">
-                              {t("ideaGenerator.estViews")}
+                              예상 조회수:
                             </span>
                             <span className="text-green-500 font-medium">
                               {idea.estimatedViews}
@@ -546,12 +545,12 @@ export function IdeaGeneratorDialog({
                             {savedIdeaIds.has(idea.id) ? (
                               <>
                                 <Check className="h-3 w-3 mr-1" />
-                                {t("ideaGenerator.saved")}
+                                저장됨
                               </>
                             ) : (
                               <>
                                 <Bookmark className="h-3 w-3 mr-1" />
-                                {t("ideaGenerator.saveIdea")}
+                                아이디어 저장
                               </>
                             )}
                           </Button>
@@ -560,7 +559,7 @@ export function IdeaGeneratorDialog({
                               to="/projects/new"
                               state={{ topic: idea.title, hooks: idea.hooks }}
                             >
-                              {t("ideaGenerator.useIdea")}
+                              이 아이디어 사용
                             </Link>
                           </Button>
                         </div>
@@ -577,11 +576,11 @@ export function IdeaGeneratorDialog({
             <div className="flex justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowOptions(true)}>
                 <Settings2 className="h-3 w-3 mr-1" />
-                {t("ideaGenerator.adjustOptions")}
+                옵션 조정
               </Button>
               <Button variant="ghost" onClick={generateIdeas}>
                 <Sparkles className="h-3 w-3 mr-1" />
-                {t("ideaGenerator.regenerate")}
+                다시 생성
               </Button>
             </div>
           )}
