@@ -2,14 +2,14 @@
 // Veo 3 Video Generation Service
 // =============================================================================
 // Server-side AI service for generating 8-second videos from video ideas
-// Uses @google/genai SDK with veo-3.1-generate-001 model
+// Uses @google/genai SDK with veo-3.1-generate-preview model
 
 import { GoogleGenAI } from "@google/genai";
 import { getTextModel } from "./gemini-client.server";
 import { withRetry } from "./gemini-retry.server";
 import { MOCK_VIDEO_RESULT } from "./__mocks__/ai-fixtures";
 
-const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 const genaiClient = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
@@ -37,7 +37,7 @@ export async function generateVideo(
 
   // Step 2: Call Veo 3 API
   if (!genaiClient) {
-    console.warn("GOOGLE_GENAI_API_KEY not set, returning placeholder video");
+    console.warn("Veo3: API key not set, returning placeholder video");
     return createPlaceholderVideo(videoPrompt, targetDuration);
   }
 
@@ -51,42 +51,75 @@ export async function generateVideo(
       },
     });
 
-    // Poll until complete (max 3 minutes)
-    const maxAttempts = 18;
+    // Poll until complete (max 5 minutes)
+    const maxAttempts = 30;
     let attempts = 0;
-    while (!operation.done && attempts < maxAttempts) {
+    let consecutiveErrors = 0;
+
+    while (operation.done !== true && attempts < maxAttempts) {
       await new Promise((r) => setTimeout(r, 10000));
-      operation = await genaiClient.operations.getVideosOperation({
-        operation,
-      });
-      attempts++;
+      try {
+        operation = await genaiClient.operations.getVideosOperation({
+          operation: operation,
+        });
+        consecutiveErrors = 0;
+        attempts++;
+      } catch (pollError) {
+        consecutiveErrors++;
+        attempts++;
+        const pe = pollError as Error;
+        console.warn(
+          `Veo3: Poll ${attempts} failed (${consecutiveErrors}x): ${pe.message}`,
+        );
+        if (consecutiveErrors >= 5) {
+          throw pollError;
+        }
+      }
     }
 
-    if (!operation.done) {
-      console.error("Veo 3: Video generation timed out after 3 minutes");
+    if (operation.done !== true) {
+      console.error("Veo3: Video generation timed out after 5 minutes");
       return createPlaceholderVideo(videoPrompt, targetDuration);
     }
 
     // Extract video from response
     const generatedVideos = operation.response?.generatedVideos;
     if (!generatedVideos || generatedVideos.length === 0) {
-      console.error("Veo 3: No videos in response");
+      console.error("Veo3: No videos in response");
       return createPlaceholderVideo(videoPrompt, targetDuration);
     }
 
     const video = generatedVideos[0].video;
     if (!video?.uri) {
-      console.error("Veo 3: No video URI in response");
+      console.error("Veo3: No video URI in response");
       return createPlaceholderVideo(videoPrompt, targetDuration);
     }
 
+    // Step 3: Download video via authenticated fetch (video.uri requires API key)
+    const downloadUrl = video.uri.includes("?")
+      ? `${video.uri}&key=${apiKey}`
+      : `${video.uri}?key=${apiKey}`;
+
+    const downloadRes = await fetch(downloadUrl);
+    if (!downloadRes.ok) {
+      console.error(
+        `Veo3: Download failed: ${downloadRes.status} ${downloadRes.statusText}`,
+      );
+      return createPlaceholderVideo(videoPrompt, targetDuration);
+    }
+
+    const arrayBuffer = await downloadRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = downloadRes.headers.get("content-type") || "video/mp4";
+    const dataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
+
     return {
-      url: video.uri,
+      url: dataUrl,
       duration: targetDuration,
       prompt: videoPrompt,
     };
   } catch (error) {
-    console.error("Veo 3 generation error:", error);
+    console.error("Veo3: Generation error:", error);
     return createPlaceholderVideo(videoPrompt, targetDuration);
   }
 }
