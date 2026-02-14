@@ -203,16 +203,8 @@ const { t } = useTranslation("project"); // common, auth, project, studio, home
 ### AI (Gemini)
 
 - **기본 AI**: Google Gemini 사용 (다른 AI 서비스 사용 시 승인 필요)
-- 구현 참조: [app/lib/ai.server.ts](app/lib/ai.server.ts)
-
-**모델 선택 기준**:
-
-| 용도                 | 모델                         | 특징                    |
-| -------------------- | ---------------------------- | ----------------------- |
-| 텍스트 생성 (고품질) | `gemini-2.5-flash`           | 아이디어 추천           |
-| 텍스트 생성 (빠름)   | `gemini-2.5-flash-lite`      | 스크립트, 프로젝트 생성 |
-| 이미지 분석          | `gemini-3-pro-image-preview` | 멀티모달 분석           |
-| 이미지 생성          | `nano-banana-pro-preview`    | 스토리보드, 썸네일      |
+- Gemini API 공식 문서: <https://ai.google.dev/gemini-api/docs?hl=ko>
+- Gemini API 공식 문서를 참조해서 구현하는 기능에 가장 적합한 모델을 선택
 
 ---
 
@@ -270,5 +262,4 @@ SUPABASE_URL
 SUPABASE_ANON_KEY
 GEMINI_API_KEY
 GOOGLE_CLIENT_ID_YOUTUBE
-GOOGLE_CLIENT_SECRET_YOUTUBE
 ```
