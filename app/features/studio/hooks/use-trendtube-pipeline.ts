@@ -395,6 +395,13 @@ export function useTrendTubePipeline() {
     inputRef.current = null;
   }, []);
 
+  const restoreResults = useCallback((savedResults: TrendTubeResults) => {
+    setResults(savedResults);
+    setPhase("completed");
+    // Mark all steps as completed for display
+    setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "completed" as const })));
+  }, []);
+
   return {
     phase,
     steps,
@@ -403,5 +410,6 @@ export function useTrendTubePipeline() {
     startPipeline,
     retryFromStep,
     reset,
+    restoreResults,
   };
 }

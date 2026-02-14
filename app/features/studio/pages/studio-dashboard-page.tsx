@@ -1,9 +1,13 @@
-import { useMemo, useCallback } from "react";
-import { useParams } from "react-router";
+import { useMemo, useCallback, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/studio-dashboard-page";
 import { requireAuth } from "~/lib/auth.server";
 import { getProjectById } from "~/common/data/project.data.server";
+import {
+  getTrendTubeSessionForUser,
+  buildResultsFromSession,
+} from "~/common/data/trendtube.data.server";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { TrendTubeInputForm } from "../components/trendtube-input-form";
 import { TrendTubePipelineProgress } from "../components/trendtube-pipeline-progress";
@@ -29,9 +33,27 @@ export const meta = () => {
 export async function loader({ request, params }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
   const { projectId } = params;
-  if (!projectId) return { project: null };
+  if (!projectId) return { project: null, savedResults: null };
+
   const project = await getProjectById(projectId, userId);
-  return { project };
+
+  // Restore session results from URL search param
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("session");
+  let savedResults = null;
+
+  if (sessionId) {
+    try {
+      const session = await getTrendTubeSessionForUser(sessionId, userId);
+      if (session && session.status === "completed") {
+        savedResults = buildResultsFromSession(session);
+      }
+    } catch {
+      // Session may not exist or be accessible
+    }
+  }
+
+  return { project, savedResults };
 }
 
 // =============================================================================
@@ -47,7 +69,6 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
   if (project.hooks?.length) lines.push(`[훅] ${project.hooks.join(", ")}`);
   if (project.targetAudience) lines.push(`[타겟] ${project.targetAudience}`);
 
-  // AI Context
   const ctx = project.aiContext;
   if (ctx) {
     if (ctx.keywords?.length) lines.push(`[키워드] ${ctx.keywords.join(", ")}`);
@@ -55,7 +76,6 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
     if (ctx.callToAction) lines.push(`[CTA] ${ctx.callToAction}`);
   }
 
-  // Script Guidelines
   const sg = project.scriptGuidelines;
   if (sg) {
     lines.push("[스크립트 가이드]");
@@ -75,30 +95,55 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
 // Component
 // =============================================================================
 
-type DashboardMode = "input" | "generating" | "results";
-
 const TOTAL_STEPS = 7;
 
 export default function StudioDashboardPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const project = loaderData.project;
+  const savedResults = loaderData.savedResults;
 
   const {
     phase,
     steps,
     results,
+    sessionId,
     startPipeline,
     retryFromStep,
     reset,
+    restoreResults,
   } = useTrendTubePipeline();
 
-  // Map phase to mode
-  const mode: DashboardMode =
-    phase === "idle"
-      ? "input"
-      : phase === "completed"
-        ? "results"
-        : "generating";
+  // Restore results from DB (via loader) on initial load
+  useEffect(() => {
+    if (savedResults && phase === "idle" && !results) {
+      restoreResults(savedResults);
+    }
+  }, [savedResults, phase, results, restoreResults]);
+
+  // Sync sessionId to URL when pipeline completes
+  useEffect(() => {
+    if (phase === "completed" && sessionId) {
+      const currentSession = searchParams.get("session");
+      if (currentSession !== sessionId) {
+        setSearchParams(
+          (prev) => {
+            prev.set("session", sessionId);
+            return prev;
+          },
+          { replace: true },
+        );
+      }
+    }
+  }, [phase, sessionId, searchParams, setSearchParams]);
+
+  // Determine what to show
+  const isIdle = phase === "idle" && !results;
+  const isRunning =
+    phase !== "idle" && phase !== "completed" && phase !== "failed";
+  const hasSteps = phase !== "idle" || !!results;
+  const showResults =
+    (phase === "completed" || (phase === "idle" && !!results)) && !!results;
 
   // Pre-fill initial values from project data
   const initialValues = useMemo(() => {
@@ -122,18 +167,28 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
       }
       startPipeline({ projectId, ...data });
     },
-    [projectId, startPipeline]
+    [projectId, startPipeline],
   );
 
-  // If no project selected, show project selector
+  const handleReset = useCallback(() => {
+    reset();
+    setSearchParams(
+      (prev) => {
+        prev.delete("session");
+        return prev;
+      },
+      { replace: true },
+    );
+  }, [reset, setSearchParams]);
+
   if (!projectId) {
     return <StudioProjectSelector />;
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Input Mode */}
-      {mode === "input" && (
+      {/* Input Form: only when idle with no results */}
+      {isIdle && (
         <TrendTubeInputForm
           onSubmit={handleSubmit}
           isLoading={false}
@@ -141,31 +196,30 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
         />
       )}
 
-      {/* Generating Mode */}
-      {mode === "generating" && (
+      {/* Pipeline Progress: visible during generation AND with results */}
+      {hasSteps && (
         <div className="space-y-4">
           <TrendTubePipelineProgress
             steps={steps}
             totalSteps={TOTAL_STEPS}
             onRetryStep={phase === "failed" ? retryFromStep : undefined}
           />
-          <div className="text-center">
-            <button
-              onClick={reset}
-              className="text-sm text-muted-foreground hover:text-foreground underline"
-            >
-              취소하고 돌아가기
-            </button>
-          </div>
+          {isRunning && (
+            <div className="text-center">
+              <button
+                onClick={handleReset}
+                className="text-sm text-muted-foreground hover:text-foreground underline"
+              >
+                취소하고 돌아가기
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Results Mode */}
-      {mode === "results" && results && (
-        <TrendTubeResultsDisplay
-          results={results}
-          onReset={reset}
-        />
+      {/* Results: shown when completed or restored */}
+      {showResults && (
+        <TrendTubeResultsDisplay results={results} onReset={handleReset} />
       )}
     </div>
   );
