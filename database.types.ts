@@ -14,83 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_generation_cache: {
+      audit_log: {
         Row: {
+          action: string
+          changes: string | null
           created_at: string
-          expires_at: string | null
-          generation_type: Database["public"]["Enums"]["ai_generation_type"]
+          entity_id: string
+          entity_type: string
           id: string
-          input_parameters_hash: string | null
-          media_asset_id: string | null
-          model_version: string
-          prompt_hash: string
-          text_output: string | null
-          user_id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string | null
         }
         Insert: {
+          action: string
+          changes?: string | null
           created_at?: string
-          expires_at?: string | null
-          generation_type: Database["public"]["Enums"]["ai_generation_type"]
+          entity_id: string
+          entity_type: string
           id?: string
-          input_parameters_hash?: string | null
-          media_asset_id?: string | null
-          model_version: string
-          prompt_hash: string
-          text_output?: string | null
-          user_id: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
+          action?: string
+          changes?: string | null
           created_at?: string
-          expires_at?: string | null
-          generation_type?: Database["public"]["Enums"]["ai_generation_type"]
+          entity_id?: string
+          entity_type?: string
           id?: string
-          input_parameters_hash?: string | null
-          media_asset_id?: string | null
-          model_version?: string
-          prompt_hash?: string
-          text_output?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_generation_cache_media_asset_id_media_asset_id_fk"
-            columns: ["media_asset_id"]
-            isOneToOne: false
-            referencedRelation: "media_asset"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      billing_history: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string | null
-          id: string
-          invoice_id: string
-          paid_at: string | null
-          status: Database["public"]["Enums"]["payment_status"] | null
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency?: string | null
-          id?: string
-          invoice_id: string
-          paid_at?: string | null
-          status?: Database["public"]["Enums"]["payment_status"] | null
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string | null
-          id?: string
-          invoice_id?: string
-          paid_at?: string | null
-          status?: Database["public"]["Enums"]["payment_status"] | null
-          user_id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -98,112 +54,180 @@ export type Database = {
         Row: {
           access_token: string | null
           avatar_url: string | null
+          banner_url: string | null
           created_at: string
+          description: string | null
           handle: string | null
           id: string
           last_synced_at: string | null
           name: string
           refresh_token: string | null
           status: Database["public"]["Enums"]["channel_status"]
+          subscriber_count: number | null
+          token_expires_at: string | null
           updated_at: string
           user_id: string
+          video_count: number | null
+          view_count: number | null
           youtube_channel_id: string
         }
         Insert: {
           access_token?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
+          description?: string | null
           handle?: string | null
           id?: string
           last_synced_at?: string | null
           name: string
           refresh_token?: string | null
           status?: Database["public"]["Enums"]["channel_status"]
+          subscriber_count?: number | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id: string
+          video_count?: number | null
+          view_count?: number | null
           youtube_channel_id: string
         }
         Update: {
           access_token?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
+          description?: string | null
           handle?: string | null
           id?: string
           last_synced_at?: string | null
           name?: string
           refresh_token?: string | null
           status?: Database["public"]["Enums"]["channel_status"]
+          subscriber_count?: number | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id?: string
+          video_count?: number | null
+          view_count?: number | null
           youtube_channel_id?: string
         }
         Relationships: []
       }
-      channel_video: {
+      idea: {
         Row: {
-          channel_id: string
-          comment_count: number | null
+          category: string | null
+          content_tones: string[] | null
           created_at: string
           description: string | null
-          duration: string | null
+          difficulty: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views: string | null
+          expires_at: string | null
+          growth_rate: string | null
+          hooks: string[] | null
           id: string
-          like_count: number | null
-          project_id: string | null
-          published_at: string | null
-          tags: string[] | null
-          thumbnail_url: string | null
+          is_saved: boolean
+          is_used: boolean
+          reason: string | null
+          reference_url: string | null
+          score: number | null
+          source: Database["public"]["Enums"]["idea_source"]
+          target_audience: string | null
           title: string
           updated_at: string
-          view_count: number | null
-          youtube_video_id: string
+          used_for_project_id: string | null
+          user_id: string
+          video_types: string[] | null
         }
         Insert: {
-          channel_id: string
-          comment_count?: number | null
+          category?: string | null
+          content_tones?: string[] | null
           created_at?: string
           description?: string | null
-          duration?: string | null
+          difficulty?: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views?: string | null
+          expires_at?: string | null
+          growth_rate?: string | null
+          hooks?: string[] | null
           id?: string
-          like_count?: number | null
-          project_id?: string | null
-          published_at?: string | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
+          is_saved?: boolean
+          is_used?: boolean
+          reason?: string | null
+          reference_url?: string | null
+          score?: number | null
+          source: Database["public"]["Enums"]["idea_source"]
+          target_audience?: string | null
           title: string
           updated_at?: string
-          view_count?: number | null
-          youtube_video_id: string
+          used_for_project_id?: string | null
+          user_id: string
+          video_types?: string[] | null
         }
         Update: {
-          channel_id?: string
-          comment_count?: number | null
+          category?: string | null
+          content_tones?: string[] | null
           created_at?: string
           description?: string | null
-          duration?: string | null
+          difficulty?: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views?: string | null
+          expires_at?: string | null
+          growth_rate?: string | null
+          hooks?: string[] | null
           id?: string
-          like_count?: number | null
-          project_id?: string | null
-          published_at?: string | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
+          is_saved?: boolean
+          is_used?: boolean
+          reason?: string | null
+          reference_url?: string | null
+          score?: number | null
+          source?: Database["public"]["Enums"]["idea_source"]
+          target_audience?: string | null
           title?: string
           updated_at?: string
-          view_count?: number | null
-          youtube_video_id?: string
+          used_for_project_id?: string | null
+          user_id?: string
+          video_types?: string[] | null
         }
         Relationships: [
           {
-            foreignKeyName: "channel_video_channel_id_channel_id_fk"
-            columns: ["channel_id"]
+            foreignKeyName: "idea_used_for_project_id_project_id_fk"
+            columns: ["used_for_project_id"]
             isOneToOne: false
-            referencedRelation: "channel"
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_trend: {
+        Row: {
+          created_at: string
+          idea_id: string
+          is_primary: boolean
+          trend_id: string
+        }
+        Insert: {
+          created_at?: string
+          idea_id: string
+          is_primary?: boolean
+          trend_id: string
+        }
+        Update: {
+          created_at?: string
+          idea_id?: string
+          is_primary?: boolean
+          trend_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_trend_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "idea"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "channel_video_project_id_project_id_fk"
-            columns: ["project_id"]
+            foreignKeyName: "idea_trend_trend_id_fkey"
+            columns: ["trend_id"]
             isOneToOne: false
-            referencedRelation: "project"
+            referencedRelation: "trend"
             referencedColumns: ["id"]
           },
         ]
@@ -212,6 +236,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          description: string | null
           id: string
           name: string
           user_id: string | null
@@ -219,6 +244,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name: string
           user_id?: string | null
@@ -226,6 +252,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
           user_id?: string | null
@@ -318,48 +345,106 @@ export type Database = {
       }
       project: {
         Row: {
+          ai_context: Json | null
+          based_on_trend: string | null
+          based_on_trend_id: number | null
+          based_on_trend_uuid: string | null
           channel_id: string | null
+          content_tone: Database["public"]["Enums"]["content_tone"] | null
           created_at: string
+          current_step: string | null
           description: string | null
+          difficulty: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views: string | null
+          hooks: string[] | null
           id: string
+          progress: number
+          reference_url: string | null
+          script_guidelines: Json | null
+          source_idea_id: string | null
           status: Database["public"]["Enums"]["project_status"]
+          target_audience: string | null
+          thumbnail_url: string | null
           title: string
           tone: Database["public"]["Enums"]["project_tone"] | null
           topic: string | null
+          trend_snapshot: Json | null
           type: Database["public"]["Enums"]["project_type"]
           updated_at: string
           user_id: string
+          video_length: Database["public"]["Enums"]["video_length"] | null
           visibility: Database["public"]["Enums"]["project_visibility"]
         }
         Insert: {
+          ai_context?: Json | null
+          based_on_trend?: string | null
+          based_on_trend_id?: number | null
+          based_on_trend_uuid?: string | null
           channel_id?: string | null
+          content_tone?: Database["public"]["Enums"]["content_tone"] | null
           created_at?: string
+          current_step?: string | null
           description?: string | null
+          difficulty?: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views?: string | null
+          hooks?: string[] | null
           id?: string
+          progress?: number
+          reference_url?: string | null
+          script_guidelines?: Json | null
+          source_idea_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
+          target_audience?: string | null
+          thumbnail_url?: string | null
           title?: string
           tone?: Database["public"]["Enums"]["project_tone"] | null
           topic?: string | null
+          trend_snapshot?: Json | null
           type?: Database["public"]["Enums"]["project_type"]
           updated_at?: string
           user_id: string
+          video_length?: Database["public"]["Enums"]["video_length"] | null
           visibility?: Database["public"]["Enums"]["project_visibility"]
         }
         Update: {
+          ai_context?: Json | null
+          based_on_trend?: string | null
+          based_on_trend_id?: number | null
+          based_on_trend_uuid?: string | null
           channel_id?: string | null
+          content_tone?: Database["public"]["Enums"]["content_tone"] | null
           created_at?: string
+          current_step?: string | null
           description?: string | null
+          difficulty?: Database["public"]["Enums"]["idea_difficulty"] | null
+          estimated_views?: string | null
+          hooks?: string[] | null
           id?: string
+          progress?: number
+          reference_url?: string | null
+          script_guidelines?: Json | null
+          source_idea_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
+          target_audience?: string | null
+          thumbnail_url?: string | null
           title?: string
           tone?: Database["public"]["Enums"]["project_tone"] | null
           topic?: string | null
+          trend_snapshot?: Json | null
           type?: Database["public"]["Enums"]["project_type"]
           updated_at?: string
           user_id?: string
+          video_length?: Database["public"]["Enums"]["video_length"] | null
           visibility?: Database["public"]["Enums"]["project_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "project_based_on_trend_uuid_fkey"
+            columns: ["based_on_trend_uuid"]
+            isOneToOne: false
+            referencedRelation: "trend"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_channel_id_channel_id_fk"
             columns: ["channel_id"]
@@ -398,292 +483,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      project_pipeline: {
-        Row: {
-          current_phase: Database["public"]["Enums"]["pipeline_phase"]
-          id: string
-          last_accessed_step: string | null
-          overall_progress: number | null
-          project_id: string
-          step_b_roll_status: Database["public"]["Enums"]["step_status"] | null
-          step_coloring_status:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_export_status: Database["public"]["Enums"]["step_status"] | null
-          step_rough_cut_status:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_scene_status: Database["public"]["Enums"]["step_status"] | null
-          step_script_status: Database["public"]["Enums"]["step_status"] | null
-          step_seo_status: Database["public"]["Enums"]["step_status"] | null
-          step_storyboard_status:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_subtitles_status:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_thumbnail_status:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          updated_at: string
-        }
-        Insert: {
-          current_phase?: Database["public"]["Enums"]["pipeline_phase"]
-          id?: string
-          last_accessed_step?: string | null
-          overall_progress?: number | null
-          project_id: string
-          step_b_roll_status?: Database["public"]["Enums"]["step_status"] | null
-          step_coloring_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_export_status?: Database["public"]["Enums"]["step_status"] | null
-          step_rough_cut_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_scene_status?: Database["public"]["Enums"]["step_status"] | null
-          step_script_status?: Database["public"]["Enums"]["step_status"] | null
-          step_seo_status?: Database["public"]["Enums"]["step_status"] | null
-          step_storyboard_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_subtitles_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_thumbnail_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          updated_at?: string
-        }
-        Update: {
-          current_phase?: Database["public"]["Enums"]["pipeline_phase"]
-          id?: string
-          last_accessed_step?: string | null
-          overall_progress?: number | null
-          project_id?: string
-          step_b_roll_status?: Database["public"]["Enums"]["step_status"] | null
-          step_coloring_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_export_status?: Database["public"]["Enums"]["step_status"] | null
-          step_rough_cut_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_scene_status?: Database["public"]["Enums"]["step_status"] | null
-          step_script_status?: Database["public"]["Enums"]["step_status"] | null
-          step_seo_status?: Database["public"]["Enums"]["step_status"] | null
-          step_storyboard_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_subtitles_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          step_thumbnail_status?:
-            | Database["public"]["Enums"]["step_status"]
-            | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_pipeline_project_id_project_id_fk"
-            columns: ["project_id"]
-            isOneToOne: true
-            referencedRelation: "project"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_seo: {
-        Row: {
-          id: string
-          last_analyzed_at: string | null
-          project_id: string
-          seo_score: number | null
-          target_keyword: string
-          updated_at: string
-          youtube_description: string | null
-          youtube_tags: string[] | null
-          youtube_title: string | null
-        }
-        Insert: {
-          id?: string
-          last_analyzed_at?: string | null
-          project_id: string
-          seo_score?: number | null
-          target_keyword: string
-          updated_at?: string
-          youtube_description?: string | null
-          youtube_tags?: string[] | null
-          youtube_title?: string | null
-        }
-        Update: {
-          id?: string
-          last_analyzed_at?: string | null
-          project_id?: string
-          seo_score?: number | null
-          target_keyword?: string
-          updated_at?: string
-          youtube_description?: string | null
-          youtube_tags?: string[] | null
-          youtube_title?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_seo_project_id_project_id_fk"
-            columns: ["project_id"]
-            isOneToOne: true
-            referencedRelation: "project"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      settings_integration: {
-        Row: {
-          access_token: string | null
-          account_name: string | null
-          created_at: string
-          expires_at: string | null
-          id: string
-          provider: Database["public"]["Enums"]["integration_provider"]
-          refresh_token: string | null
-          status: Database["public"]["Enums"]["integration_status"] | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token?: string | null
-          account_name?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider: Database["public"]["Enums"]["integration_provider"]
-          refresh_token?: string | null
-          status?: Database["public"]["Enums"]["integration_status"] | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string | null
-          account_name?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider?: Database["public"]["Enums"]["integration_provider"]
-          refresh_token?: string | null
-          status?: Database["public"]["Enums"]["integration_status"] | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      settings_mcp_server: {
-        Row: {
-          access_token: string | null
-          created_at: string
-          endpoint_url: string
-          id: string
-          last_connected_at: string | null
-          name: string
-          status: Database["public"]["Enums"]["mcp_status"] | null
-          user_id: string
-        }
-        Insert: {
-          access_token?: string | null
-          created_at?: string
-          endpoint_url: string
-          id?: string
-          last_connected_at?: string | null
-          name: string
-          status?: Database["public"]["Enums"]["mcp_status"] | null
-          user_id: string
-        }
-        Update: {
-          access_token?: string | null
-          created_at?: string
-          endpoint_url?: string
-          id?: string
-          last_connected_at?: string | null
-          name?: string
-          status?: Database["public"]["Enums"]["mcp_status"] | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      settings_notification: {
-        Row: {
-          email_marketing: boolean | null
-          email_project_updates: boolean | null
-          email_security: boolean | null
-          id: string
-          push_comments: boolean | null
-          push_everything: boolean | null
-          updated_at: string
-        }
-        Insert: {
-          email_marketing?: boolean | null
-          email_project_updates?: boolean | null
-          email_security?: boolean | null
-          id: string
-          push_comments?: boolean | null
-          push_everything?: boolean | null
-          updated_at?: string
-        }
-        Update: {
-          email_marketing?: boolean | null
-          email_project_updates?: boolean | null
-          email_security?: boolean | null
-          id?: string
-          push_comments?: boolean | null
-          push_everything?: boolean | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      settings_subscription: {
-        Row: {
-          billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string
-          plan: Database["public"]["Enums"]["subscription_plan"]
-          price: number | null
-          status: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          price?: number | null
-          status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          price?: number | null
-          status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       studio_b_roll: {
         Row: {
@@ -798,9 +597,14 @@ export type Database = {
         Row: {
           completed_at: string | null
           format: Database["public"]["Enums"]["export_format"]
+          frame_rate: number | null
+          hardware_acceleration: boolean | null
           id: string
+          privacy: string | null
           project_id: string
+          quality: string | null
           resolution: Database["public"]["Enums"]["export_resolution"]
+          scheduled_at: string | null
           status: Database["public"]["Enums"]["export_status"] | null
           upload_status: Database["public"]["Enums"]["upload_status"] | null
           video_asset_id: string | null
@@ -808,9 +612,14 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           format?: Database["public"]["Enums"]["export_format"]
+          frame_rate?: number | null
+          hardware_acceleration?: boolean | null
           id?: string
+          privacy?: string | null
           project_id: string
+          quality?: string | null
           resolution?: Database["public"]["Enums"]["export_resolution"]
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["export_status"] | null
           upload_status?: Database["public"]["Enums"]["upload_status"] | null
           video_asset_id?: string | null
@@ -818,9 +627,14 @@ export type Database = {
         Update: {
           completed_at?: string | null
           format?: Database["public"]["Enums"]["export_format"]
+          frame_rate?: number | null
+          hardware_acceleration?: boolean | null
           id?: string
+          privacy?: string | null
           project_id?: string
+          quality?: string | null
           resolution?: Database["public"]["Enums"]["export_resolution"]
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["export_status"] | null
           upload_status?: Database["public"]["Enums"]["upload_status"] | null
           video_asset_id?: string | null
@@ -1045,38 +859,76 @@ export type Database = {
           },
         ]
       }
+      studio_seo: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          project_id: string
+          tags: string[] | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id: string
+          tags?: string[] | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string
+          tags?: string[] | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_seo_project_id_project_id_fk"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_storyboard: {
         Row: {
           created_at: string
           description: string | null
+          duration: number | null
           id: string
           image_asset_id: string | null
           order_index: number
           project_id: string
           scene_number: number
-          script_segment_id: string | null
+          script_segment_id: string
           visual_prompt: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          duration?: number | null
           id?: string
           image_asset_id?: string | null
           order_index?: number
           project_id: string
           scene_number: number
-          script_segment_id?: string | null
+          script_segment_id: string
           visual_prompt?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          duration?: number | null
           id?: string
           image_asset_id?: string | null
           order_index?: number
           project_id?: string
           scene_number?: number
-          script_segment_id?: string | null
+          script_segment_id?: string
           visual_prompt?: string | null
         }
         Relationships: [
@@ -1110,7 +962,6 @@ export type Database = {
           id: string
           project_id: string
           start_time: number
-          style_json: Json | null
           text: string
         }
         Insert: {
@@ -1119,7 +970,6 @@ export type Database = {
           id?: string
           project_id: string
           start_time: number
-          style_json?: Json | null
           text: string
         }
         Update: {
@@ -1128,7 +978,6 @@ export type Database = {
           id?: string
           project_id?: string
           start_time?: number
-          style_json?: Json | null
           text?: string
         }
         Relationships: [
@@ -1284,6 +1133,283 @@ export type Database = {
           },
         ]
       }
+      studio_video_part: {
+        Row: {
+          created_at: string
+          duration: number
+          end_time: number
+          id: string
+          part_number: number
+          start_time: number
+          status: Database["public"]["Enums"]["scene_video_status"]
+          video_asset_id: string | null
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration: number
+          end_time: number
+          id?: string
+          part_number: number
+          start_time: number
+          status?: Database["public"]["Enums"]["scene_video_status"]
+          video_asset_id?: string | null
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number
+          end_time?: number
+          id?: string
+          part_number?: number
+          start_time?: number
+          status?: Database["public"]["Enums"]["scene_video_status"]
+          video_asset_id?: string | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_video_part_video_asset_id_media_asset_id_fk"
+            columns: ["video_asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_video_part_video_id_studio_video_id_fk"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "studio_video"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trend: {
+        Row: {
+          category: string
+          comment_count: number | null
+          created_at: string
+          description: string | null
+          external_id: string | null
+          external_url: string | null
+          fetched_at: string | null
+          growth_rate: string | null
+          id: string
+          is_saved: boolean | null
+          language_code: string | null
+          last_used_at: string | null
+          like_count: number | null
+          published_at: string | null
+          region_code: string | null
+          saved_at: string | null
+          saved_by_user_id: string | null
+          source: Database["public"]["Enums"]["trend_source"]
+          tags: string[]
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          usage_count: number | null
+          used_for_project_id: string | null
+          user_id: string | null
+          video_duration: string | null
+          view_count: number | null
+          views_count: string | null
+        }
+        Insert: {
+          category: string
+          comment_count?: number | null
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          fetched_at?: string | null
+          growth_rate?: string | null
+          id?: string
+          is_saved?: boolean | null
+          language_code?: string | null
+          last_used_at?: string | null
+          like_count?: number | null
+          published_at?: string | null
+          region_code?: string | null
+          saved_at?: string | null
+          saved_by_user_id?: string | null
+          source?: Database["public"]["Enums"]["trend_source"]
+          tags?: string[]
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          usage_count?: number | null
+          used_for_project_id?: string | null
+          user_id?: string | null
+          video_duration?: string | null
+          view_count?: number | null
+          views_count?: string | null
+        }
+        Update: {
+          category?: string
+          comment_count?: number | null
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          fetched_at?: string | null
+          growth_rate?: string | null
+          id?: string
+          is_saved?: boolean | null
+          language_code?: string | null
+          last_used_at?: string | null
+          like_count?: number | null
+          published_at?: string | null
+          region_code?: string | null
+          saved_at?: string | null
+          saved_by_user_id?: string | null
+          source?: Database["public"]["Enums"]["trend_source"]
+          tags?: string[]
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          usage_count?: number | null
+          used_for_project_id?: string | null
+          user_id?: string | null
+          video_duration?: string | null
+          view_count?: number | null
+          views_count?: string | null
+        }
+        Relationships: []
+      }
+      trendtube_media: {
+        Row: {
+          created_at: string
+          id: string
+          media_asset_id: string | null
+          media_type: Database["public"]["Enums"]["trendtube_media_type"]
+          metadata: Json | null
+          public_url: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_asset_id?: string | null
+          media_type: Database["public"]["Enums"]["trendtube_media_type"]
+          metadata?: Json | null
+          public_url?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_asset_id?: string | null
+          media_type?: Database["public"]["Enums"]["trendtube_media_type"]
+          metadata?: Json | null
+          public_url?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trendtube_media_media_asset_id_fkey"
+            columns: ["media_asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trendtube_media_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "trendtube_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trendtube_result: {
+        Row: {
+          created_at: string
+          extracted_trends: string | null
+          id: string
+          narration_script: string | null
+          session_id: string
+          video_ideas: string | null
+        }
+        Insert: {
+          created_at?: string
+          extracted_trends?: string | null
+          id?: string
+          narration_script?: string | null
+          session_id: string
+          video_ideas?: string | null
+        }
+        Update: {
+          created_at?: string
+          extracted_trends?: string | null
+          id?: string
+          narration_script?: string | null
+          session_id?: string
+          video_ideas?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trendtube_result_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "trendtube_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trendtube_session: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          error_message: string | null
+          id: string
+          project_id: string
+          reference_image_url: string | null
+          status: Database["public"]["Enums"]["trendtube_pipeline_status"]
+          trends_url: string
+          user_id: string
+          user_idea: string
+          voice_option: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          error_message?: string | null
+          id?: string
+          project_id: string
+          reference_image_url?: string | null
+          status?: Database["public"]["Enums"]["trendtube_pipeline_status"]
+          trends_url: string
+          user_id: string
+          user_idea: string
+          voice_option?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          error_message?: string | null
+          id?: string
+          project_id?: string
+          reference_image_url?: string | null
+          status?: Database["public"]["Enums"]["trendtube_pipeline_status"]
+          trends_url?: string
+          user_id?: string
+          user_idea?: string
+          voice_option?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trendtube_session_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1294,41 +1420,46 @@ export type Database = {
     Enums: {
       ai_generation_type: "image" | "video" | "script" | "seo"
       b_roll_provider: "pexels" | "pixabay" | "unsplash" | "custom"
-      billing_cycle: "monthly" | "yearly"
-      channel_status: "active" | "disconnected" | "error"
-      export_format: "mp4" | "mov"
-      export_resolution: "1080p" | "4k"
+      channel_status: "active" | "error" | "syncing"
+      content_tone:
+        | "informative"
+        | "funny"
+        | "dramatic"
+        | "casual"
+        | "professional"
+      export_format: "mp4" | "mov" | "webm"
+      export_resolution: "720p" | "1080p" | "4k"
       export_status: "pending" | "completed" | "failed"
-      integration_provider:
-        | "youtube"
-        | "gemini"
-        | "pexels"
-        | "openai"
-        | "elevenlabs"
-      integration_status: "active" | "inactive" | "error"
-      mcp_status: "connected" | "disconnected" | "error"
+      idea_difficulty: "easy" | "medium" | "hard"
+      idea_source: "ai_generated" | "user_created"
       media_provider: "s3" | "r2" | "local"
       media_type: "image" | "video" | "audio"
-      payment_status: "paid" | "pending" | "failed"
-      pipeline_phase:
-        | "planning"
-        | "production"
-        | "post_production"
-        | "review"
-        | "completed"
       project_status: "draft" | "in_progress" | "completed" | "archived"
       project_tone: "informative" | "funny" | "cinematic" | "vlog"
       project_type: "short" | "long"
       project_visibility: "public" | "private"
-      scene_video_status: "generating" | "completed" | "failed"
+      scene_video_status: "pending" | "generating" | "completed" | "failed"
       script_segment_type: "hook" | "intro" | "body" | "cta" | "outro"
-      step_status: "pending" | "in_progress" | "completed"
-      subscription_plan: "free" | "pro" | "enterprise"
-      subscription_status: "active" | "canceled" | "past_due"
       thumbnail_overlay_type: "text" | "image"
       timeline_resource_type: "scene" | "b_roll" | "upload" | "audio"
       timeline_track_type: "video" | "audio"
+      trend_source: "youtube_api" | "ai_generated" | "manual"
+      trendtube_media_type:
+        | "video_image"
+        | "background_music"
+        | "voiceover"
+        | "generated_video"
+        | "composited_video"
+      trendtube_pipeline_status:
+        | "pending"
+        | "extracting"
+        | "generating_ideas"
+        | "generating_media"
+        | "compositing"
+        | "completed"
+        | "failed"
       upload_status: "not_uploaded" | "uploaded"
+      video_length: "short" | "medium" | "long"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1458,43 +1589,49 @@ export const Constants = {
     Enums: {
       ai_generation_type: ["image", "video", "script", "seo"],
       b_roll_provider: ["pexels", "pixabay", "unsplash", "custom"],
-      billing_cycle: ["monthly", "yearly"],
-      channel_status: ["active", "disconnected", "error"],
-      export_format: ["mp4", "mov"],
-      export_resolution: ["1080p", "4k"],
-      export_status: ["pending", "completed", "failed"],
-      integration_provider: [
-        "youtube",
-        "gemini",
-        "pexels",
-        "openai",
-        "elevenlabs",
+      channel_status: ["active", "error", "syncing"],
+      content_tone: [
+        "informative",
+        "funny",
+        "dramatic",
+        "casual",
+        "professional",
       ],
-      integration_status: ["active", "inactive", "error"],
-      mcp_status: ["connected", "disconnected", "error"],
+      export_format: ["mp4", "mov", "webm"],
+      export_resolution: ["720p", "1080p", "4k"],
+      export_status: ["pending", "completed", "failed"],
+      idea_difficulty: ["easy", "medium", "hard"],
+      idea_source: ["ai_generated", "user_created"],
       media_provider: ["s3", "r2", "local"],
       media_type: ["image", "video", "audio"],
-      payment_status: ["paid", "pending", "failed"],
-      pipeline_phase: [
-        "planning",
-        "production",
-        "post_production",
-        "review",
-        "completed",
-      ],
       project_status: ["draft", "in_progress", "completed", "archived"],
       project_tone: ["informative", "funny", "cinematic", "vlog"],
       project_type: ["short", "long"],
       project_visibility: ["public", "private"],
-      scene_video_status: ["generating", "completed", "failed"],
+      scene_video_status: ["pending", "generating", "completed", "failed"],
       script_segment_type: ["hook", "intro", "body", "cta", "outro"],
-      step_status: ["pending", "in_progress", "completed"],
-      subscription_plan: ["free", "pro", "enterprise"],
-      subscription_status: ["active", "canceled", "past_due"],
       thumbnail_overlay_type: ["text", "image"],
       timeline_resource_type: ["scene", "b_roll", "upload", "audio"],
       timeline_track_type: ["video", "audio"],
+      trend_source: ["youtube_api", "ai_generated", "manual"],
+      trendtube_media_type: [
+        "video_image",
+        "background_music",
+        "voiceover",
+        "generated_video",
+        "composited_video",
+      ],
+      trendtube_pipeline_status: [
+        "pending",
+        "extracting",
+        "generating_ideas",
+        "generating_media",
+        "compositing",
+        "completed",
+        "failed",
+      ],
       upload_status: ["not_uploaded", "uploaded"],
+      video_length: ["short", "medium", "long"],
     },
   },
 } as const
