@@ -3,13 +3,10 @@
 // =============================================================================
 // Server-side AI service for generating YouTube content ideas
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrendItem } from "~/common/types/project.types";
-
-// Initialize Gemini client
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient, getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_RECOMMENDATIONS } from "./__mocks__/ai-fixtures";
 
 // =============================================================================
 // Types
@@ -135,7 +132,11 @@ export async function generateAIRecommendations(
 ): Promise<AIGeneratedRecommendation[]> {
   const { trends, userPreferences, count = 3, language = "ko" } = input;
 
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_RECOMMENDATIONS.slice(0, count);
+  }
+
+  if (!getGeminiClient()) {
     console.warn("GEMINI_API_KEY not set, returning empty recommendations");
     return [];
   }
@@ -193,20 +194,23 @@ Important:
 5. Return only a JSON array`;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = getTextModel("gemini-2.5-flash", systemPrompt)!;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
         },
-      ],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 8192,
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const text = response.text();

@@ -5,15 +5,13 @@
 // Uses @google/genai SDK with veo-3.1-generate-001 model
 
 import { GoogleGenAI } from "@google/genai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_VIDEO_RESULT } from "./__mocks__/ai-fixtures";
 
 const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
 
 const genaiClient = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
-const geminiClient = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
 
 export interface VideoGenerationResult {
   url: string;
@@ -28,6 +26,10 @@ export async function generateVideo(
   videoIdeas: string,
   options?: { durationSeconds?: number; aspectRatio?: string },
 ): Promise<VideoGenerationResult> {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_VIDEO_RESULT;
+  }
+
   const targetDuration = options?.durationSeconds ?? 8;
 
   // Step 1: Generate video prompt from ideas using Gemini
@@ -93,33 +95,32 @@ export async function generateVideo(
  * Generate a video prompt from video ideas using Gemini
  */
 async function generateVideoPrompt(videoIdeas: string): Promise<string> {
-  if (!geminiClient) {
+  const systemInstruction = "You are a visual director. Create concise English video prompts for AI video generation. Return ONLY the prompt text.";
+  const model = getTextModel("gemini-2.5-flash-lite", systemInstruction);
+
+  if (!model) {
     return "A dynamic, cinematic scene showcasing modern technology and AI tools with professional lighting";
   }
 
   try {
-    const model = geminiClient.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
-    });
-
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Based on the following video ideas, create a single concise English video prompt (1-2 sentences) for AI video generation. The prompt should describe the visual scene for the first 8 seconds of the video. Focus on cinematic, dynamic visuals.
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Based on the following video ideas, create a single concise English video prompt (1-2 sentences) for AI video generation. The prompt should describe the visual scene for the first 8 seconds of the video. Focus on cinematic, dynamic visuals.
 
 Video Ideas:
-${videoIdeas.substring(0, 2000)}
-
-Return ONLY the video prompt text. No explanation, no quotes, no formatting.`,
-            },
-          ],
-        },
-      ],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 256 },
-    });
+${videoIdeas.substring(0, 2000)}`,
+              },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 256 },
+      }),
+    );
 
     const text = result.response.text().trim();
     return (

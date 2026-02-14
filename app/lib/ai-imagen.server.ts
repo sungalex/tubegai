@@ -3,12 +3,8 @@
 // =============================================================================
 // Server-side AI service for generating images from visual prompts
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// Initialize Gemini client
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
 
 // =============================================================================
 // Types
@@ -86,7 +82,11 @@ export async function generateImage(
   prompt: string,
   options: ImageGenerationOptions = {}
 ): Promise<GeneratedImage> {
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return generatePlaceholderImage(options);
+  }
+
+  if (!getGeminiClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
@@ -94,28 +94,30 @@ export async function generateImage(
   const enhancedPrompt = buildEnhancedPrompt(prompt, options);
 
   try {
-    // Use Gemini 3 Pro Image model for image generation (from CLAUDE.md)
+    const genAI = getGeminiClient()!;
     const model = genAI.getGenerativeModel({
       model: "gemini-3-pro-image-preview",
     });
 
     // Generate image using Gemini's image generation capability
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Create an image: ${enhancedPrompt}. Style: storyboard frame, cinematic composition, professional quality.`,
-            },
-          ],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Create an image: ${enhancedPrompt}. Style: storyboard frame, cinematic composition, professional quality.`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          // @ts-expect-error - Gemini image generation config
+          responseModalities: ["image", "text"],
         },
-      ],
-      generationConfig: {
-        // @ts-expect-error - Gemini image generation config
-        responseModalities: ["image", "text"],
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const candidates = response.candidates;
@@ -158,34 +160,36 @@ async function generateImageWithImagen(
   prompt: string,
   options: ImageGenerationOptions
 ): Promise<GeneratedImage> {
-  if (!genAI) {
+  if (!getGeminiClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const dimensions = getImageDimensions(options.aspectRatio);
 
   try {
-    // Use nano-banana-pro-preview model for image generation (from CLAUDE.md)
+    const genAI = getGeminiClient()!;
     const model = genAI.getGenerativeModel({
       model: "nano-banana-pro-preview",
     });
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Create an image: ${prompt}. Style: cinematic storyboard frame, professional quality.`,
-            },
-          ],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Create an image: ${prompt}. Style: cinematic storyboard frame, professional quality.`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          // @ts-expect-error - Gemini image generation config
+          responseModalities: ["image", "text"],
         },
-      ],
-      generationConfig: {
-        // @ts-expect-error - Gemini image generation config
-        responseModalities: ["image", "text"],
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const candidates = response.candidates;

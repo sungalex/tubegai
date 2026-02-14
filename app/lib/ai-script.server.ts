@@ -3,14 +3,11 @@
 // =============================================================================
 // Server-side AI service for generating video scripts
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ProjectFullDetail } from "~/common/data/project.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
-
-// Initialize Gemini client
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient, getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_SCRIPT_SEGMENTS } from "./__mocks__/ai-fixtures";
 
 // =============================================================================
 // Types
@@ -142,7 +139,11 @@ export async function generateScript(
   const { project, options } = input;
   const language = options.language ?? "ko";
 
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_SCRIPT_SEGMENTS;
+  }
+
+  if (!getGeminiClient()) {
     console.warn("GEMINI_API_KEY not set, returning empty script");
     return getDefaultSegments(language);
   }
@@ -150,109 +151,28 @@ export async function generateScript(
   // Build context from project
   const projectContext = buildProjectContext(project, language);
   const systemPrompt = language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
-
-  // Build length guidance with detailed word counts
-  const lengthGuidance = {
-    short:
-      language === "ko"
-        ? "총 길이: 1-2분 (약 300-600자, Body 세그먼트 1-2개)"
-        : "Total length: 1-2 minutes (150-300 words, 1-2 Body segments)",
-    medium:
-      language === "ko"
-        ? "총 길이: 5-10분 (약 1500-3000자, Body 세그먼트 3-4개)"
-        : "Total length: 5-10 minutes (750-1500 words, 3-4 Body segments)",
-    long:
-      language === "ko"
-        ? "총 길이: 10-20분 (약 3000-6000자, Body 세그먼트 5-7개)"
-        : "Total length: 10-20 minutes (1500-3000 words, 5-7 Body segments)",
-  };
-
-  // Build tone guidance
-  const toneGuidance = {
-    informative:
-      language === "ko"
-        ? "정보 전달형 - 명확하고 교육적인 톤"
-        : "Informative - Clear and educational tone",
-    casual:
-      language === "ko"
-        ? "캐주얼 - 친근하고 편안한 톤"
-        : "Casual - Friendly and relaxed tone",
-    professional:
-      language === "ko"
-        ? "전문적 - 신뢰감 있는 비즈니스 톤"
-        : "Professional - Trustworthy business tone",
-    dramatic:
-      language === "ko"
-        ? "드라마틱 - 긴장감 있고 스토리텔링형"
-        : "Dramatic - Tension-building and storytelling",
-    funny:
-      language === "ko"
-        ? "재미있는 - 유머와 위트가 있는 톤"
-        : "Funny - Humorous and witty tone",
-  };
-
-  const userPrompt =
-    language === "ko"
-      ? `다음 프로젝트 정보를 바탕으로 **완전한 유튜브 영상 대본**을 작성해주세요.
-
-## 프로젝트 정보
-${projectContext}
-
-## 대본 요구사항
-- 톤/스타일: ${toneGuidance[options.tone]}
-- ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Hook 세그먼트 포함 (강렬한 오프닝)" : "- Hook 세그먼트 제외"}
-${options.includeCTA !== false ? "- CTA 세그먼트 포함 (구체적인 행동 유도)" : "- CTA 세그먼트 제외"}
-${options.customPrompt ? `\n## 추가 요청사항\n${options.customPrompt}` : ""}
-
-## 중요 지침
-1. 각 세그먼트의 content는 **실제로 말할 완전한 대본**이어야 합니다
-2. 제목이나 요약이 아닌, **발표자가 읽을 전체 스크립트**를 작성하세요
-3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
-4. 전체 스토리가 자연스럽게 흐르도록 세그먼트 간 연결을 고려하세요
-5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요
-
-JSON 배열만 반환하세요.`
-      : `Create a **complete YouTube video script** based on the following project information.
-
-## Project Information
-${projectContext}
-
-## Script Requirements
-- Tone/Style: ${toneGuidance[options.tone]}
-- ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Include Hook segment (powerful opening)" : "- Exclude Hook segment"}
-${options.includeCTA !== false ? "- Include CTA segment (specific call to action)" : "- Exclude CTA segment"}
-${options.customPrompt ? `\n## Additional Requirements\n${options.customPrompt}` : ""}
-
-## Important Guidelines
-1. Each segment's content must be the **actual script to be spoken** in the video
-2. NOT titles or summaries - write the **full narration** the presenter will read
-3. Each Body segment should cover a specific subtopic with examples and explanations
-4. Ensure natural flow and transitions between segments
-5. Build a narrative that makes viewers want to watch until the end
-
-Return only a JSON array.`;
+  const userPrompt = buildScriptUserPrompt(projectContext, options, language);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = getTextModel("gemini-2.5-flash", systemPrompt)!;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: options.temperature ?? 0.8,
+          topP: options.topP ?? 0.9,
+          topK: options.topK ?? 40,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
         },
-      ],
-      generationConfig: {
-        temperature: options.temperature ?? 0.8, // 창의적인 스크립트를 위해 약간 높임
-        topP: options.topP ?? 0.9, // 다양한 표현 허용
-        topK: options.topK ?? 40, // 상위 40개 토큰에서 샘플링
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json", // JSON 형식 강제
-        // Note: presencePenalty and frequencyPenalty are NOT supported by gemini-2.5-flash
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const text = response.text();
@@ -284,12 +204,21 @@ export async function generateScriptStream(
   const { project, options, onSegment, onProgress } = input;
   const language = options.language ?? "ko";
 
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    for (const seg of MOCK_SCRIPT_SEGMENTS) {
+      onSegment(seg);
+      onProgress(seg.content);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return;
+  }
+
+  if (!getGeminiClient()) {
     console.warn("GEMINI_API_KEY not set, using default segments");
     const defaults = getDefaultSegments(language);
     for (const seg of defaults) {
       onSegment(seg);
-      await new Promise((r) => setTimeout(r, 500)); // Small delay for UI effect
+      await new Promise((r) => setTimeout(r, 500));
     }
     return;
   }
@@ -297,98 +226,16 @@ export async function generateScriptStream(
   // Build context from project
   const projectContext = buildProjectContext(project, language);
   const systemPrompt = language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
-
-  // Build length guidance with detailed word counts
-  const lengthGuidance = {
-    short:
-      language === "ko"
-        ? "총 길이: 1-2분 (약 300-600자, Body 세그먼트 1-2개)"
-        : "Total length: 1-2 minutes (150-300 words, 1-2 Body segments)",
-    medium:
-      language === "ko"
-        ? "총 길이: 5-10분 (약 1500-3000자, Body 세그먼트 3-4개)"
-        : "Total length: 5-10 minutes (750-1500 words, 3-4 Body segments)",
-    long:
-      language === "ko"
-        ? "총 길이: 10-20분 (약 3000-6000자, Body 세그먼트 5-7개)"
-        : "Total length: 10-20 minutes (1500-3000 words, 5-7 Body segments)",
-  };
-
-  // Build tone guidance
-  const toneGuidance = {
-    informative:
-      language === "ko"
-        ? "정보 전달형 - 명확하고 교육적인 톤"
-        : "Informative - Clear and educational tone",
-    casual:
-      language === "ko"
-        ? "캐주얼 - 친근하고 편안한 톤"
-        : "Casual - Friendly and relaxed tone",
-    professional:
-      language === "ko"
-        ? "전문적 - 신뢰감 있는 비즈니스 톤"
-        : "Professional - Trustworthy business tone",
-    dramatic:
-      language === "ko"
-        ? "드라마틱 - 긴장감 있고 스토리텔링형"
-        : "Dramatic - Tension-building and storytelling",
-    funny:
-      language === "ko"
-        ? "재미있는 - 유머와 위트가 있는 톤"
-        : "Funny - Humorous and witty tone",
-  };
-
-  const userPrompt =
-    language === "ko"
-      ? `다음 프로젝트 정보를 바탕으로 **완전한 유튜브 영상 대본**을 작성해주세요.
-
-## 프로젝트 정보
-${projectContext}
-
-## 대본 요구사항
-- 톤/스타일: ${toneGuidance[options.tone]}
-- ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Hook 세그먼트 포함 (강렬한 오프닝)" : "- Hook 세그먼트 제외"}
-${options.includeCTA !== false ? "- CTA 세그먼트 포함 (구체적인 행동 유도)" : "- CTA 세그먼트 제외"}
-${options.customPrompt ? `\n## 추가 요청사항\n${options.customPrompt}` : ""}
-
-## 중요 지침
-1. 각 세그먼트의 content는 **실제로 말할 완전한 대본**이어야 합니다
-2. 제목이나 요약이 아닌, **발표자가 읽을 전체 스크립트**를 작성하세요
-3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
-4. 전체 스토리가 자연스럽게 흐르도록 세그먼트 간 연결을 고려하세요
-5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요
-
-JSON 배열만 반환하세요.`
-      : `Create a **complete YouTube video script** based on the following project information.
-
-## Project Information
-${projectContext}
-
-## Script Requirements
-- Tone/Style: ${toneGuidance[options.tone]}
-- ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Include Hook segment (powerful opening)" : "- Exclude Hook segment"}
-${options.includeCTA !== false ? "- Include CTA segment (specific call to action)" : "- Exclude CTA segment"}
-${options.customPrompt ? `\n## Additional Requirements\n${options.customPrompt}` : ""}
-
-## Important Guidelines
-1. Each segment's content must be the **actual script to be spoken** in the video
-2. NOT titles or summaries - write the **full narration** the presenter will read
-3. Each Body segment should cover a specific subtopic with examples and explanations
-4. Ensure natural flow and transitions between segments
-5. Build a narrative that makes viewers want to watch until the end
-
-Return only a JSON array.`;
+  const userPrompt = buildScriptUserPrompt(projectContext, options, language);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = getTextModel("gemini-2.5-flash", systemPrompt)!;
 
     const result = await model.generateContentStream({
       contents: [
         {
           role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+          parts: [{ text: userPrompt }],
         },
       ],
       generationConfig: {
@@ -573,7 +420,11 @@ export async function refineScriptSegment(
 ): Promise<string> {
   const { segment, action, targetTone, language = "ko" } = input;
 
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return segment.content;
+  }
+
+  if (!getGeminiClient()) {
     console.warn("GEMINI_API_KEY not set, returning original content");
     return segment.content;
   }
@@ -587,6 +438,11 @@ export async function refineScriptSegment(
         ? ` 원하는 톤: ${targetTone}`
         : ` Target tone: ${targetTone}`;
   }
+
+  const refineSystemPrompt =
+    language === "ko"
+      ? "당신은 유튜브 영상 대본 편집 전문가입니다. 수정된 대본 텍스트만 반환하세요."
+      : "You are a YouTube script editor. Return only the refined script text.";
 
   const userPrompt =
     language === "ko"
@@ -604,20 +460,22 @@ Original script:
 Return only the refined script. No JSON or additional explanation, just the text.`;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = getTextModel("gemini-2.5-flash-lite", refineSystemPrompt)!;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: userPrompt }],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 1024,
         },
-      ],
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 1024,
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const text = response.text();
@@ -635,6 +493,98 @@ Return only the refined script. No JSON or additional explanation, just the text
     );
     return segment.content;
   }
+}
+
+// =============================================================================
+// Prompt Builder
+// =============================================================================
+
+function buildScriptUserPrompt(
+  projectContext: string,
+  options: ScriptGenerationOptions,
+  language: "ko" | "en",
+): string {
+  const lengthGuidance = {
+    short:
+      language === "ko"
+        ? "총 길이: 1-2분 (약 300-600자, Body 세그먼트 1-2개)"
+        : "Total length: 1-2 minutes (150-300 words, 1-2 Body segments)",
+    medium:
+      language === "ko"
+        ? "총 길이: 5-10분 (약 1500-3000자, Body 세그먼트 3-4개)"
+        : "Total length: 5-10 minutes (750-1500 words, 3-4 Body segments)",
+    long:
+      language === "ko"
+        ? "총 길이: 10-20분 (약 3000-6000자, Body 세그먼트 5-7개)"
+        : "Total length: 10-20 minutes (1500-3000 words, 5-7 Body segments)",
+  };
+
+  const toneGuidance = {
+    informative:
+      language === "ko"
+        ? "정보 전달형 - 명확하고 교육적인 톤"
+        : "Informative - Clear and educational tone",
+    casual:
+      language === "ko"
+        ? "캐주얼 - 친근하고 편안한 톤"
+        : "Casual - Friendly and relaxed tone",
+    professional:
+      language === "ko"
+        ? "전문적 - 신뢰감 있는 비즈니스 톤"
+        : "Professional - Trustworthy business tone",
+    dramatic:
+      language === "ko"
+        ? "드라마틱 - 긴장감 있고 스토리텔링형"
+        : "Dramatic - Tension-building and storytelling",
+    funny:
+      language === "ko"
+        ? "재미있는 - 유머와 위트가 있는 톤"
+        : "Funny - Humorous and witty tone",
+  };
+
+  if (language === "ko") {
+    return `다음 프로젝트 정보를 바탕으로 **완전한 유튜브 영상 대본**을 작성해주세요.
+
+## 프로젝트 정보
+${projectContext}
+
+## 대본 요구사항
+- 톤/스타일: ${toneGuidance[options.tone]}
+- ${lengthGuidance[options.length]}
+${options.includeHook !== false ? "- Hook 세그먼트 포함 (강렬한 오프닝)" : "- Hook 세그먼트 제외"}
+${options.includeCTA !== false ? "- CTA 세그먼트 포함 (구체적인 행동 유도)" : "- CTA 세그먼트 제외"}
+${options.customPrompt ? `\n## 추가 요청사항\n${options.customPrompt}` : ""}
+
+## 중요 지침
+1. 각 세그먼트의 content는 **실제로 말할 완전한 대본**이어야 합니다
+2. 제목이나 요약이 아닌, **발표자가 읽을 전체 스크립트**를 작성하세요
+3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
+4. 전체 스토리가 자연스럽게 흐르도록 세그먼트 간 연결을 고려하세요
+5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요
+
+JSON 배열만 반환하세요.`;
+  }
+
+  return `Create a **complete YouTube video script** based on the following project information.
+
+## Project Information
+${projectContext}
+
+## Script Requirements
+- Tone/Style: ${toneGuidance[options.tone]}
+- ${lengthGuidance[options.length]}
+${options.includeHook !== false ? "- Include Hook segment (powerful opening)" : "- Exclude Hook segment"}
+${options.includeCTA !== false ? "- Include CTA segment (specific call to action)" : "- Exclude CTA segment"}
+${options.customPrompt ? `\n## Additional Requirements\n${options.customPrompt}` : ""}
+
+## Important Guidelines
+1. Each segment's content must be the **actual script to be spoken** in the video
+2. NOT titles or summaries - write the **full narration** the presenter will read
+3. Each Body segment should cover a specific subtopic with examples and explanations
+4. Ensure natural flow and transitions between segments
+5. Build a narrative that makes viewers want to watch until the end
+
+Return only a JSON array.`;
 }
 
 // =============================================================================

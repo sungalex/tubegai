@@ -4,11 +4,13 @@
 // Server-side AI pipeline for TrendTube: trend extraction, idea generation,
 // and narration script writing (8-second format).
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient, getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import {
+  MOCK_EXTRACTED_TRENDS,
+  MOCK_VIDEO_IDEAS,
+  MOCK_NARRATION_SCRIPT,
+} from "./__mocks__/ai-fixtures";
 
 // =============================================================================
 // Step 1: Extract YouTube Trends
@@ -18,15 +20,18 @@ export async function extractYouTubeTrends(
   url: string,
   userIdea?: string
 ): Promise<string> {
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_EXTRACTED_TRENDS;
+  }
+
+  if (!getGeminiClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const systemInstruction = "당신은 YouTube 트렌드 분석 전문가입니다. 트렌드를 분석하고 구조화된 한국어 텍스트로 결과를 작성합니다.";
+  const model = getTextModel("gemini-2.5-flash", systemInstruction)!;
 
-  const prompt = `당신은 YouTube 트렌드 분석 전문가입니다.
-
-사용자가 제공한 YouTube 트렌드 URL: ${url}
+  const prompt = `사용자가 제공한 YouTube 트렌드 URL: ${url}
 
 ${userIdea ? `사용자의 영상 아이디어: ${userIdea}` : ""}
 
@@ -43,10 +48,12 @@ ${userIdea ? `특히 "${userIdea}"와 관련된 트렌드에 집중하여 분석
 
 결과를 구조화된 한국어 텍스트로 작성해주세요.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
-  });
+  const result = await withRetry(() =>
+    model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    }),
+  );
 
   const text = result.response.text();
   if (!text) throw new Error("트렌드 추출 응답이 비어있습니다");
@@ -61,15 +68,18 @@ export async function generateVideoIdeas(
   extractedTrends: string,
   referenceImageDescription?: string
 ): Promise<string> {
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_VIDEO_IDEAS;
+  }
+
+  if (!getGeminiClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const systemInstruction = "당신은 바이럴 YouTube 콘텐츠 기획 전문가입니다. 트렌드를 바탕으로 바이럴 영상 아이디어를 생성합니다.";
+  const model = getTextModel("gemini-2.5-flash", systemInstruction)!;
 
-  const prompt = `당신은 바이럴 YouTube 콘텐츠 기획 전문가입니다.
-
-## 분석된 트렌드:
+  const prompt = `## 분석된 트렌드:
 ${extractedTrends}
 
 ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDescription}` : ""}
@@ -88,10 +98,12 @@ ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDesc
 가장 바이럴될 가능성이 높은 순서로 정렬해주세요.
 결과를 구조화된 한국어 텍스트로 작성해주세요.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.9, maxOutputTokens: 6144 },
-  });
+  const result = await withRetry(() =>
+    model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.9, maxOutputTokens: 6144 },
+    }),
+  );
 
   const text = result.response.text();
   if (!text) throw new Error("영상 아이디어 생성 응답이 비어있습니다");
@@ -105,15 +117,18 @@ ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDesc
 export async function generateNarrationScript(
   videoIdeas: string
 ): Promise<string> {
-  if (!genAI) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_NARRATION_SCRIPT;
+  }
+
+  if (!getGeminiClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+  const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 오프닝 나레이션을 작성합니다.";
+  const model = getTextModel("gemini-2.5-flash-lite", systemInstruction)!;
 
-  const prompt = `당신은 프로페셔널 YouTube 나레이션 작가입니다.
-
-## 영상 아이디어:
+  const prompt = `## 영상 아이디어:
 ${videoIdeas}
 
 위 아이디어 중 첫 번째 아이디어를 기반으로 **8초 분량의 오프닝 나레이션**을 작성해주세요.
@@ -131,10 +146,12 @@ ${videoIdeas}
 
 한국어로 작성해주세요. 스크립트 텍스트만 반환하세요.`;
 
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
-  });
+  const result = await withRetry(() =>
+    model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+    }),
+  );
 
   const text = result.response.text();
   if (!text) throw new Error("나레이션 스크립트 생성 응답이 비어있습니다");

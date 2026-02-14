@@ -7,8 +7,10 @@
 // 2. AI generation (returns editable results)
 // 3. Apply to project (user confirms final values)
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { TrendSnapshot, ScriptGuidelines } from "~/common/types/trend.types";
+import { getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_PROJECT_CONTEXT } from "./__mocks__/ai-fixtures";
 
 // =============================================================================
 // Types
@@ -162,25 +164,31 @@ export function buildProjectGenerationPrompt(input: AIProjectGenerationInput): s
 export async function generateProjectContext(
   input: AIProjectGenerationInput
 ): Promise<AIProjectGenerationOutput> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_PROJECT_CONTEXT;
+  }
 
-  if (!apiKey) {
+  const systemPrompt = input.options.language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
+  const model = getTextModel("gemini-2.5-flash-lite", systemPrompt);
+
+  if (!model) {
     console.warn("[AI Project Generator] Gemini API key not configured, using mock data");
     return generateMockOutput(input);
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
   const prompt = buildProjectGenerationPrompt(input);
-  const systemPrompt = input.options.language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
 
   try {
-    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-
     console.log("[AI Project Generator] Calling Gemini API...");
 
-    const result = await model.generateContent(fullPrompt);
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
+    );
     const response = result.response;
     const text = response.text();
 
@@ -188,15 +196,7 @@ export async function generateProjectContext(
       throw new Error("Empty response from Gemini");
     }
 
-    // Extract JSON from response (handle potential markdown code blocks)
-    let jsonText = text.trim();
-
-    // Remove markdown code blocks if present
-    if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-
-    const parsed = JSON.parse(jsonText) as AIProjectGenerationOutput;
+    const parsed = JSON.parse(text.trim()) as AIProjectGenerationOutput;
 
     // Validate required fields
     if (!parsed.title || !parsed.hooks || !parsed.scriptGuidelines) {

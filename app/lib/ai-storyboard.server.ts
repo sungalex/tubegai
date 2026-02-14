@@ -3,14 +3,11 @@
 // =============================================================================
 // Server-side AI service for generating storyboard scenes from script segments
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ProjectFullDetail } from "~/common/data/project.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
-
-// Initialize Gemini client
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient, getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_STORYBOARD_SCENES } from "./__mocks__/ai-fixtures";
 
 // =============================================================================
 // Types
@@ -141,7 +138,16 @@ export async function generateStoryboardStream(
   const { project, scriptSegments, options, onScene, onProgress } = input;
   const language = options.language ?? "ko";
 
-  if (!genAI || scriptSegments.length === 0) {
+  if (process.env.GEMINI_MOCK === "true") {
+    for (const scene of MOCK_STORYBOARD_SCENES) {
+      onScene(scene);
+      onProgress(scene.description);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return;
+  }
+
+  if (!getGeminiClient() || scriptSegments.length === 0) {
     console.warn("GEMINI_API_KEY not set or no segments, using default scenes");
     const defaults = getDefaultScenes(scriptSegments, language);
     for (const scene of defaults) {
@@ -156,14 +162,13 @@ export async function generateStoryboardStream(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    // Using nano-banana-pro-preview model as specified
-    const model = genAI.getGenerativeModel({ model: "nano-banana-pro-preview" });
+    const model = getTextModel("nano-banana-pro-preview", systemPrompt)!;
 
     const result = await model.generateContentStream({
       contents: [
         {
           role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+          parts: [{ text: userPrompt }],
         },
       ],
       generationConfig: {
@@ -244,7 +249,11 @@ export async function generateStoryboard(
   const { project, scriptSegments, options } = input;
   const language = options.language ?? "ko";
 
-  if (!genAI || scriptSegments.length === 0) {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_STORYBOARD_SCENES;
+  }
+
+  if (!getGeminiClient() || scriptSegments.length === 0) {
     return getDefaultScenes(scriptSegments, language);
   }
 
@@ -252,23 +261,25 @@ export async function generateStoryboard(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "nano-banana-pro-preview" });
+    const model = getTextModel("nano-banana-pro-preview", systemPrompt)!;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: userPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
         },
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-      },
-    });
+      }),
+    );
 
     const response = result.response;
     const text = response.text();

@@ -4,11 +4,9 @@
 // Server-side AI service for generating 8-second background music
 // Uses Vertex AI REST endpoint with lyria-002 model
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const geminiClient = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+import { getGeminiClient, getTextModel } from "./gemini-client.server";
+import { withRetry } from "./gemini-retry.server";
+import { MOCK_MUSIC_RESULT } from "./__mocks__/ai-fixtures";
 
 const VERTEX_PROJECT = process.env.GOOGLE_CLOUD_PROJECT_ID;
 const VERTEX_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
@@ -27,6 +25,10 @@ export async function generateMusic(
   videoIdeas: string,
   options?: { durationSeconds?: number }
 ): Promise<MusicGenerationResult> {
+  if (process.env.GEMINI_MOCK === "true") {
+    return MOCK_MUSIC_RESULT;
+  }
+
   const targetDuration = options?.durationSeconds ?? 8;
 
   // Step 1: Generate music prompt and genre from ideas
@@ -96,7 +98,7 @@ export async function generateMusic(
 async function generateMusicPrompt(
   videoIdeas: string
 ): Promise<{ prompt: string; genre: string }> {
-  if (!geminiClient) {
+  if (!getGeminiClient()) {
     return {
       prompt: "Upbeat electronic background music for technology content",
       genre: "electronic",
@@ -104,31 +106,35 @@ async function generateMusicPrompt(
   }
 
   try {
-    const model = geminiClient.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const systemInstruction = "You are a music director. Suggest background music for videos. Return ONLY valid JSON with 'prompt' and 'genre' fields.";
+    const model = getTextModel("gemini-2.5-flash-lite", systemInstruction)!;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `Based on these video ideas, suggest background music.
-Return ONLY a JSON object with "prompt" (English music description for AI generation, 1 sentence) and "genre" (one word: electronic, acoustic, orchestral, ambient, or hiphop).
+    const result = await withRetry(() =>
+      model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Based on these video ideas, suggest background music.
+Return a JSON object with "prompt" (English music description for AI generation, 1 sentence) and "genre" (one word: electronic, acoustic, orchestral, ambient, or hiphop).
 
 Video Ideas:
-${videoIdeas.substring(0, 1000)}
-
-Return ONLY valid JSON. No code blocks.`,
-            },
-          ],
+${videoIdeas.substring(0, 1000)}`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 256,
+          responseMimeType: "application/json",
         },
-      ],
-      generationConfig: { temperature: 0.5, maxOutputTokens: 256 },
-    });
+      }),
+    );
 
     const text = result.response.text().trim();
-    const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-    const parsed = JSON.parse(cleaned) as { prompt: string; genre: string };
+    const parsed = JSON.parse(text) as { prompt: string; genre: string };
     return {
       prompt: parsed.prompt || "Upbeat electronic background music",
       genre: parsed.genre || "electronic",
