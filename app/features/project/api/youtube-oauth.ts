@@ -49,12 +49,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
-  const state = url.searchParams.get("state");
 
   // OAuth 에러 처리
   if (error) {
     const errorDesc = url.searchParams.get("error_description") || error;
-    console.error("[YouTube OAuth] Error:", errorDesc);
+    console.error("[YouTube:OAuth] Callback error:", errorDesc);
     return Response.redirect(
       `${url.origin}/projects/channels?error=cancelled&message=${encodeURIComponent(errorDesc)}`,
       302
@@ -91,7 +90,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     // managedByMe 실패 시 mine=true로 fallback
     if (!channelResponse.ok) {
-      console.log("[YouTube OAuth] managedByMe failed, falling back to mine=true");
       channelResponse = await fetch(
         "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&mine=true",
         {
@@ -104,7 +102,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (!channelResponse.ok) {
       const errorText = await channelResponse.text();
-      console.error("[YouTube OAuth] YouTube API Error:", errorText);
+      console.error("[YouTube:OAuth] YouTube API error:", errorText);
       return Response.redirect(
         `${url.origin}/projects/channels?error=youtube`,
         302
@@ -153,7 +151,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       }
     }
 
-    console.log(`[YouTube OAuth] Saved ${created} new, ${updated} updated channels for user ${userId}`);
+    console.log(`[YouTube:OAuth] Channel connected | userId=${userId} | created=${created} | updated=${updated}`);
 
     // 성공 시 채널 페이지로 리다이렉트
     return Response.redirect(
@@ -161,7 +159,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       302
     );
   } catch (error) {
-    console.error("[YouTube OAuth] Callback Error:", error);
+    console.error("[YouTube:OAuth] Callback FAILED:", error instanceof Error ? error.message : error);
 
     // 인증 실패 시 로그인 페이지로
     if (error instanceof Response && error.status === 302) {
@@ -198,7 +196,7 @@ export async function action({ request }: Route.ActionArgs) {
     // Google OAuth 동의 화면으로 리다이렉트
     return Response.redirect(authUrl, 302);
   } catch (error) {
-    console.error("[YouTube OAuth] Start Error:", error);
+    console.error("[YouTube:OAuth] Start FAILED:", error instanceof Error ? error.message : error);
 
     // 인증 실패 시 로그인 페이지로
     if (error instanceof Response && error.status === 302) {

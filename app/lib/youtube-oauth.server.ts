@@ -119,6 +119,7 @@ export async function exchangeCodeForTokens(
   const data: GoogleTokenResponse = await response.json();
 
   if (data.error) {
+    console.error(`[YouTube:OAuth] Token exchange FAILED | error=${data.error} | description=${data.error_description || "(none)"}`);
     throw new Error(
       `Token exchange failed: ${data.error_description || data.error}`,
     );
@@ -159,6 +160,7 @@ export async function refreshAccessToken(
   const data: GoogleTokenResponse = await response.json();
 
   if (data.error) {
+    console.error(`[YouTube:OAuth] Token refresh FAILED | error=${data.error} | description=${data.error_description || "(none)"}`);
     throw new Error(
       `Token refresh failed: ${data.error_description || data.error}`,
     );
@@ -190,7 +192,8 @@ export async function revokeToken(token: string): Promise<boolean> {
     );
 
     return response.ok;
-  } catch {
+  } catch (err) {
+    console.error(`[YouTube:OAuth] Token revoke FAILED | error=${err instanceof Error ? err.message : err}`);
     return false;
   }
 }

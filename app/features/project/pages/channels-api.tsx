@@ -169,7 +169,7 @@ export async function action({ request }: Route.ActionArgs) {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Channel API Error:", error);
+    console.error("[YouTube:ChannelAPI] Action FAILED:", error instanceof Error ? error.message : error);
     return Response.json(
       {
         success: false,

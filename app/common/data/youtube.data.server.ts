@@ -355,11 +355,11 @@ export async function getYouTubeTrends(
   }
 
   // Check for API key
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY; // Using GEMINI_API_KEY for both Gemini and YouTube API
 
   if (!apiKey) {
     console.warn(
-      "[YouTube API] YOUTUBE_API_KEY not configured, returning empty",
+      "[YouTube API] GEMINI_API_KEY not configured, returning empty",
     );
     return [];
   }
