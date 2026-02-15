@@ -151,6 +151,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 const WORKFLOW_STEPS = [
+  { id: "dashboard", label: "TrendTube", icon: Sparkles },
   { id: "script", label: "스크립트", icon: FileText },
   { id: "storyboard", label: "스토리보드", icon: ImageIcon },
   { id: "scene", label: "씬", icon: Film },
@@ -504,7 +505,7 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
             </CardHeader>
             <CardContent>
               <Progress value={project.progress} className="h-2 mb-4" />
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {WORKFLOW_STEPS.map((step, index) => {
                   const isActive = index === currentStepIndex || (currentStepIndex === -1 && index === 0);
                   const isCompleted = currentStepIndex > index;

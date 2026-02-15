@@ -104,7 +104,7 @@ const getNavItems = (_projectId: string) => [
   },
   {
     name: "스튜디오",
-    to: "/studio/script",
+    to: "/studio/dashboard",
     icon: Clapperboard,
     items: [
       // MVP Features
