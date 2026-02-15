@@ -10,18 +10,6 @@ import {
  * ============================================
  * TubeGAI MVP Routes Configuration
  * ============================================
- *
- * MVP 핵심 기능:
- * - Auth: 로그인/회원가입
- * - Products: TubeGAI 메인 페이지
- * - Projects: Dashboard (Trends, Projects tabs only), List, New Project
- * - Studio: Script, Storyboard, Scene, Export
- *
- * 비활성화된 기능 (Phase 2+):
- * - Settings 전체
- * - Products Pro/Plus
- * - Projects: Overview/Channels/Labels tabs, Channels page, Labels page, Project Detail
- * - Studio: Dashboard, B-Roll, Roughcut, Subtitles, Coloring, Thumbnail, SEO
  */
 
 export default [
@@ -55,7 +43,10 @@ export default [
     ]),
     route("new", "features/project/pages/new-project-page.tsx"),
     route("channels", "features/project/pages/channels-page.tsx"),
-    route("channels/callback", "features/project/pages/channels-callback-page.tsx"),
+    route(
+      "channels/callback",
+      "features/project/pages/channels-callback-page.tsx",
+    ),
     route(":projectId", "features/project/pages/project-detail-page.tsx"),
     // DISABLED: Labels (Phase 2)
     // route("labels", "features/project/pages/labels-page.tsx"),
@@ -66,21 +57,51 @@ export default [
     route("ideas", "features/project/api/ideas.ts"),
     route("generate-ideas", "features/project/api/generate-ideas.ts"),
     route("trend-bookmark", "features/project/api/trend-bookmark.ts"),
-    route("generate-project-context", "features/project/api/generate-project-context.ts"),
+    route(
+      "generate-project-context",
+      "features/project/api/generate-project-context.ts",
+    ),
     route("channels", "features/project/pages/channels-api.tsx"),
     route("youtube-oauth", "features/project/api/youtube-oauth.ts"),
     // Studio API
     route("studio/projects", "features/studio/api/studio-projects.ts"),
-    route("studio/generate-script-stream", "features/studio/api/generate-script-stream.ts"),
-    route("studio/generate-storyboard-stream", "features/studio/api/generate-storyboard-stream.ts"),
-    route("studio/generate-scene-image", "features/studio/api/generate-scene-image.ts"),
-    route("studio/trendtube-generate-stream", "features/studio/api/trendtube-generate-stream.ts"),
+    route(
+      "studio/generate-script-stream",
+      "features/studio/api/generate-script-stream.ts",
+    ),
+    route(
+      "studio/generate-storyboard-stream",
+      "features/studio/api/generate-storyboard-stream.ts",
+    ),
+    route(
+      "studio/generate-scene-image",
+      "features/studio/api/generate-scene-image.ts",
+    ),
+    route(
+      "studio/trendtube-generate-stream",
+      "features/studio/api/trendtube-generate-stream.ts",
+    ),
     // TrendTube Step APIs (4-step pipeline split)
-    route("studio/trendtube-step-trends", "features/studio/api/trendtube-step-trends.ts"),
-    route("studio/trendtube-step-ideas", "features/studio/api/trendtube-step-ideas.ts"),
-    route("studio/trendtube-step-media", "features/studio/api/trendtube-step-media.ts"),
-    route("studio/trendtube-step-compose", "features/studio/api/trendtube-step-compose.ts"),
-    route("studio/trendtube-session-status", "features/studio/api/trendtube-session-status.ts"),
+    route(
+      "studio/trendtube-step-trends",
+      "features/studio/api/trendtube-step-trends.ts",
+    ),
+    route(
+      "studio/trendtube-step-ideas",
+      "features/studio/api/trendtube-step-ideas.ts",
+    ),
+    route(
+      "studio/trendtube-step-media",
+      "features/studio/api/trendtube-step-media.ts",
+    ),
+    route(
+      "studio/trendtube-step-compose",
+      "features/studio/api/trendtube-step-compose.ts",
+    ),
+    route(
+      "studio/trendtube-session-status",
+      "features/studio/api/trendtube-session-status.ts",
+    ),
   ]),
 
   // Studio (MVP - core video creation workflow)
@@ -107,24 +128,26 @@ export default [
       // MVP Parameterized Routes
       route(
         "script/:projectId",
-        "features/studio/pages/studio-script-page.tsx"
+        "features/studio/pages/studio-script-page.tsx",
       ),
       route(
         "storyboard/:projectId",
-        "features/studio/pages/studio-storyboard-page.tsx"
+        "features/studio/pages/studio-storyboard-page.tsx",
       ),
-      route(
-        "scene/:projectId",
-        "features/studio/pages/studio-scene-page.tsx"
-      ),
+      route("scene/:projectId", "features/studio/pages/studio-scene-page.tsx"),
       route(
         "export/:projectId",
-        "features/studio/pages/studio-export-page.tsx"
+        "features/studio/pages/studio-export-page.tsx",
       ),
 
       // TrendTube Dashboard
-      route("dashboard", "features/studio/pages/studio-dashboard-page.tsx", { id: "studio-dashboard-static" }),
-      route("dashboard/:projectId", "features/studio/pages/studio-dashboard-page.tsx"),
+      route("dashboard", "features/studio/pages/studio-dashboard-page.tsx", {
+        id: "studio-dashboard-static",
+      }),
+      route(
+        "dashboard/:projectId",
+        "features/studio/pages/studio-dashboard-page.tsx",
+      ),
 
       // ============================================
       // DISABLED: Phase 2+ Studio Routes
