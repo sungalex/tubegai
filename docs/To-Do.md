@@ -20,8 +20,6 @@
 - common/types에 .ts 파일과 .react-router/types/app/features/\*\*/+types의 .ts 비교
   - common/types에 별도로 생성한 이유와 사용 목적 확인
 
-- trendtube 생성 과정 단계별로 AI Input과 실행결과 출력(좌우 화면 분리)
+- trendtube 단계별 생성 화면에서 최종 화면으로 전환 시 단계별 생성 화면의 내용이 사라짐. 단계별 생성화면의 결과를 화면에서 볼 수 있도록 수정 필요(생성 단계, 생성 결과 화면 재구성 및 route를 할당하여 저장된 결과를 볼 수 있도록 개선)
 
-- trendtube 단계별 생성 화면에서 최종 화면으로 전환 시 단계별 생성 화면의 내용이 사라짐. 단계별 생성화면의 결과를 화면에서 볼 수 있도록 수정 필요
-
-- gemini 프로젝트 및 api key 통일 후 유튜브 채널 연결 필패 (유튜브 데이터 API Key는 통합됨)
+- api 별 요금 분석을 위해 AI 모델별 api key 세분화
