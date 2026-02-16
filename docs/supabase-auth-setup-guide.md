@@ -116,12 +116,12 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 1. User Type: **External** 선택
 2. 앱 정보 입력:
 
-| 필드                  | 값                      |
-| --------------------- | ----------------------- |
-| 앱 이름               | `TubeGAI`               |
-| 사용자 지원 이메일    | 본인 이메일             |
-| 애플리케이션 홈페이지 | `http://localhost:3000` |
-| 개발자 연락처 정보    | 본인 이메일             |
+   | 필드                  | 값                      |
+   | --------------------- | ----------------------- |
+   | 앱 이름               | `TubeGAI`               |
+   | 사용자 지원 이메일    | 본인 이메일             |
+   | 애플리케이션 홈페이지 | `http://localhost:3000` |
+   | 개발자 연락처 정보    | 본인 이메일             |
 
 3. Scopes: **기본 scopes만** 선택 (openid, email, profile)
    - YouTube 관련 scope는 추가하지 않음
@@ -185,11 +185,11 @@ export async function signInWithGoogle(): Promise<AuthResult> {
 1. [GitHub Developer Settings](https://github.com/settings/developers)에 접속
 2. **OAuth Apps** > **New OAuth App** 클릭
 
-| 필드                       | 값                                                   |
-| -------------------------- | ---------------------------------------------------- |
-| Application name           | `TubeGAI`                                            |
-| Homepage URL               | `http://localhost:3000`                              |
-| Authorization callback URL | `https://<project-ref>.supabase.co/auth/v1/callback` |
+   | 필드                       | 값                                                   |
+   | -------------------------- | ---------------------------------------------------- |
+   | Application name           | `TubeGAI`                                            |
+   | Homepage URL               | `http://localhost:3000`                              |
+   | Authorization callback URL | `https://<project-ref>.supabase.co/auth/v1/callback` |
 
 3. **Register application** 클릭
 4. **Client ID** 확인

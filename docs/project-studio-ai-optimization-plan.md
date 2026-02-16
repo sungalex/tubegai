@@ -46,23 +46,23 @@
 
 ### 1.2 단계별 AI 생성 필드 비교
 
-| AI 생성 필드 | Idea Generator | Project Generator | Studio Script | TrendTube Step 1-2 |
-|---|:---:|:---:|:---:|:---:|
-| title (영상 제목) | O | O | 프로젝트 데이터 읽기 | O (텍스트 내 포함) |
-| description (영상 설명) | O | O | 프로젝트 데이터 읽기 | O (텍스트 내 포함) |
-| hooks[] (오프닝 훅) | O | O | **재생성** (hook 세그먼트) | O (텍스트 내 포함) |
-| targetAudience (타겟 시청자) | O | O | 프로젝트 데이터 읽기 | O (텍스트 내 포함) |
-| estimatedViews (예상 조회수) | O | O | 프로젝트 데이터 읽기 | - |
-| scriptGuidelines (대본 가이드) | - | O | **재생성** (전체 대본으로 확장) | - |
-| keywords[] (키워드) | - | O | **재생성** (세그먼트별 키워드) | - |
-| suggestedTone (톤) | O | O | 프로젝트 데이터 읽기 | - |
-| suggestedDifficulty (난이도) | O | O | - | - |
-| 트렌드 분석 | 트렌드 직접 참조 | trendSnapshot 저장 | trendSnapshot 읽기 | **독립적으로 재분석** |
-| 전체 대본 텍스트 | - | - | O (5개 세그먼트) | - |
-| visualNotes / emotionalTone | - | - | O (AI 생성) ← **DB 미저장** | - |
-| sceneHints / keywords | - | - | O (AI 생성) ← **DB 미저장** | - |
-| 시각적 씬 구성 | - | - | sceneHints (부가) | O (텍스트 내 포함) |
-| 내레이션 스크립트 | - | - | - | O (Step 5) |
+| AI 생성 필드                   |  Idea Generator  | Project Generator  |          Studio Script          |  TrendTube Step 1-2   |
+| ------------------------------ | :--------------: | :----------------: | :-----------------------------: | :-------------------: |
+| title (영상 제목)              |        O         |         O          |      프로젝트 데이터 읽기       |  O (텍스트 내 포함)   |
+| description (영상 설명)        |        O         |         O          |      프로젝트 데이터 읽기       |  O (텍스트 내 포함)   |
+| hooks[] (오프닝 훅)            |        O         |         O          |   **재생성** (hook 세그먼트)    |  O (텍스트 내 포함)   |
+| targetAudience (타겟 시청자)   |        O         |         O          |      프로젝트 데이터 읽기       |  O (텍스트 내 포함)   |
+| estimatedViews (예상 조회수)   |        O         |         O          |      프로젝트 데이터 읽기       |           -           |
+| scriptGuidelines (대본 가이드) |        -         |         O          | **재생성** (전체 대본으로 확장) |           -           |
+| keywords[] (키워드)            |        -         |         O          | **재생성** (세그먼트별 키워드)  |           -           |
+| suggestedTone (톤)             |        O         |         O          |      프로젝트 데이터 읽기       |           -           |
+| suggestedDifficulty (난이도)   |        O         |         O          |                -                |           -           |
+| 트렌드 분석                    | 트렌드 직접 참조 | trendSnapshot 저장 |       trendSnapshot 읽기        | **독립적으로 재분석** |
+| 전체 대본 텍스트               |        -         |         -          |        O (5개 세그먼트)         |           -           |
+| visualNotes / emotionalTone    |        -         |         -          |   O (AI 생성) ← **DB 미저장**   |           -           |
+| sceneHints / keywords          |        -         |         -          |   O (AI 생성) ← **DB 미저장**   |           -           |
+| 시각적 씬 구성                 |        -         |         -          |        sceneHints (부가)        |  O (텍스트 내 포함)   |
+| 내레이션 스크립트              |        -         |         -          |                -                |      O (Step 5)       |
 
 ### 1.3 핵심 중복 포인트
 
@@ -98,6 +98,7 @@ TrendTube 결과: narrationScript, 미디어 ← Studio Pipeline과 완전히 �
 #### 중복 3: Project AI Generator의 과도한 생성 범위 (중간)
 
 현재 `ai-project-generator.server.ts`가 생성하는 9개 필드:
+
 ```typescript
 AIProjectGenerationOutput {
   title, description,           // 기본 메타데이터 (Project 영역)
@@ -133,17 +134,17 @@ Studio Script AI가 생성하는 7개 필드 중:
 
 **Project의 핵심 역할**: 트렌드 기반 영상 기획 메타데이터 관리
 
-| 구분 | 필드 | 설명 | 유지/이동 |
-|---|---|---|---|
-| 기본 정보 | `title`, `description`, `topic` | 사용자 편집 가능한 기본 메타데이터 | **유지** |
-| 영상 설정 | `type`, `contentTone`, `videoLength`, `difficulty` | 사용자 선호 설정 | **유지** |
-| 기획 정보 | `targetAudience`, `estimatedViews` | AI 추천 + 사용자 수정 가능 | **유지** |
-| 트렌드 연결 | `trendSnapshot`, `basedOnTrendUuid`, `referenceUrl` | 트렌드 기록 | **유지** |
-| 프로젝트 관리 | `status`, `progress`, `visibility`, `channelId` | 관리 메타데이터 | **유지** |
-| 프로덕션 가이드 | `hooks[]` | 오프닝 훅 제안 | **Studio로 이동** |
-| 프로덕션 가이드 | `scriptGuidelines` | 대본 구조 가이드 | **Studio로 이동** |
-| SEO | `aiContext.keywords` | SEO 키워드 | **Studio로 이동** |
-| 레거시 | `tone` (projectToneEnum) | `contentTone`과 중복 | **제거** (contentTone으로 통합) |
+| 구분            | 필드                                                | 설명                               | 유지/이동                       |
+| --------------- | --------------------------------------------------- | ---------------------------------- | ------------------------------- |
+| 기본 정보       | `title`, `description`, `topic`                     | 사용자 편집 가능한 기본 메타데이터 | **유지**                        |
+| 영상 설정       | `type`, `contentTone`, `videoLength`, `difficulty`  | 사용자 선호 설정                   | **유지**                        |
+| 기획 정보       | `targetAudience`, `estimatedViews`                  | AI 추천 + 사용자 수정 가능         | **유지**                        |
+| 트렌드 연결     | `trendSnapshot`, `basedOnTrendUuid`, `referenceUrl` | 트렌드 기록                        | **유지**                        |
+| 프로젝트 관리   | `status`, `progress`, `visibility`, `channelId`     | 관리 메타데이터                    | **유지**                        |
+| 프로덕션 가이드 | `hooks[]`                                           | 오프닝 훅 제안                     | **Studio로 이동**               |
+| 프로덕션 가이드 | `scriptGuidelines`                                  | 대본 구조 가이드                   | **Studio로 이동**               |
+| SEO             | `aiContext.keywords`                                | SEO 키워드                         | **Studio로 이동**               |
+| 레거시          | `tone` (projectToneEnum)                            | `contentTone`과 중복               | **제거** (contentTone으로 통합) |
 
 > **Enum 통합**: `project.tone` (informative, funny, cinematic, vlog) → `project.contentTone` (informative, funny, dramatic, casual, professional)로 통합. 매핑: cinematic→dramatic, vlog→casual. (Studio 고도화 Phase 1D에서 실행)
 
@@ -227,6 +228,7 @@ Studio 생성 책임 (세션 기반):
 ### 3.1 Project AI Generator 경량화
 
 **현재** (`ai-project-generator.server.ts`):
+
 ```typescript
 // 9개 필드 생성 (gemini-2.5-flash-lite)
 AIProjectGenerationOutput {
@@ -236,6 +238,7 @@ AIProjectGenerationOutput {
 ```
 
 **개선 후**:
+
 ```typescript
 // 6개 필드만 생성 (프로덕션 관련 필드 제거)
 AIProjectGenerationOutput {
@@ -258,9 +261,9 @@ Studio Script 생성 **이전**에 Pre-Production 단계를 추가하여, Projec
 ```typescript
 // 신규: app/lib/ai-pre-production.server.ts
 interface PreProductionOutput {
-  hooks: string[];                    // 오프닝 훅 3개
+  hooks: string[]; // 오프닝 훅 3개
   scriptGuidelines: ScriptGuidelines; // 대본 구조 가이드
-  seoKeywords: string[];              // SEO 키워드 5-10개
+  seoKeywords: string[]; // SEO 키워드 5-10개
 }
 
 // Project 전체 컨텍스트 + 채널 정보 + 트렌드 정보를 활용
@@ -268,6 +271,7 @@ interface PreProductionOutput {
 ```
 
 **장점**:
+
 - Project 데이터 + 채널 구독자 수/설명 + 트렌드 스냅샷을 모두 활용한 고품질 생성
 - Script 생성 시 이미 hooks/guidelines가 준비되어 있어 대본 품질 향상
 - 사용자가 Pre-Production 결과를 확인/수정 후 Script 생성 가능
@@ -290,6 +294,7 @@ ALTER TABLE public.studio_script_segment
 ```
 
 **효과**:
+
 - Storyboard AI가 `visualNotes`, `emotionalTone`, `sceneHints` 활용 → 시각적 씬 품질 향상
 - `keywords`를 B-Roll 검색에 직접 사용 → Step 4에서 AI 추가 호출 불필요
 - Script → Storyboard → Scene Video 파이프라인에서 데이터 연속성 확보
@@ -319,7 +324,7 @@ ALTER TABLE public.studio_script_segment
 export async function extractYouTubeTrends(
   url: string,
   userIdea?: string,
-  existingTrendSnapshot?: TrendSnapshot  // 신규 파라미터
+  existingTrendSnapshot?: TrendSnapshot, // 신규 파라미터
 ): Promise<string> {
   // Project에 trendSnapshot이 있으면 AI 호출 생략
   if (existingTrendSnapshot) {
@@ -335,13 +340,14 @@ export async function extractYouTubeTrends(
 // ai-trendtube.server.ts 수정
 export async function generateVideoIdeas(
   extractedTrends: string,
-  projectContext?: {           // 신규 파라미터
+  projectContext?: {
+    // 신규 파라미터
     title: string;
     description: string;
     targetAudience: string;
-    hooks: string[];           // Studio Pre-Production 결과
+    hooks: string[]; // Studio Pre-Production 결과
     scriptGuidelines: ScriptGuidelines;
-  }
+  },
 ): Promise<string> {
   // Project 컨텍스트가 있으면 프롬프트에 주입
   // → 기존 기획 의도를 유지하면서 아이디어 확장
@@ -359,12 +365,12 @@ export async function generateVideoIdeas(
 // studio_script.source_trendtube_session_id FK로 원본 세션 추적
 ```
 
-| Studio 단계 | TrendTube 자산 연결 | 활용 방식 |
-|---|---|---|
-| Script | `narrationScript` | "TrendTube 스크립트 가져오기" 버튼 |
-| Scene | `generated_video` | 기존 미디어 재사용 옵션 |
-| B-Roll | 전체 미디어 | B-Roll 에셋 후보 목록에 추가 |
-| Rough Cut (Phase 2) | `background_music`, `voiceover` | 오디오 트랙 옵션 |
+| Studio 단계         | TrendTube 자산 연결             | 활용 방식                          |
+| ------------------- | ------------------------------- | ---------------------------------- |
+| Script              | `narrationScript`               | "TrendTube 스크립트 가져오기" 버튼 |
+| Scene               | `generated_video`               | 기존 미디어 재사용 옵션            |
+| B-Roll              | 전체 미디어                     | B-Roll 에셋 후보 목록에 추가       |
+| Rough Cut (Phase 2) | `background_music`, `voiceover` | 오디오 트랙 옵션                   |
 
 **효과**: TrendTube 진입 시 AI 호출 최대 2회 절감 + 생성 결과물 Studio에서 재활용 가능
 
@@ -380,7 +386,7 @@ export async function generateVideoIdeas(
 // 신규: app/lib/ai-context-builder.server.ts
 export function buildStudioContext(
   project: ProjectFullDetail,
-  language: "ko" | "en"
+  language: "ko" | "en",
 ): string {
   // Project 기본 정보 + 채널 정보 + 트렌드 정보를 통일된 형식으로 구성
   // Pre-Production, Script, Storyboard, TrendTube 모든 AI 서비스에서 공유
@@ -402,6 +408,7 @@ export const AI_MODELS = {
 **현재 문제**: 8개 AI 서비스 파일에서 모델명 하드코딩, 2개 SDK 혼용, retry 미적용 파일 존재
 
 **개선**:
+
 - 모델명 → `AI_MODELS.*` 상수 참조로 통일
 - `withRetry()` → `ai-video.server.ts`, `ai-music.server.ts`, `tts.server.ts`에도 적용
 - SDK 클라이언트 → `gemini-client.server.ts`에서 통합 관리
@@ -433,6 +440,7 @@ CREATE UNIQUE INDEX idx_studio_session_active
 ```
 
 **기존 테이블 FK 변경**:
+
 - `studio_script`: `projectId` unique 제거 → `session_id` FK 추가
 - `studio_storyboard`, `studio_video`: `session_id` FK 추가
 
@@ -545,6 +553,7 @@ project
 ### 5.1 Project 생성 플로우 (간소화)
 
 **현재**:
+
 ```
 트렌드 선택 → AI 생성 다이얼로그 (옵션 설정)
            → 프롬프트 미리보기
@@ -553,6 +562,7 @@ project
 ```
 
 **개선 후**:
+
 ```
 트렌드 선택 → AI 생성 다이얼로그 (옵션 설정)
            → 프롬프트 미리보기
@@ -567,11 +577,13 @@ project
 ### 5.2 Studio 플로우 (세션 기반 + Pre-Production 추가)
 
 **현재**:
+
 ```
 Studio 진입 → 프로젝트 선택 → Script 생성 → Storyboard 생성 → Scene 생성(MOCKED) → Export(미구현)
 ```
 
 **개선 후**:
+
 ```
 Studio 진입 → 프로젝트 선택
   │
@@ -605,6 +617,7 @@ Studio 진입 → 프로젝트 선택
 ### 5.3 TrendTube 플로우 (자동 연계 + 결과 재접근)
 
 **현재**:
+
 ```
 TrendTube 대시보드 → URL + 아이디어 입력 → Step 1 (트렌드 분석) → Step 2 (아이디어 생성) → Steps 3-7
 ⚠ 이전 결과 보려면 ?session=<id> 필요 (접근성 문제)
@@ -613,6 +626,7 @@ TrendTube 대시보드 → URL + 아이디어 입력 → Step 1 (트렌드 분�
 ```
 
 **개선 후**:
+
 ```
 TrendTube 대시보드 → Project 컨텍스트 자동 로드
   │
@@ -636,13 +650,13 @@ TrendTube 대시보드 → Project 컨텍스트 자동 로드
 
 ### 6.1 호출 절감 분석
 
-| 시나리오 | 현재 AI 호출 | 개선 후 AI 호출 | 절감 |
-|---|---|---|---|
-| Idea → Project → Script | 3회 (Idea + Project + Script) | 3회 (Idea + Project(경량) + PreProd+Script) | 토큰 절감 |
-| Project → Script | 2회 (Project + Script) | 2회 (Project(경량) + PreProd+Script) | 토큰 절감 |
-| Project → TrendTube | 3회 (Project + Step1 + Step2) | 1-2회 (Project + Step2(경량)) | **1-2회 절감** |
-| TrendTube 전체 | 5회+ (Step1~5+) | 3-4회 (Step1 생략 + Step2 경량) | **1-2회 절감** |
-| Script → Storyboard B-Roll 키워드 | Storyboard AI가 재추론 | keywords[] DB에서 읽기 | **후속 단계 재생성 제거** |
+| 시나리오                          | 현재 AI 호출                  | 개선 후 AI 호출                             | 절감                      |
+| --------------------------------- | ----------------------------- | ------------------------------------------- | ------------------------- |
+| Idea → Project → Script           | 3회 (Idea + Project + Script) | 3회 (Idea + Project(경량) + PreProd+Script) | 토큰 절감                 |
+| Project → Script                  | 2회 (Project + Script)        | 2회 (Project(경량) + PreProd+Script)        | 토큰 절감                 |
+| Project → TrendTube               | 3회 (Project + Step1 + Step2) | 1-2회 (Project + Step2(경량))               | **1-2회 절감**            |
+| TrendTube 전체                    | 5회+ (Step1~5+)               | 3-4회 (Step1 생략 + Step2 경량)             | **1-2회 절감**            |
+| Script → Storyboard B-Roll 키워드 | Storyboard AI가 재추론        | keywords[] DB에서 읽기                      | **후속 단계 재생성 제거** |
 
 ### 6.2 토큰 절감
 
@@ -687,11 +701,11 @@ Studio 고도화 계획에 포함되지 않은 **본 문서 고유 항목**:
 
 **목표**: AI 서비스 간 공유 컨텍스트 구성 통일 (Studio 고도화와 병행 가능)
 
-| 파일 | 변경 내용 |
-|---|---|
-| `app/lib/ai-context-builder.server.ts` (신규) | `buildStudioContext()` 공유 유틸리티 생성 |
-| `app/lib/ai-script.server.ts` | `buildProjectContext()`를 `buildStudioContext()` 호출로 대체 |
-| `app/lib/ai-storyboard.server.ts` | `buildStoryboardPrompt()`에서 `buildStudioContext()` 활용 |
+| 파일                                          | 변경 내용                                                    |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| `app/lib/ai-context-builder.server.ts` (신규) | `buildStudioContext()` 공유 유틸리티 생성                    |
+| `app/lib/ai-script.server.ts`                 | `buildProjectContext()`를 `buildStudioContext()` 호출로 대체 |
+| `app/lib/ai-storyboard.server.ts`             | `buildStoryboardPrompt()`에서 `buildStudioContext()` 활용    |
 
 **선행 조건**: 없음 (즉시 실행 가능)
 
@@ -699,13 +713,13 @@ Studio 고도화 계획에 포함되지 않은 **본 문서 고유 항목**:
 
 **목표**: TrendTube에서 Project 데이터 활용, 불필요한 AI 호출 제거
 
-| 파일 | 변경 내용 |
-|---|---|
-| `app/lib/ai-trendtube.server.ts` | `extractYouTubeTrends()`에 trendSnapshot 파라미터 추가 |
-| `app/lib/ai-trendtube.server.ts` | `generateVideoIdeas()`에 projectContext 파라미터 추가 |
-| `app/features/studio/api/trendtube-step-trends.ts` | trendSnapshot 존재 시 AI 호출 건너뛰기 |
-| `app/features/studio/api/trendtube-step-ideas.ts` | Project 컨텍스트 주입 |
-| `app/features/studio/pages/studio-dashboard-page.tsx` | UI에 "기존 분석 사용" 옵션 추가 |
+| 파일                                                  | 변경 내용                                              |
+| ----------------------------------------------------- | ------------------------------------------------------ |
+| `app/lib/ai-trendtube.server.ts`                      | `extractYouTubeTrends()`에 trendSnapshot 파라미터 추가 |
+| `app/lib/ai-trendtube.server.ts`                      | `generateVideoIdeas()`에 projectContext 파라미터 추가  |
+| `app/features/studio/api/trendtube-step-trends.ts`    | trendSnapshot 존재 시 AI 호출 건너뛰기                 |
+| `app/features/studio/api/trendtube-step-ideas.ts`     | Project 컨텍스트 주입                                  |
+| `app/features/studio/pages/studio-dashboard-page.tsx` | UI에 "기존 분석 사용" 옵션 추가                        |
 
 **선행 조건**: Studio 고도화 Phase 0B (Storage 통합) 완료 후 권장
 
@@ -713,17 +727,17 @@ Studio 고도화 계획에 포함되지 않은 **본 문서 고유 항목**:
 
 **목표**: 프로덕션 가이드(hooks, scriptGuidelines, keywords) 생성을 Studio로 이동
 
-| 파일 | 변경 내용 |
-|---|---|
-| `app/lib/ai-pre-production.server.ts` (신규) | Pre-Production AI 생성 서비스 |
-| `app/lib/ai-project-generator.server.ts` | 출력 필드에서 hooks, scriptGuidelines, keywords 제거 |
-| `app/features/studio/studio-schema.ts` | `studio_script` 테이블에 hooks, script_guidelines, seo_keywords 추가 |
-| `app/features/project/project-schema.ts` | hooks, scriptGuidelines 컬럼 deprecated 주석 |
-| `app/common/data/studio.data.server.ts` | Pre-Production 데이터 CRUD 함수 추가 |
-| `app/common/data/project.data.server.ts` | `CreateProjectInput`에서 관련 필드 optional 처리 |
-| `app/features/project/components/ai-project-generator-dialog.tsx` | "대본 가이드" 탭 제거, 결과 리뷰 간소화 |
-| `app/features/studio/pages/studio-script-page.tsx` | Pre-Production 단계 UI 추가 |
-| DB 마이그레이션 SQL | `studio_script` 테이블 컬럼 추가 |
+| 파일                                                              | 변경 내용                                                            |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `app/lib/ai-pre-production.server.ts` (신규)                      | Pre-Production AI 생성 서비스                                        |
+| `app/lib/ai-project-generator.server.ts`                          | 출력 필드에서 hooks, scriptGuidelines, keywords 제거                 |
+| `app/features/studio/studio-schema.ts`                            | `studio_script` 테이블에 hooks, script_guidelines, seo_keywords 추가 |
+| `app/features/project/project-schema.ts`                          | hooks, scriptGuidelines 컬럼 deprecated 주석                         |
+| `app/common/data/studio.data.server.ts`                           | Pre-Production 데이터 CRUD 함수 추가                                 |
+| `app/common/data/project.data.server.ts`                          | `CreateProjectInput`에서 관련 필드 optional 처리                     |
+| `app/features/project/components/ai-project-generator-dialog.tsx` | "대본 가이드" 탭 제거, 결과 리뷰 간소화                              |
+| `app/features/studio/pages/studio-script-page.tsx`                | Pre-Production 단계 UI 추가                                          |
+| DB 마이그레이션 SQL                                               | `studio_script` 테이블 컬럼 추가                                     |
 
 **선행 조건**: Studio 고도화 Phase 0A (세션 도입) 완료
 
@@ -731,13 +745,13 @@ Studio 고도화 계획에 포함되지 않은 **본 문서 고유 항목**:
 
 **목표**: 기존 Project 데이터를 Studio로 마이그레이션, deprecated 컬럼 정리
 
-| 파일 | 변경 내용 |
-|---|---|
-| `app/drizzle/migrations/XXXX_*.sql` (신규) | 데이터 마이그레이션 SQL |
-| `app/features/project/project-schema.ts` | deprecated 컬럼 제거 |
-| `app/common/data/project.data.server.ts` | 제거된 컬럼 참조 정리 |
-| `app/features/project/pages/new-project-page.tsx` | hooks/scriptGuidelines 관련 폼 필드 제거 |
-| `app/features/project/pages/project-detail-page.tsx` | Studio 연결 링크로 대체 |
+| 파일                                                 | 변경 내용                                |
+| ---------------------------------------------------- | ---------------------------------------- |
+| `app/drizzle/migrations/XXXX_*.sql` (신규)           | 데이터 마이그레이션 SQL                  |
+| `app/features/project/project-schema.ts`             | deprecated 컬럼 제거                     |
+| `app/common/data/project.data.server.ts`             | 제거된 컬럼 참조 정리                    |
+| `app/features/project/pages/new-project-page.tsx`    | hooks/scriptGuidelines 관련 폼 필드 제거 |
+| `app/features/project/pages/project-detail-page.tsx` | Studio 연결 링크로 대체                  |
 
 **선행 조건**: Phase C 안정화 후
 
@@ -763,9 +777,9 @@ Phase 1H (AI 서비스 통합)
 
 ### Phase별 요약
 
-| Phase | 난이도 | 영향 범위 | 비용 절감 | 선행 조건 |
-|---|---|---|---|---|
-| Phase A | 낮음 | 코드 구조만 | 없음 (준비) | 없음 |
-| Phase B | 중간 | TrendTube API + UI | 높음 (AI 호출 1-2회/세션) | Studio 0B 권장 |
-| Phase C | 높음 | Project + Studio 전체 | 중간 (토큰 절감) | Studio 0A 필수 |
-| Phase D | 중간 | DB + 데이터 레이어 | 없음 (정리) | Phase C 안정화 |
+| Phase   | 난이도 | 영향 범위             | 비용 절감                 | 선행 조건      |
+| ------- | ------ | --------------------- | ------------------------- | -------------- |
+| Phase A | 낮음   | 코드 구조만           | 없음 (준비)               | 없음           |
+| Phase B | 중간   | TrendTube API + UI    | 높음 (AI 호출 1-2회/세션) | Studio 0B 권장 |
+| Phase C | 높음   | Project + Studio 전체 | 중간 (토큰 절감)          | Studio 0A 필수 |
+| Phase D | 중간   | DB + 데이터 레이어    | 없음 (정리)               | Phase C 안정화 |
