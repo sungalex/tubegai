@@ -8,6 +8,7 @@ import {
   getTrendCategories,
   getStoredTrends,
   getStoredTrendsWithFilters,
+  getSavedTrends,
 } from "~/common/data/youtube.data.server";
 import { getIdeas, getAIRecommendations } from "~/common/data/idea.data.server";
 import { getChannelsForSelect } from "~/common/data/project.data.server";
@@ -28,7 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const keywordsParam = url.searchParams.get("keywords");
   const keywords = keywordsParam ? keywordsParam.split(",").filter(Boolean) : undefined;
   const forceRefresh = url.searchParams.get("refresh") === "true";
-  const source = url.searchParams.get("source"); // "saved" for saved trends
+  const source = url.searchParams.get("source"); // "saved" | "bookmarked"
 
   const filters: TrendFilterOptions = {
     regionCode,
@@ -42,8 +43,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (forceRefresh) {
     // "YouTube에서 가져오기" 버튼 클릭 시 YouTube API 호출 + Supabase 저장
     trends = await getYouTubeTrendsWithFilters(filters, true);
+  } else if (source === "bookmarked") {
+    // "북마크 트렌드" 버튼 클릭 시 유저가 북마크한 트렌드만 가져오기
+    trends = await getSavedTrends(userId);
   } else if (source === "saved") {
-    // "저장된 트렌드 가져오기" 버튼 클릭 시 필터 적용하여 Supabase에서 가져오기
+    // "저장된 트렌드 가져오기" 버튼 클릭 시 Supabase 캐시에서 필터 적용하여 가져오기
     trends = await getStoredTrendsWithFilters(filters);
   } else {
     // 기본: Supabase 캐시에서 가져오기 (필터 없이 최근 트렌드)
@@ -81,7 +85,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   } = loaderData;
   const [savedIdeas, setSavedIdeas] = useState(initialSavedIdeas);
   const [filters, setFilters] = useState<TrendFilterOptions>(initialFilters);
-  const [loadingSource, setLoadingSource] = useState<"youtube" | "saved" | null>(null);
+  const [loadingSource, setLoadingSource] = useState<"youtube" | "saved" | "bookmarked" | null>(null);
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof loader>();
 
@@ -175,6 +179,13 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     fetcher.load(`/projects/trends?${params.toString()}`);
   };
 
+  const handleFetchBookmarkedTrends = () => {
+    setLoadingSource("bookmarked");
+    const params = new URLSearchParams();
+    params.set("source", "bookmarked");
+    fetcher.load(`/projects/trends?${params.toString()}`);
+  };
+
   const handleSaveIdea = (idea: Idea) => {
     // 새 아이디어를 savedIdeas 목록에 추가
     setSavedIdeas((prev) => [idea, ...prev].slice(0, 6));
@@ -191,8 +202,10 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
         onFiltersChange={handleFiltersChange}
         onFetch={handleFetchTrends}
         onFetchSaved={handleFetchSavedTrends}
+        onFetchBookmarked={handleFetchBookmarkedTrends}
         isLoadingYoutube={isLoading && loadingSource === "youtube"}
         isLoadingSaved={isLoading && loadingSource === "saved"}
+        isLoadingBookmarked={isLoading && loadingSource === "bookmarked"}
         categories={currentCategories}
       />
 

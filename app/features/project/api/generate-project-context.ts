@@ -79,6 +79,7 @@ export async function action({ request }: Route.ActionArgs) {
       trend: body.trend,
       options: {
         language: body.options?.language ?? "ko",
+        videoType: body.options?.videoType,
         preferredTone: body.options?.preferredTone,
         videoLength: body.options?.videoLength,
         targetAudienceHint: body.options?.targetAudienceHint,

@@ -73,8 +73,8 @@ export interface TrendFilterOptions {
   minViews?: number;
   /** 최소 성장률 (%) */
   minGrowthRate?: number;
-  /** 영상 길이 타입 */
-  videoDuration?: "short" | "medium" | "long";
+  /** 영상 길이 (e.g., "15:33", "1:02:15") */
+  videoDuration?: string;
   /** 포함할 키워드 */
   keywords?: string[];
   /** 제외할 키워드 */

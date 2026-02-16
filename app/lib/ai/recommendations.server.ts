@@ -54,7 +54,7 @@ const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략 전문가입니�
 - estimatedViews: 예상 조회수 범위 (예: "50K-100K", "100K-300K")
 - difficulty: 제작 난이도 ("easy", "medium", "hard")
 - videoType: 영상 길이 타입 ("short": 60초 이하, "medium": 2-10분, "long": 10분+)
-- contentTone: 콘텐츠 톤 ("informative", "funny", "dramatic", "casual", "professional")
+- contentTone: 콘텐츠에 적합한 톤 (예: informative, funny, dramatic, casual, professional, cinematic, storytelling 등 자유 형식)
 - growthRate: 예상 성장률 (예: "+85%", "+120%")
 - score: 추천 점수 0-100
 - basedOnTrends: 참고한 트렌드 제목들 (배열)
@@ -77,7 +77,7 @@ Each recommendation must include these fields:
 - estimatedViews: Expected view range (e.g., "50K-100K", "100K-300K")
 - difficulty: Production difficulty ("easy", "medium", "hard")
 - videoType: Video length type ("short": under 60s, "medium": 2-10min, "long": 10min+)
-- contentTone: Content tone ("informative", "funny", "dramatic", "casual", "professional")
+- contentTone: Best fitting content tone (e.g., informative, funny, dramatic, casual, professional, cinematic, storytelling — free-form)
 - growthRate: Expected growth rate (e.g., "+85%", "+120%")
 - score: Recommendation score 0-100
 - basedOnTrends: Referenced trend titles (array)
@@ -142,13 +142,23 @@ export async function generateAIRecommendations(
     return [];
   }
 
-  // Build trend context
+  // Build trend context with full metadata
   const trendContext = trends
     .slice(0, 10) // Limit to top 10 trends
-    .map(
-      (t, i) =>
-        `${i + 1}. "${t.title}" (카테고리: ${t.category}, 조회수: ${t.views}, 성장률: ${t.growth})`
-    )
+    .map((t, i) => {
+      const tags = t.tags?.length ? `태그: ${t.tags.slice(0, 5).join(", ")}` : "";
+      const desc = t.description ? `설명: ${t.description.slice(0, 150)}` : "";
+      const url = t.videoUrl ? `영상URL: ${t.videoUrl}` : "";
+      const details = [
+        `카테고리: ${t.category}`,
+        `조회수: ${t.views}`,
+        `성장률: ${t.growth}`,
+        tags,
+        desc,
+        url,
+      ].filter(Boolean).join(" | ");
+      return `${i + 1}. "${t.title}" (${details})`;
+    })
     .join("\n");
 
   // Build user context
@@ -169,30 +179,32 @@ export async function generateAIRecommendations(
 
   const userPrompt =
     language === "ko"
-      ? `다음 실시간 트렌드를 분석하고, 유튜버에게 ${count}개의 콘텐츠 아이디어를 추천해주세요.
+      ? `다음 트렌드를 분석하고, 이 트렌드와 직접적으로 관련된 ${count}개의 콘텐츠 아이디어를 추천해주세요.
 
 현재 트렌드:
 ${trendContext}
 ${userContext}
 
 중요:
-1. 트렌드를 창의적으로 재해석하거나 여러 트렌드를 조합해주세요
-2. 다양한 콘텐츠 톤과 난이도를 섞어주세요
-3. 구체적이고 실행 가능한 아이디어를 제안해주세요
-4. 예상 조회수와 성장률은 현실적으로 산정해주세요
-5. JSON 배열만 반환하세요`
-      : `Analyze the following real-time trends and recommend ${count} content ideas for YouTubers.
+1. 각 아이디어는 반드시 위 트렌드의 주제, 카테고리, 태그와 직접 연관되어야 합니다
+2. 트렌드의 제목, 설명, 영상 URL을 참고하여 구체적인 아이디어를 만드세요
+3. 영상 URL이 제공된 경우, 해당 영상의 주제와 콘텐츠를 기반으로 아이디어를 구체화하세요
+4. basedOnTrends 필드에 참고한 트렌드 제목을 정확히 기재하세요
+5. 예상 조회수와 성장률은 현실적으로 산정해주세요
+6. JSON 배열만 반환하세요`
+      : `Analyze the following trends and recommend ${count} content ideas directly related to these trends.
 
 Current Trends:
 ${trendContext}
 ${userContext}
 
 Important:
-1. Creatively reinterpret trends or combine multiple trends
-2. Mix different content tones and difficulty levels
-3. Suggest specific, actionable ideas
-4. Estimate views and growth rates realistically
-5. Return only a JSON array`;
+1. Each idea MUST be directly related to the topics, categories, and tags of the trends above
+2. Reference the trend titles, descriptions, and video URLs to create specific ideas
+3. When video URLs are provided, base your ideas on the actual content and topic of those videos
+4. Accurately list referenced trend titles in basedOnTrends field
+5. Estimate views and growth rates realistically
+6. Return only a JSON array`;
 
   try {
     const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;

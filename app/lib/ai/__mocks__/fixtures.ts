@@ -292,6 +292,7 @@ export const MOCK_PROJECT_CONTEXT: AIProjectGenerationOutput = {
   estimatedViews: "80K-200K",
   suggestedTone: "informative",
   suggestedDifficulty: "medium",
+  suggestedVideoLength: "medium",
 };
 
 // =============================================================================

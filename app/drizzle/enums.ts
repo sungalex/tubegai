@@ -166,15 +166,6 @@ export const trendtubeMediaTypeEnum = tubegaiSchema.enum(
   ["video_image", "background_music", "voiceover", "generated_video", "composited_video"]
 );
 
-// Content Tone (more flexible than project_tone)
-export const contentToneEnum = tubegaiSchema.enum("content_tone", [
-  "informative",
-  "funny",
-  "dramatic",
-  "casual",
-  "professional",
-]);
-
 // Video Length Type
 export const videoLengthEnum = tubegaiSchema.enum("video_length", [
   "short",   // < 60s (Shorts/Reels)

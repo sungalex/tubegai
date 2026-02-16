@@ -25,7 +25,7 @@ import {
   channelStatusEnum,
   ideaDifficultyEnum,
   ideaSourceEnum,
-  contentToneEnum,
+
   videoLengthEnum,
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
@@ -83,8 +83,8 @@ export const projects = tubegaiSchema.table("project", {
   estimatedViews: text("estimated_views"),
   // Production difficulty
   difficulty: ideaDifficultyEnum("difficulty"),
-  // Content tone (more flexible than tone enum)
-  contentTone: contentToneEnum("content_tone"),
+  // Content tone (free-form text, AI-recommended or user-input)
+  contentTone: text("content_tone"),
   // Video length type
   videoLength: videoLengthEnum("video_length"),
   // Source trend title (if based on trend)

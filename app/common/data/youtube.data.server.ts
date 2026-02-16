@@ -157,6 +157,7 @@ async function getCachedTrends(
     thumbnail: trend.thumbnailUrl ?? "",
     tags: trend.tags ?? [],
     videoUrl: trend.externalUrl ?? undefined,
+    isSaved: trend.isSaved ?? false,
   }));
 }
 
@@ -186,6 +187,13 @@ async function saveTrendsToCache(
     const categoryName = CATEGORY_MAP[video.snippet.categoryId] ?? "Other";
     const tags = video.snippet.tags?.slice(0, 5) ?? [categoryName];
 
+    // Parse video duration from contentDetails (e.g., "PT15M33S" → "15:33")
+    let videoDuration: string | null = null;
+    if (video.contentDetails?.duration) {
+      const seconds = parseISO8601Duration(video.contentDetails.duration);
+      videoDuration = formatDuration(seconds);
+    }
+
     return {
       title: video.snippet.title,
       description: video.snippet.description?.slice(0, 500),
@@ -208,6 +216,7 @@ async function saveTrendsToCache(
       commentCount: video.statistics.commentCount
         ? parseInt(video.statistics.commentCount, 10)
         : null,
+      videoDuration,
       publishedAt: new Date(video.snippet.publishedAt),
       fetchedAt: new Date(),
     };
@@ -231,6 +240,7 @@ async function saveTrendsToCache(
             commentCount: trend.commentCount,
             thumbnailUrl: trend.thumbnailUrl,
             tags: trend.tags,
+            videoDuration: trend.videoDuration,
             fetchedAt: trend.fetchedAt,
             updatedAt: new Date(),
           },
@@ -246,6 +256,37 @@ async function saveTrendsToCache(
 // =============================================================================
 // Utility Functions
 // =============================================================================
+
+/**
+ * Parse ISO 8601 duration (e.g., "PT15M33S") to seconds
+ */
+function parseISO8601Duration(duration: string): number {
+  const match = duration.match(
+    /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/,
+  );
+  if (!match) return 0;
+
+  const days = parseInt(match[1] || "0", 10);
+  const hours = parseInt(match[2] || "0", 10);
+  const minutes = parseInt(match[3] || "0", 10);
+  const seconds = parseFloat(match[4] || "0");
+
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Format seconds to "H:MM:SS" or "M:SS" display string
+ */
+function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 /**
  * Format view count to human-readable string (e.g., 1234567 -> "1.2M")
@@ -366,7 +407,7 @@ export async function getYouTubeTrends(
 
   try {
     const url = new URL(`${YOUTUBE_API_BASE_URL}/videos`);
-    url.searchParams.set("part", "snippet,statistics");
+    url.searchParams.set("part", "snippet,statistics,contentDetails");
     url.searchParams.set("chart", "mostPopular");
     url.searchParams.set("regionCode", regionCode);
     url.searchParams.set("maxResults", maxResults.toString());
@@ -599,6 +640,7 @@ export async function getStoredTrends(
     thumbnail: trend.thumbnailUrl ?? "",
     tags: trend.tags ?? [],
     videoUrl: trend.externalUrl ?? undefined,
+    isSaved: trend.isSaved ?? false,
   }));
 }
 
@@ -648,6 +690,7 @@ export async function getStoredTrendsWithFilters(
     thumbnail: trend.thumbnailUrl ?? "",
     tags: trend.tags ?? [],
     videoUrl: trend.externalUrl ?? undefined,
+    isSaved: trend.isSaved ?? false,
   }));
 
   // Apply remaining client-side filters (minViews, keywords, excludeKeywords)
@@ -801,6 +844,7 @@ export async function getTrendsByIds(trendIds: string[]): Promise<TrendItem[]> {
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
+    description: trend.description ?? undefined,
     category: normalizeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",

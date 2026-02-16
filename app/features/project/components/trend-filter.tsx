@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, X, Search, Globe, Layers, TrendingUp, RefreshCw, Youtube, Bookmark } from "lucide-react";
+import { Filter, X, Search, Globe, Layers, TrendingUp, RefreshCw, Youtube, Bookmark, BookmarkCheck } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import { Input } from "~/common/components/ui/input";
 import {
@@ -24,8 +24,10 @@ interface TrendFilterProps {
   onFiltersChange: (filters: TrendFilterOptions) => void;
   onFetch?: () => void;
   onFetchSaved?: () => void;
+  onFetchBookmarked?: () => void;
   isLoadingYoutube?: boolean;
   isLoadingSaved?: boolean;
+  isLoadingBookmarked?: boolean;
   categories?: string[];
   className?: string;
 }
@@ -35,8 +37,10 @@ export function TrendFilter({
   onFiltersChange,
   onFetch,
   onFetchSaved,
+  onFetchBookmarked,
   isLoadingYoutube = false,
   isLoadingSaved = false,
+  isLoadingBookmarked = false,
   categories = [],
   className,
 }: TrendFilterProps) {
@@ -214,7 +218,7 @@ export function TrendFilter({
             variant="outline"
             className="h-8 text-xs"
             onClick={onFetchSaved}
-            disabled={isLoadingYoutube || isLoadingSaved}
+            disabled={isLoadingYoutube || isLoadingSaved || isLoadingBookmarked}
           >
             {isLoadingSaved ? (
               <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
@@ -222,6 +226,24 @@ export function TrendFilter({
               <Bookmark className="h-3 w-3 mr-1" />
             )}
             저장된 트렌드 가져오기
+          </Button>
+        )}
+
+        {/* Fetch bookmarked trends button */}
+        {onFetchBookmarked && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-yellow-500/50 hover:bg-yellow-500/10"
+            onClick={onFetchBookmarked}
+            disabled={isLoadingYoutube || isLoadingSaved || isLoadingBookmarked}
+          >
+            {isLoadingBookmarked ? (
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <BookmarkCheck className="h-3 w-3 mr-1 text-yellow-500" />
+            )}
+            북마크 트렌드
           </Button>
         )}
 

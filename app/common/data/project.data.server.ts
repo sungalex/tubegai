@@ -62,7 +62,7 @@ export interface CreateProjectInput {
   targetAudience?: string;
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
-  contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
+  contentTone?: string;
   videoLength?: "short" | "medium" | "long";
   basedOnTrend?: string;
   sourceIdeaId?: string;
@@ -440,7 +440,7 @@ export interface UpdateProjectInput {
   targetAudience?: string;
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
-  contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
+  contentTone?: string;
   videoLength?: "short" | "medium" | "long";
   aiContext?: {
     keywords?: string[];

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, RefreshCw, ExternalLink, Lightbulb, Loader2, Eye, Target } from "lucide-react";
-import { useNavigate } from "react-router";
+import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, BookmarkCheck, RefreshCw, ExternalLink, Lightbulb, Loader2, Eye, Target } from "lucide-react";
+import { useNavigate, useFetcher } from "react-router";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { toast } from "sonner";
 import { Input } from "~/common/components/ui/input";
@@ -62,7 +62,11 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
     () => (initialAiRecommendations ?? []).map(ideaToAIRecommendation)
   );
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
+    () => new Set(trends.filter((t) => t.isSaved && t.trendUuid).map((t) => t.trendUuid!)),
+  );
   const navigate = useNavigate();
+  const bookmarkFetcher = useFetcher();
 
   // Get unique categories from trends
   const availableCategories = [...new Set(trends.map((t) => t.category))];
@@ -94,6 +98,37 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
 
   const clearFilters = () => {
     setSelectedCategories([]);
+  };
+
+  const handleToggleBookmark = (trend: TrendItem) => {
+    if (!trend.trendUuid) {
+      toast.error("트렌드 ID가 없습니다");
+      return;
+    }
+    const isSaved = bookmarkedIds.has(trend.trendUuid);
+    const method = isSaved ? "DELETE" : "POST";
+
+    bookmarkFetcher.submit(
+      JSON.stringify({ trendId: trend.trendUuid }),
+      {
+        method,
+        action: "/api/trend-bookmark",
+        encType: "application/json",
+      },
+    );
+
+    // Optimistic update
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (isSaved) {
+        next.delete(trend.trendUuid!);
+      } else {
+        next.add(trend.trendUuid!);
+      }
+      return next;
+    });
+
+    toast.success(isSaved ? "트렌드 저장 해제" : "트렌드 저장 완료");
   };
 
   const handleGenerateIdeas = (trend: TrendItem) => {
@@ -551,7 +586,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                             <Button
                               size="sm"
                               variant="secondary"
-                              className="w-full"
+                              className="w-1/2"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenVideo(trend);
@@ -564,7 +599,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                           <Button
                             size="sm"
                             variant="secondary"
-                            className="w-full"
+                            className="w-1/2"
                             disabled={isGeneratingAI}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -581,7 +616,7 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                           <Button
                             size="sm"
                             variant="secondary"
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                            className="w-1/2 bg-purple-600 hover:bg-purple-700 text-white"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenAIProjectGenerator(trend);
@@ -594,6 +629,22 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                         <Badge className="absolute top-2 left-2 bg-black/60 hover:bg-black/70 backdrop-blur-sm text-white border-0">
                           {trend.category}
                         </Badge>
+                        {trend.trendUuid && (
+                          <button
+                            type="button"
+                            className="absolute top-2 right-2 z-10 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm p-1.5 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleBookmark(trend);
+                            }}
+                          >
+                            {bookmarkedIds.has(trend.trendUuid) ? (
+                              <BookmarkCheck className="h-4 w-4 text-yellow-400" />
+                            ) : (
+                              <Bookmark className="h-4 w-4 text-white" />
+                            )}
+                          </button>
+                        )}
                         <div className="absolute bottom-2 right-2 bg-green-500/90 text-white text-xs px-2 py-1 rounded font-bold flex items-center gap-1 shadow-sm">
                           <TrendingUp className="h-3 w-3" />
                           {trend.growth}

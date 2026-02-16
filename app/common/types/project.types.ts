@@ -59,6 +59,7 @@ export interface Label {
 export interface TrendItem {
   id: number;
   title: string;
+  description?: string;
   category: string;
   views: string;
   growth: string;

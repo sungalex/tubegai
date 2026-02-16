@@ -41,12 +41,17 @@ export interface YouTubeVideoStatistics {
   commentCount?: string;
 }
 
+export interface YouTubeVideoContentDetails {
+  duration: string; // ISO 8601 (e.g., "PT15M33S")
+}
+
 export interface YouTubeVideoItem {
   kind: string;
   etag: string;
   id: string;
   snippet: YouTubeVideoSnippet;
   statistics: YouTubeVideoStatistics;
+  contentDetails?: YouTubeVideoContentDetails;
 }
 
 export interface YouTubePageInfo {

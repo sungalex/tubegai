@@ -65,6 +65,7 @@ type Step = "options" | "prompt" | "result";
 
 interface GenerationOptions {
   language: "ko" | "en";
+  videoType?: "short" | "long";
   preferredTone?: string;
   videoLength?: string;
   targetAudienceHint?: string;
@@ -99,6 +100,10 @@ export function AIProjectGeneratorDialog({
     title: string;
     description: string;
     targetAudience: string;
+    contentTone: string;
+    difficulty: string;
+    videoLength: string;
+    estimatedViews: string;
   } | null>(null);
 
   // Refs to track processed responses (prevent duplicate processing on re-renders)
@@ -144,11 +149,21 @@ export function AIProjectGeneratorDialog({
       if (processedGenerationRef.current !== generationKey) {
         processedGenerationRef.current = generationKey;
         setGeneratedResult(generateFetcher.data);
-        // Initialize edited result
+        // Initialize edited result — use user's explicit choice or AI suggestion
+        const aiTone = result.suggestedTone || "informative";
+        const validDiffs = ["easy", "medium", "hard"];
+        const aiDiff = validDiffs.includes(result.suggestedDifficulty?.toLowerCase()) ? result.suggestedDifficulty.toLowerCase() : "medium";
+        const validLengths = ["short", "medium", "long"];
+        const aiLength = validLengths.includes(result.suggestedVideoLength) ? result.suggestedVideoLength : "medium";
+
         setEditedResult({
           title: result.title,
           description: result.description,
           targetAudience: result.targetAudience,
+          contentTone: options.preferredTone || aiTone,
+          difficulty: aiDiff,
+          videoLength: options.videoLength || aiLength,
+          estimatedViews: result.estimatedViews || "10K-50K",
         });
         setStep("result");
       }
@@ -195,6 +210,7 @@ export function AIProjectGeneratorDialog({
     const params = new URLSearchParams();
     params.set("trend", JSON.stringify({
       title: trend.title,
+      description: trend.description,
       category: trend.category,
       tags: trend.tags,
       views: trend.views,
@@ -213,6 +229,7 @@ export function AIProjectGeneratorDialog({
       JSON.stringify({
         trend: {
           title: trend.title,
+          description: trend.description,
           category: trend.category,
           tags: trend.tags,
           views: trend.views,
@@ -240,18 +257,10 @@ export function AIProjectGeneratorDialog({
       return;
     }
 
-    const result = generatedResult.result;
-    console.log("[AI Dialog] Creating project with result:", result);
+    console.log("[AI Dialog] Creating project with editedResult:", editedResult);
 
-    // Valid contentTone values (must match database enum)
-    const validContentTones = ["informative", "funny", "dramatic", "casual", "professional"];
-    const suggestedTone = result.suggestedTone?.toLowerCase() || "informative";
-    const contentTone = validContentTones.includes(suggestedTone) ? suggestedTone : "informative";
-
-    // Valid difficulty values
-    const validDifficulties = ["easy", "medium", "hard"];
-    const suggestedDifficulty = result.suggestedDifficulty?.toLowerCase() || "medium";
-    const difficulty = validDifficulties.includes(suggestedDifficulty) ? suggestedDifficulty : "medium";
+    // Derive project type from edited video length
+    const projectType = editedResult.videoLength === "short" ? "short" : "long";
 
     // Create project with AI-generated context using FormData
     // Note: hooks, scriptGuidelines, keywords are now generated in Studio Pre-Production
@@ -259,7 +268,8 @@ export function AIProjectGeneratorDialog({
     formData.set("_returnJson", "true"); // Signal to return JSON instead of redirect
     formData.set("title", editedResult.title);
     formData.set("description", editedResult.description);
-    formData.set("type", "long");
+    formData.set("type", projectType);
+    formData.set("videoLength", editedResult.videoLength);
     formData.set("visibility", "private");
     formData.set("topic", trend.title);
     formData.set("basedOnTrend", trend.title);
@@ -268,9 +278,9 @@ export function AIProjectGeneratorDialog({
       formData.set("basedOnTrendUuid", trend.trendUuid);
     }
     formData.set("targetAudience", editedResult.targetAudience);
-    formData.set("contentTone", contentTone);
-    formData.set("difficulty", difficulty);
-    formData.set("estimatedViews", result.estimatedViews || "");
+    formData.set("contentTone", editedResult.contentTone);
+    formData.set("difficulty", editedResult.difficulty);
+    formData.set("estimatedViews", editedResult.estimatedViews);
     formData.set("labels", "[]");
     // Add channel if selected
     if (selectedChannelId) {
@@ -309,8 +319,9 @@ export function AIProjectGeneratorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-dvh sm:max-h-[85vh] flex flex-col overflow-hidden">
+        {/* Fixed header */}
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
             AI 프로젝트 생성
@@ -320,8 +331,8 @@ export function AIProjectGeneratorDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress indicator */}
-        <div className="flex items-center justify-center gap-2 py-2">
+        {/* Fixed progress indicator */}
+        <div className="shrink-0 flex items-center justify-center gap-2 py-2">
           <StepIndicator
             step={1}
             label="옵션"
@@ -344,11 +355,11 @@ export function AIProjectGeneratorDialog({
           />
         </div>
 
-        <Separator />
+        <Separator className="shrink-0" />
 
-        {/* Trend info summary */}
+        {/* Fixed trend info summary */}
         {trend && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="shrink-0 flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             {trend.thumbnail && (
               <img
                 src={trend.thumbnail}
@@ -370,33 +381,36 @@ export function AIProjectGeneratorDialog({
           </div>
         )}
 
-        {/* Step content */}
-        <ScrollArea className="flex-1 pr-4">
-          {step === "options" && (
-            <OptionsStep
-              options={options}
-              onOptionsChange={setOptions}
-              channels={channels}
-              selectedChannelId={selectedChannelId}
-              onChannelChange={setSelectedChannelId}
-            />
-          )}
+        {/* Scrollable step content */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="pr-4">
+            {step === "options" && (
+              <OptionsStep
+                options={options}
+                onOptionsChange={setOptions}
+                channels={channels}
+                selectedChannelId={selectedChannelId}
+                onChannelChange={setSelectedChannelId}
+              />
+            )}
 
-          {step === "prompt" && (
-            <PromptStep
-              prompt={prompt}
-              onCopy={handleCopyPrompt}
-            />
-          )}
+            {step === "prompt" && (
+              <PromptStep
+                prompt={prompt}
+                onCopy={handleCopyPrompt}
+              />
+            )}
 
-          {step === "result" && editedResult && (
-            <ResultStep
-              editedResult={editedResult}
-              onEditedResultChange={setEditedResult}
-            />
-          )}
+            {step === "result" && editedResult && (
+              <ResultStep
+                editedResult={editedResult}
+                onEditedResultChange={setEditedResult}
+              />
+            )}
+          </div>
         </ScrollArea>
 
+        {/* Fixed footer */}
         <DialogFooter className="shrink-0 gap-2">
           {step === "options" && (
             <>
@@ -522,98 +536,129 @@ function OptionsStep({
 }) {
   return (
     <div className="space-y-4 py-4">
-      {/* Channel selector */}
-      <div className="space-y-2">
-        <Label>채널 (선택)</Label>
-        {channels.length > 0 ? (
+      {/* Row 1: 영상 타입 + 영상 길이 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>영상 타입</Label>
           <Select
-            value={selectedChannelId || "none"}
-            onValueChange={(v) => onChannelChange(v === "none" ? "" : v)}
+            value={options.videoType ?? "long"}
+            onValueChange={(v) => {
+              const videoType = v as "short" | "long";
+              if (videoType === "short") {
+                onOptionsChange({ ...options, videoType, videoLength: "short" });
+              } else {
+                onOptionsChange({ ...options, videoType, videoLength: undefined });
+              }
+            }}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="채널 선택 (선택사항)" />
+            <SelectTrigger className="w-full">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">채널 미지정</SelectItem>
-              {channels.map((channel) => (
-                <SelectItem key={channel.id} value={channel.id}>
-                  {channel.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="long">일반 영상</SelectItem>
+              <SelectItem value="short">쇼츠/릴스 (60초 이하)</SelectItem>
             </SelectContent>
           </Select>
-        ) : (
-          <p className="text-sm text-muted-foreground italic">
-            연결된 채널이 없습니다. 프로젝트 &gt; 채널 관리에서 채널을 추가하세요.
-          </p>
-        )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>영상 길이</Label>
+          {(options.videoType ?? "long") === "long" ? (
+            <Select
+              value={options.videoLength ?? "auto"}
+              onValueChange={(v) => onOptionsChange({ ...options, videoLength: v === "auto" ? undefined : v })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="자동 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">자동 선택</SelectItem>
+                <SelectItem value="medium">중간 (2-10분)</SelectItem>
+                <SelectItem value="long">긴 영상 (10분+)</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Select value="short" disabled>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short">60초 이하</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>출력 언어</Label>
-        <Select
-          value={options.language}
-          onValueChange={(v) => onOptionsChange({ ...options, language: v as "ko" | "en" })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ko">한국어</SelectItem>
-            <SelectItem value="en">English</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Row 2: 출력 언어 + 선호 톤 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>출력 언어</Label>
+          <Select
+            value={options.language}
+            onValueChange={(v) => onOptionsChange({ ...options, language: v as "ko" | "en" })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ko">한국어</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>선호 톤 (선택)</Label>
+          <Input
+            placeholder="비워두면 AI가 추천 (예: informative, cinematic...)"
+            value={options.preferredTone ?? ""}
+            onChange={(e) => onOptionsChange({ ...options, preferredTone: e.target.value || undefined })}
+          />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>선호하는 톤 (선택)</Label>
-        <Select
-          value={options.preferredTone ?? "auto"}
-          onValueChange={(v) => onOptionsChange({ ...options, preferredTone: v === "auto" ? undefined : v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="자동 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">자동 선택</SelectItem>
-            <SelectItem value="educational">교육적</SelectItem>
-            <SelectItem value="entertaining">재미있는</SelectItem>
-            <SelectItem value="professional">전문적</SelectItem>
-            <SelectItem value="casual">친근한</SelectItem>
-            <SelectItem value="inspirational">영감을 주는</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Row 3: 채널 + 타겟 시청자 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>채널 (선택)</Label>
+          {channels.length > 0 ? (
+            <Select
+              value={selectedChannelId || "none"}
+              onValueChange={(v) => onChannelChange(v === "none" ? "" : v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="채널 미지정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">채널 미지정</SelectItem>
+                {channels.map((channel) => (
+                  <SelectItem key={channel.id} value={channel.id}>
+                    {channel.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-sm text-muted-foreground italic py-2">
+              연결된 채널 없음
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>타겟 시청자 (선택)</Label>
+          <Input
+            placeholder="예: 20-30대 직장인"
+            value={options.targetAudienceHint ?? ""}
+            onChange={(e) =>
+              onOptionsChange({ ...options, targetAudienceHint: e.target.value || undefined })
+            }
+          />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>영상 길이 (선택)</Label>
-        <Select
-          value={options.videoLength ?? "auto"}
-          onValueChange={(v) => onOptionsChange({ ...options, videoLength: v === "auto" ? undefined : v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="자동 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">자동 선택</SelectItem>
-            <SelectItem value="short">짧은 영상 (1-5분)</SelectItem>
-            <SelectItem value="medium">중간 영상 (5-15분)</SelectItem>
-            <SelectItem value="long">긴 영상 (15분+)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label>타겟 시청자 힌트 (선택)</Label>
-        <Input
-          placeholder="예: 20-30대 직장인"
-          value={options.targetAudienceHint ?? ""}
-          onChange={(e) =>
-            onOptionsChange({ ...options, targetAudienceHint: e.target.value || undefined })
-          }
-        />
-      </div>
-
+      {/* Row 4: 추가 지시사항 */}
       <div className="space-y-2">
         <Label>추가 지시사항 (선택)</Label>
         <Textarea
@@ -622,7 +667,7 @@ function OptionsStep({
           onChange={(e) =>
             onOptionsChange({ ...options, customInstructions: e.target.value || undefined })
           }
-          rows={3}
+          rows={2}
         />
       </div>
     </div>
@@ -636,28 +681,99 @@ function PromptStep({
   prompt: string;
   onCopy: () => void;
 }) {
+  // Parse prompt into structured sections
+  const sections = parsePromptSections(prompt);
+
   return (
-    <div className="space-y-4 py-4">
-      <div className="flex items-center justify-between">
-        <Label>AI에게 전송될 프롬프트</Label>
-        <Button variant="ghost" size="sm" onClick={onCopy}>
-          <Copy className="h-4 w-4 mr-1" />
-          복사
-        </Button>
-      </div>
-      <div className="rounded-lg border bg-muted/30 p-4">
-        <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
-          {prompt}
-        </pre>
-      </div>
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-        <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-        <p className="text-sm text-blue-600 dark:text-blue-400">
-          위 프롬프트가 AI에게 전송됩니다. "AI 생성 실행" 버튼을 클릭하면 Gemini API를 호출합니다.
+    <div className="space-y-3 py-4">
+      {sections.map((section, i) => (
+        <div key={i} className="rounded-lg border bg-card p-3 space-y-2">
+          {section.title && (
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {section.title}
+            </p>
+          )}
+          {section.items.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {section.items.map((item, j) => (
+                <div key={j} className={cn(
+                  "flex items-baseline gap-1.5 text-sm",
+                  item.fullWidth && "col-span-2",
+                )}>
+                  <span className="text-muted-foreground shrink-0">{item.label}</span>
+                  <span className="font-medium truncate">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {section.text && (
+            <p className="text-sm text-muted-foreground">{section.text}</p>
+          )}
+        </div>
+      ))}
+
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-xs text-muted-foreground">
+          "AI 생성 실행" 클릭 시 Gemini API를 호출합니다.
         </p>
+        <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={onCopy}>
+          <Copy className="h-3 w-3 mr-1" />
+          원문 복사
+        </Button>
       </div>
     </div>
   );
+}
+
+/** Parse prompt text into structured sections for display */
+function parsePromptSections(prompt: string) {
+  const lines = prompt.split("\n");
+  const sections: {
+    title?: string;
+    items: { label: string; value: string; fullWidth?: boolean }[];
+    text?: string;
+  }[] = [];
+
+  let current: (typeof sections)[number] | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Section header: "## Title"
+    if (trimmed.startsWith("## ")) {
+      if (current) sections.push(current);
+      current = { title: trimmed.replace(/^## /, ""), items: [] };
+      continue;
+    }
+
+    // List item: "- Key: Value"
+    if (trimmed.startsWith("- ") && current) {
+      const colonIdx = trimmed.indexOf(": ");
+      if (colonIdx > 0) {
+        const label = trimmed.slice(2, colonIdx + 1); // includes ':'
+        const value = trimmed.slice(colonIdx + 2);
+        const isLong = value.length > 50 || label.includes("URL") || label.includes("설명") || label.includes("Description");
+        current.items.push({ label, value, fullWidth: isLong });
+      } else {
+        current.items.push({ label: "", value: trimmed.slice(2), fullWidth: true });
+      }
+      continue;
+    }
+
+    // Trailing instruction text
+    if (current) {
+      current.text = current.text ? `${current.text} ${trimmed}` : trimmed;
+    } else {
+      // Text before any section
+      if (!current) {
+        current = { items: [], text: trimmed };
+      }
+    }
+  }
+
+  if (current) sections.push(current);
+  return sections;
 }
 
 function ResultStep({
@@ -668,6 +784,10 @@ function ResultStep({
     title: string;
     description: string;
     targetAudience: string;
+    contentTone: string;
+    difficulty: string;
+    videoLength: string;
+    estimatedViews: string;
   };
   onEditedResultChange: (result: typeof editedResult) => void;
 }) {
@@ -690,25 +810,81 @@ function ResultStep({
           onChange={(e) =>
             onEditedResultChange({ ...editedResult, description: e.target.value })
           }
-          rows={3}
+          rows={2}
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>타겟 시청자</Label>
-        <Input
-          value={editedResult.targetAudience}
-          onChange={(e) =>
-            onEditedResultChange({ ...editedResult, targetAudience: e.target.value })
-          }
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>타겟 시청자</Label>
+          <Input
+            value={editedResult.targetAudience}
+            onChange={(e) =>
+              onEditedResultChange({ ...editedResult, targetAudience: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>예상 조회수</Label>
+          <Input
+            value={editedResult.estimatedViews}
+            onChange={(e) =>
+              onEditedResultChange({ ...editedResult, estimatedViews: e.target.value })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>콘텐츠 톤</Label>
+          <Input
+            value={editedResult.contentTone}
+            onChange={(e) => onEditedResultChange({ ...editedResult, contentTone: e.target.value })}
+            placeholder="예: informative, cinematic..."
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>난이도</Label>
+          <Select
+            value={editedResult.difficulty}
+            onValueChange={(v) => onEditedResultChange({ ...editedResult, difficulty: v })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="easy">쉬움</SelectItem>
+              <SelectItem value="medium">보통</SelectItem>
+              <SelectItem value="hard">어려움</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>영상 길이</Label>
+          <Select
+            value={editedResult.videoLength}
+            onValueChange={(v) => onEditedResultChange({ ...editedResult, videoLength: v })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="short">60초 이하</SelectItem>
+              <SelectItem value="medium">2-10분</SelectItem>
+              <SelectItem value="long">10분+</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
         <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
         <p className="text-sm text-green-600 dark:text-green-400">
-          AI가 생성한 결과를 검토하고 수정한 후, "프로젝트 생성" 버튼을 클릭하세요.
-          오프닝 훅, 스크립트 가이드라인, SEO 키워드는 Studio에서 Pre-Production 단계에서 생성됩니다.
+          AI 추천값을 검토하고 수정한 후, "프로젝트 생성" 버튼을 클릭하세요.
         </p>
       </div>
     </div>

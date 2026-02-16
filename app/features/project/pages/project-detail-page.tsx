@@ -44,7 +44,11 @@ import {
 } from "~/common/components/ui/breadcrumb";
 import { Progress } from "~/common/components/ui/progress";
 import { Badge } from "~/common/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/common/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "~/common/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,7 +79,13 @@ import {
 import { toast } from "sonner";
 
 import type { Route } from "./+types/project-detail-page";
-import { getProjectById, updateProject, archiveProject, deleteProject, getProjectIntroImage } from "~/common/data/project.data.server";
+import {
+  getProjectById,
+  updateProject,
+  archiveProject,
+  deleteProject,
+  getProjectIntroImage,
+} from "~/common/data/project.data.server";
 import { getChannels } from "~/common/data/channel.data.server";
 import { requireAuth } from "~/lib/auth.server";
 
@@ -83,7 +93,10 @@ export const meta = ({ data }: Route.MetaArgs) => {
   const title = data?.project?.title ?? "프로젝트";
   return [
     { title: `${title} | TubeGAI` },
-    { name: "description", content: "프로젝트 상세 정보를 확인하고 관리합니다." },
+    {
+      name: "description",
+      content: "프로젝트 상세 정보를 확인하고 관리합니다.",
+    },
   ];
 };
 
@@ -133,19 +146,30 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       case "archive": {
         await archiveProject(projectId, userId);
-        return { success: true, message: "프로젝트가 보관되었습니다.", redirect: "/projects" };
+        return {
+          success: true,
+          message: "프로젝트가 보관되었습니다.",
+          redirect: "/projects",
+        };
       }
 
       case "delete": {
         await deleteProject(projectId, userId);
-        return { success: true, message: "프로젝트가 삭제되었습니다.", redirect: "/projects" };
+        return {
+          success: true,
+          message: "프로젝트가 삭제되었습니다.",
+          redirect: "/projects",
+        };
       }
 
       default:
         return { success: false, error: "알 수 없는 요청입니다." };
     }
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "오류가 발생했습니다." };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "오류가 발생했습니다.",
+    };
   }
 }
 
@@ -229,7 +253,9 @@ function ReadOnlyField({
   );
 }
 
-export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) {
+export default function ProjectDetailPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { project, channels, introImage } = loaderData;
 
   // Use intro image if available (storyboard created), otherwise use project thumbnail
@@ -259,13 +285,20 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
   const isSubmitting = fetcher.state !== "idle";
 
   const currentStepIndex = WORKFLOW_STEPS.findIndex(
-    (step) => step.label === project.currentStep || step.id === project.currentStep?.toLowerCase()
+    (step) =>
+      step.label === project.currentStep ||
+      step.id === project.currentStep?.toLowerCase(),
   );
 
   // Handle action responses
   useEffect(() => {
     if (fetcher.data) {
-      const data = fetcher.data as { success: boolean; message?: string; error?: string; redirect?: string };
+      const data = fetcher.data as {
+        success: boolean;
+        message?: string;
+        error?: string;
+        redirect?: string;
+      };
       if (data.success) {
         if (data.redirect) {
           toast.success(data.message);
@@ -309,7 +342,7 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
 
     fetcher.submit(
       { intent: "updateAll", data: JSON.stringify(updateData) },
-      { method: "post" }
+      { method: "post" },
     );
   };
 
@@ -345,7 +378,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="max-w-60 truncate">{project.title}</BreadcrumbPage>
+              <BreadcrumbPage className="max-w-60 truncate">
+                {project.title}
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -353,10 +388,15 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {project.title}
+              </h1>
               <Badge variant="secondary">{project.status}</Badge>
               {project.basedOnTrend && (
-                <Badge variant="outline" className="text-purple-500 border-purple-500/30 gap-1">
+                <Badge
+                  variant="outline"
+                  className="text-purple-500 border-purple-500/30 gap-1"
+                >
                   <Sparkles className="h-3 w-3" />
                   AI 기반
                 </Badge>
@@ -369,14 +409,21 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {formatDistanceToNow(project.updatedAt, { addSuffix: true, locale: ko })}
+                {formatDistanceToNow(project.updatedAt, {
+                  addSuffix: true,
+                  locale: ko,
+                })}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {isEditMode ? (
               <>
-                <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                >
                   <X className="h-4 w-4 mr-2" />
                   취소
                 </Button>
@@ -410,14 +457,24 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>프로젝트를 보관하시겠습니까?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            프로젝트를 보관하시겠습니까?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            보관된 프로젝트는 목록에서 숨겨지며, 나중에 복원할 수 있습니다.
+                            보관된 프로젝트는 목록에서 숨겨지며, 나중에 복원할
+                            수 있습니다.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>취소</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => fetcher.submit({ intent: "archive" }, { method: "post" })}>
+                          <AlertDialogAction
+                            onClick={() =>
+                              fetcher.submit(
+                                { intent: "archive" },
+                                { method: "post" },
+                              )
+                            }
+                          >
                             보관하기
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -426,22 +483,33 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                     <DropdownMenuSeparator />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-destructive"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" /> 삭제
                         </DropdownMenuItem>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>프로젝트를 삭제하시겠습니까?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            프로젝트를 삭제하시겠습니까?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            이 작업은 되돌릴 수 없습니다. 프로젝트와 관련된 모든 데이터가 영구적으로 삭제됩니다.
+                            이 작업은 되돌릴 수 없습니다. 프로젝트와 관련된 모든
+                            데이터가 영구적으로 삭제됩니다.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>취소</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => fetcher.submit({ intent: "delete" }, { method: "post" })}
+                            onClick={() =>
+                              fetcher.submit(
+                                { intent: "delete" },
+                                { method: "post" },
+                              )
+                            }
                           >
                             삭제하기
                           </AlertDialogAction>
@@ -472,7 +540,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base">제작 워크플로우</CardTitle>
-                  <CardDescription>현재 단계: {project.currentStep ?? "스크립트"}</CardDescription>
+                  <CardDescription>
+                    현재 단계: {project.currentStep ?? "스크립트"}
+                  </CardDescription>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">{project.progress}%</div>
@@ -484,7 +554,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
               <Progress value={project.progress} className="h-2 mb-4" />
               <div className="grid grid-cols-5 gap-2">
                 {WORKFLOW_STEPS.map((step, index) => {
-                  const isActive = index === currentStepIndex || (currentStepIndex === -1 && index === 0);
+                  const isActive =
+                    index === currentStepIndex ||
+                    (currentStepIndex === -1 && index === 0);
                   const isCompleted = currentStepIndex > index;
 
                   return (
@@ -493,12 +565,25 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                       to={`/studio/${step.id}/${project.id}`}
                       className={cn(
                         "flex flex-col items-center p-3 rounded-lg border text-center transition-all hover:bg-accent",
-                        isActive && "border-primary bg-primary/5 ring-1 ring-primary",
-                        isCompleted && "bg-muted/50"
+                        isActive &&
+                          "border-primary bg-primary/5 ring-1 ring-primary",
+                        isCompleted && "bg-muted/50",
                       )}
                     >
-                      <step.icon className={cn("h-5 w-5 mb-1", isActive ? "text-primary" : "text-muted-foreground")} />
-                      <span className={cn("text-xs font-medium", isActive && "text-primary")}>{step.label}</span>
+                      <step.icon
+                        className={cn(
+                          "h-5 w-5 mb-1",
+                          isActive ? "text-primary" : "text-muted-foreground",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          isActive && "text-primary",
+                        )}
+                      >
+                        {step.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -514,7 +599,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                 AI 컨텍스트
               </CardTitle>
               <CardDescription>
-                {isEditMode ? "스튜디오에서 AI가 활용하는 정보를 수정합니다." : "스튜디오에서 AI가 활용하는 정보입니다."}
+                {isEditMode
+                  ? "스튜디오에서 AI가 활용하는 정보를 수정합니다."
+                  : "스튜디오에서 AI가 활용하는 정보입니다."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -528,7 +615,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                       </label>
                       <Input
                         value={formData.targetAudience}
-                        onChange={(e) => handleFieldChange("targetAudience", e.target.value)}
+                        onChange={(e) =>
+                          handleFieldChange("targetAudience", e.target.value)
+                        }
                         placeholder="예: 20-30대 직장인"
                         className="h-8 text-sm"
                       />
@@ -539,58 +628,122 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                       </label>
                       <Input
                         value={formData.estimatedViews}
-                        onChange={(e) => handleFieldChange("estimatedViews", e.target.value)}
+                        onChange={(e) =>
+                          handleFieldChange("estimatedViews", e.target.value)
+                        }
                         placeholder="예: 50K-100K"
                         className="h-8 text-sm"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">콘텐츠 톤</label>
-                      <Select value={formData.contentTone} onValueChange={(v) => handleFieldChange("contentTone", v)}>
+                      <label className="text-xs text-muted-foreground">
+                        콘텐츠 톤
+                      </label>
+                      <Select
+                        value={formData.contentTone}
+                        onValueChange={(v) =>
+                          handleFieldChange("contentTone", v)
+                        }
+                      >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="선택..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(CONTENT_TONE_MAP).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(CONTENT_TONE_MAP).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">영상 길이</label>
-                      <Select value={formData.videoLength} onValueChange={(v) => handleFieldChange("videoLength", v)}>
+                      <label className="text-xs text-muted-foreground">
+                        영상 길이
+                      </label>
+                      <Select
+                        value={formData.videoLength}
+                        onValueChange={(v) =>
+                          handleFieldChange("videoLength", v)
+                        }
+                      >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="선택..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(VIDEO_LENGTH_MAP).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(VIDEO_LENGTH_MAP).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">제작 난이도</label>
-                      <Select value={formData.difficulty} onValueChange={(v) => handleFieldChange("difficulty", v)}>
+                      <label className="text-xs text-muted-foreground">
+                        제작 난이도
+                      </label>
+                      <Select
+                        value={formData.difficulty}
+                        onValueChange={(v) =>
+                          handleFieldChange("difficulty", v)
+                        }
+                      >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="선택..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(DIFFICULTY_MAP).map(([value, { label }]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(DIFFICULTY_MAP).map(
+                            ([value, { label }]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
                   </>
                 ) : (
                   <>
-                    <ReadOnlyField label="타겟 오디언스" value={project.targetAudience ?? undefined} icon={Target} />
-                    <ReadOnlyField label="예상 조회수" value={project.estimatedViews ?? undefined} icon={Eye} />
-                    <ReadOnlyField label="콘텐츠 톤" value={project.contentTone ? CONTENT_TONE_MAP[project.contentTone] : undefined} />
-                    <ReadOnlyField label="영상 길이" value={project.videoLength ? VIDEO_LENGTH_MAP[project.videoLength] : undefined} />
-                    <ReadOnlyField label="제작 난이도" value={project.difficulty ? DIFFICULTY_MAP[project.difficulty]?.label : undefined} />
+                    <ReadOnlyField
+                      label="타겟 오디언스"
+                      value={project.targetAudience ?? undefined}
+                      icon={Target}
+                    />
+                    <ReadOnlyField
+                      label="예상 조회수"
+                      value={project.estimatedViews ?? undefined}
+                      icon={Eye}
+                    />
+                    <ReadOnlyField
+                      label="콘텐츠 톤"
+                      value={
+                        project.contentTone
+                          ? CONTENT_TONE_MAP[project.contentTone]
+                          : undefined
+                      }
+                    />
+                    <ReadOnlyField
+                      label="영상 길이"
+                      value={
+                        project.videoLength
+                          ? VIDEO_LENGTH_MAP[project.videoLength]
+                          : undefined
+                      }
+                    />
+                    <ReadOnlyField
+                      label="제작 난이도"
+                      value={
+                        project.difficulty
+                          ? DIFFICULTY_MAP[project.difficulty]?.label
+                          : undefined
+                      }
+                    />
                   </>
                 )}
                 {project.basedOnTrend && (
@@ -599,7 +752,10 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                       <TrendingUp className="h-3 w-3" />
                       기반 트렌드
                     </div>
-                    <div className="text-sm font-medium truncate" title={project.basedOnTrend}>
+                    <div
+                      className="text-sm font-medium truncate"
+                      title={project.basedOnTrend}
+                    >
                       {project.basedOnTrend}
                     </div>
                   </div>
@@ -612,16 +768,25 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                   <Hash className="h-3 w-3 text-blue-500" />
                   키워드
                 </div>
-                {project.aiContext?.keywords && project.aiContext.keywords.length > 0 ? (
+                {project.aiContext?.keywords &&
+                project.aiContext.keywords.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
-                    {project.aiContext.keywords.map((keyword: string, index: number) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {keyword}
-                      </Badge>
-                    ))}
+                    {project.aiContext.keywords.map(
+                      (keyword: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {keyword}
+                        </Badge>
+                      ),
+                    )}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic">미설정</span>
+                  <span className="text-sm text-muted-foreground italic">
+                    미설정
+                  </span>
                 )}
               </div>
 
@@ -634,13 +799,19 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                     </label>
                     <Textarea
                       value={formData.additionalNotes}
-                      onChange={(e) => handleFieldChange("additionalNotes", e.target.value)}
+                      onChange={(e) =>
+                        handleFieldChange("additionalNotes", e.target.value)
+                      }
                       placeholder="AI에게 전달할 추가 지시사항을 입력하세요..."
                       className="text-sm min-h-20"
                     />
                   </div>
                 ) : (
-                  <ReadOnlyField label="사용자 프롬프트" value={project.aiContext?.additionalNotes} icon={MessageSquarePlus} />
+                  <ReadOnlyField
+                    label="사용자 프롬프트"
+                    value={project.aiContext?.additionalNotes}
+                    icon={MessageSquarePlus}
+                  />
                 )}
               </div>
             </CardContent>
@@ -654,7 +825,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
             <CardHeader className="pb-3">
               <CardTitle className="text-base">프로젝트 정보</CardTitle>
               <CardDescription>
-                {isEditMode ? "프로젝트 기본 정보를 수정합니다." : "프로젝트 기본 정보입니다."}
+                {isEditMode
+                  ? "프로젝트 기본 정보를 수정합니다."
+                  : "프로젝트 기본 정보입니다."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -662,7 +835,11 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
               {/* Uses intro image from storyboard if available, otherwise trend/project thumbnail */}
               <div className="aspect-video rounded-lg overflow-hidden bg-muted border relative max-h-36">
                 {displayThumbnail ? (
-                  <img src={displayThumbnail} alt={project.title} className="w-full h-full object-cover" />
+                  <img
+                    src={displayThumbnail}
+                    alt={project.title}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-secondary/30">
                     <Play className="w-8 h-8 text-muted-foreground/30" />
@@ -675,55 +852,85 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                 {isEditMode ? (
                   <>
                     <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">제목</label>
+                      <label className="text-xs text-muted-foreground">
+                        제목
+                      </label>
                       <Input
                         value={formData.title}
-                        onChange={(e) => handleFieldChange("title", e.target.value)}
+                        onChange={(e) =>
+                          handleFieldChange("title", e.target.value)
+                        }
                         placeholder="프로젝트 제목"
                         className="h-8 text-sm"
                       />
                     </div>
                     <div className="border-t pt-3 space-y-1">
-                      <label className="text-xs text-muted-foreground">설명</label>
+                      <label className="text-xs text-muted-foreground">
+                        설명
+                      </label>
                       <Textarea
                         value={formData.description}
-                        onChange={(e) => handleFieldChange("description", e.target.value)}
+                        onChange={(e) =>
+                          handleFieldChange("description", e.target.value)
+                        }
                         placeholder="프로젝트에 대한 설명을 입력하세요..."
                         className="text-sm min-h-16"
                       />
                     </div>
                     <div className="border-t pt-3 space-y-1">
-                      <label className="text-xs text-muted-foreground">주제</label>
+                      <label className="text-xs text-muted-foreground">
+                        주제
+                      </label>
                       <Input
                         value={formData.topic}
-                        onChange={(e) => handleFieldChange("topic", e.target.value)}
+                        onChange={(e) =>
+                          handleFieldChange("topic", e.target.value)
+                        }
                         placeholder="영상 주제"
                         className="h-8 text-sm"
                       />
                     </div>
                     <div className="border-t pt-3 space-y-1">
-                      <label className="text-xs text-muted-foreground">타입</label>
-                      <Select value={formData.type} onValueChange={(v) => handleFieldChange("type", v)}>
+                      <label className="text-xs text-muted-foreground">
+                        타입
+                      </label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={(v) => handleFieldChange("type", v)}
+                      >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {Object.entries(TYPE_MAP).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="border-t pt-3 space-y-1">
-                      <label className="text-xs text-muted-foreground">공개 설정</label>
-                      <Select value={formData.visibility} onValueChange={(v) => handleFieldChange("visibility", v)}>
+                      <label className="text-xs text-muted-foreground">
+                        공개 설정
+                      </label>
+                      <Select
+                        value={formData.visibility}
+                        onValueChange={(v) =>
+                          handleFieldChange("visibility", v)
+                        }
+                      >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(VISIBILITY_MAP).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(VISIBILITY_MAP).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -731,17 +938,32 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                 ) : (
                   <>
                     {/* 읽기 모드: 제목은 헤더에 h1으로 표시되므로 여기서는 생략 */}
-                    <ReadOnlyField label="설명" value={project.description ?? undefined} />
+                    <ReadOnlyField
+                      label="설명"
+                      value={project.description ?? undefined}
+                    />
                     {project.topic && project.topic !== project.title && (
                       <div className="border-t pt-3">
                         <ReadOnlyField label="주제" value={project.topic} />
                       </div>
                     )}
                     <div className="border-t pt-3">
-                      <ReadOnlyField label="타입" value={project.type ? TYPE_MAP[project.type] : undefined} />
+                      <ReadOnlyField
+                        label="타입"
+                        value={
+                          project.type ? TYPE_MAP[project.type] : undefined
+                        }
+                      />
                     </div>
                     <div className="border-t pt-3">
-                      <ReadOnlyField label="공개 설정" value={project.visibility ? VISIBILITY_MAP[project.visibility] : undefined} />
+                      <ReadOnlyField
+                        label="공개 설정"
+                        value={
+                          project.visibility
+                            ? VISIBILITY_MAP[project.visibility]
+                            : undefined
+                        }
+                      />
                     </div>
                   </>
                 )}
@@ -753,7 +975,9 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                     canChangeChannel ? (
                       <Select
                         value={formData.channelId}
-                        onValueChange={(v) => handleFieldChange("channelId", v === "none" ? "" : v)}
+                        onValueChange={(v) =>
+                          handleFieldChange("channelId", v === "none" ? "" : v)
+                        }
                       >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="채널 선택..." />
@@ -764,8 +988,12 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                             <SelectItem key={channel.id} value={channel.id}>
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-4 w-4">
-                                  <AvatarImage src={channel.avatarUrl ?? undefined} />
-                                  <AvatarFallback className="text-xs">{channel.name.charAt(0)}</AvatarFallback>
+                                  <AvatarImage
+                                    src={channel.avatarUrl ?? undefined}
+                                  />
+                                  <AvatarFallback className="text-xs">
+                                    {channel.name.charAt(0)}
+                                  </AvatarFallback>
                                 </Avatar>
                                 {channel.name}
                               </div>
@@ -778,13 +1006,21 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                         {project.channel ? (
                           <>
                             <Avatar className="h-5 w-5">
-                              <AvatarImage src={project.channel.avatarUrl ?? undefined} />
-                              <AvatarFallback className="text-xs">{project.channel.name.charAt(0)}</AvatarFallback>
+                              <AvatarImage
+                                src={project.channel.avatarUrl ?? undefined}
+                              />
+                              <AvatarFallback className="text-xs">
+                                {project.channel.name.charAt(0)}
+                              </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm font-medium">{project.channel.name}</span>
+                            <span className="text-sm font-medium">
+                              {project.channel.name}
+                            </span>
                           </>
                         ) : (
-                          <span className="text-sm text-muted-foreground italic">미설정</span>
+                          <span className="text-sm text-muted-foreground italic">
+                            미설정
+                          </span>
                         )}
                         <Badge variant="outline" className="text-xs ml-auto">
                           변경 불가
@@ -794,20 +1030,30 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                   ) : project.channel ? (
                     <div className="flex items-center gap-2">
                       <Avatar className="h-5 w-5">
-                        <AvatarImage src={project.channel.avatarUrl ?? undefined} />
-                        <AvatarFallback className="text-xs">{project.channel.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage
+                          src={project.channel.avatarUrl ?? undefined}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {project.channel.name.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{project.channel.name}</span>
+                      <span className="text-sm font-medium">
+                        {project.channel.name}
+                      </span>
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground italic">미설정</span>
+                    <span className="text-sm text-muted-foreground italic">
+                      미설정
+                    </span>
                   )}
                 </div>
 
                 {/* ID - Read only */}
                 <div className="border-t pt-3">
                   <div className="text-xs text-muted-foreground mb-1">ID</div>
-                  <span className="font-mono text-xs text-muted-foreground">{project.id.slice(0, 8)}...</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {project.id.slice(0, 8)}...
+                  </span>
                 </div>
               </div>
 
@@ -817,7 +1063,10 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                   <div className="text-xs text-muted-foreground mb-2">라벨</div>
                   <div className="flex flex-wrap gap-1">
                     {project.labels.map((label) => (
-                      <Badge key={label.id} className={cn("text-xs text-white", label.color)}>
+                      <Badge
+                        key={label.id}
+                        className={cn("text-xs text-white", label.color)}
+                      >
                         {label.name}
                       </Badge>
                     ))}

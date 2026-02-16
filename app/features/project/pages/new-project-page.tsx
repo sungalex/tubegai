@@ -68,7 +68,7 @@ const projectFormSchema = z.object({
   targetAudience: z.string().optional(),
   estimatedViews: z.string().optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
-  contentTone: z.enum(["informative", "funny", "dramatic", "casual", "professional"]).optional(),
+  contentTone: z.string().optional(),
   videoLength: z.enum(["short", "medium", "long"]).optional(),
   basedOnTrend: z.string().optional(),
   sourceIdeaId: z.string().optional(),
@@ -146,7 +146,7 @@ export async function action({ request }: Route.ActionArgs) {
       targetAudience: (data.targetAudience as string) || undefined,
       estimatedViews: (data.estimatedViews as string) || undefined,
       difficulty: (data.difficulty as string) ? (data.difficulty as "easy" | "medium" | "hard") : undefined,
-      contentTone: (data.contentTone as string) ? (data.contentTone as "informative" | "funny" | "dramatic" | "casual" | "professional") : undefined,
+      contentTone: (data.contentTone as string) || undefined,
       videoLength: (data.videoLength as string) ? (data.videoLength as "short" | "medium" | "long") : undefined,
       basedOnTrend: (data.basedOnTrend as string) || undefined,
       basedOnTrendUuid: (data.basedOnTrendUuid as string) || undefined,
@@ -521,25 +521,17 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>콘텐츠 톤</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        disabled={isLoading}
-                        name="contentTone"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="톤 선택" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="informative">정보 전달형</SelectItem>
-                          <SelectItem value="funny">재미/유머</SelectItem>
-                          <SelectItem value="dramatic">드라마틱</SelectItem>
-                          <SelectItem value="casual">캐주얼</SelectItem>
-                          <SelectItem value="professional">전문적</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          placeholder="예: informative, funny, cinematic, storytelling..."
+                          {...field}
+                          disabled={isLoading}
+                          name="contentTone"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        AI 추천 또는 직접 입력
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

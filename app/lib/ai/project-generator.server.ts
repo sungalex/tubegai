@@ -29,6 +29,7 @@ export interface AIProjectGenerationInput {
   };
   options: {
     language: "ko" | "en";
+    videoType?: string;
     preferredTone?: string;
     videoLength?: string;
     targetAudienceHint?: string;
@@ -43,6 +44,7 @@ export interface AIProjectGenerationOutput {
   estimatedViews: string;
   suggestedTone: string;
   suggestedDifficulty: "easy" | "medium" | "hard";
+  suggestedVideoLength: "short" | "medium" | "long";
 }
 
 // =============================================================================
@@ -60,9 +62,12 @@ JSON 스키마:
   "description": "영상 설명 초안 (150자 이내)",
   "targetAudience": "상세 타겟 시청자 설명",
   "estimatedViews": "예상 조회수 범위 (예: 50K-100K)",
-  "suggestedTone": "informative 또는 funny 또는 dramatic 또는 casual 또는 professional",
-  "suggestedDifficulty": "easy 또는 medium 또는 hard"
-}`;
+  "suggestedTone": "콘텐츠에 가장 적합한 톤 (예: informative, funny, dramatic, casual, professional, cinematic, storytelling 등 자유 형식)",
+  "suggestedDifficulty": "easy 또는 medium 또는 hard",
+  "suggestedVideoLength": "short (60초 이하) 또는 medium (2-10분) 또는 long (10분+)"
+}
+
+사용자가 선택하지 않은 항목(자동 선택)은 트렌드 분석을 기반으로 최적의 값을 추천하세요.`;
 
 const SYSTEM_PROMPT_EN = `You are a YouTube content strategist.
 Analyze the given trend information and generate project context.
@@ -75,9 +80,12 @@ JSON schema:
   "description": "Video description draft (under 150 chars)",
   "targetAudience": "Detailed target audience description",
   "estimatedViews": "Expected view range (e.g., 50K-100K)",
-  "suggestedTone": "informative or funny or dramatic or casual or professional",
-  "suggestedDifficulty": "easy or medium or hard"
-}`;
+  "suggestedTone": "Best fitting content tone (e.g., informative, funny, dramatic, casual, professional, cinematic, storytelling — free-form)",
+  "suggestedDifficulty": "easy or medium or hard",
+  "suggestedVideoLength": "short (under 60s) or medium (2-10min) or long (10min+)"
+}
+
+For any user preference set to "Auto select", recommend the optimal value based on trend analysis.`;
 
 // =============================================================================
 // Prompt Builder (Exposed for verification)
@@ -100,18 +108,23 @@ export function buildProjectGenerationPrompt(input: AIProjectGenerationInput): s
     if (trend.description) {
       lines.push(`- 설명: ${trend.description.slice(0, 200)}...`);
     }
+    if (trend.externalUrl) {
+      lines.push(`- 영상 URL: ${trend.externalUrl}`);
+    }
 
     lines.push("\n## 사용자 설정");
+    const videoTypeLabel = options.videoType === "short" ? "쇼츠/릴스 (60초 이하)" : "일반 영상";
+    lines.push(`- 영상 타입: ${videoTypeLabel}`);
     lines.push(`- 선호 톤: ${options.preferredTone || "자동 선택"}`);
     lines.push(`- 영상 길이: ${options.videoLength || "자동 선택"}`);
-    lines.push(`- 타겟 시청자 힌트: ${options.targetAudienceHint || "일반 시청자"}`);
+    lines.push(`- 타겟 시청자 힌트: ${options.targetAudienceHint || "자동 선택"}`);
 
     if (options.customInstructions) {
       lines.push("\n## 추가 지시사항");
       lines.push(options.customInstructions);
     }
 
-    lines.push("\n위 트렌드를 기반으로 유튜브 영상 프로젝트 컨텍스트를 생성해주세요.");
+    lines.push("\n위 트렌드를 기반으로 유튜브 영상 프로젝트 컨텍스트를 생성해주세요. 영상 타입에 맞는 제목과 구성을 만들어주세요. 영상 URL이 제공된 경우, 해당 영상의 주제와 콘텐츠를 참고하세요.");
   } else {
     lines.push("## Trend Information");
     lines.push(`- Title: ${trend.title}`);
@@ -122,18 +135,23 @@ export function buildProjectGenerationPrompt(input: AIProjectGenerationInput): s
     if (trend.description) {
       lines.push(`- Description: ${trend.description.slice(0, 200)}...`);
     }
+    if (trend.externalUrl) {
+      lines.push(`- Video URL: ${trend.externalUrl}`);
+    }
 
     lines.push("\n## User Preferences");
+    const videoTypeLabelEn = options.videoType === "short" ? "Shorts/Reels (under 60s)" : "Standard video";
+    lines.push(`- Video Type: ${videoTypeLabelEn}`);
     lines.push(`- Preferred Tone: ${options.preferredTone || "Auto select"}`);
     lines.push(`- Video Length: ${options.videoLength || "Auto select"}`);
-    lines.push(`- Target Audience Hint: ${options.targetAudienceHint || "General audience"}`);
+    lines.push(`- Target Audience Hint: ${options.targetAudienceHint || "Auto select"}`);
 
     if (options.customInstructions) {
       lines.push("\n## Additional Instructions");
       lines.push(options.customInstructions);
     }
 
-    lines.push("\nGenerate YouTube video project context based on the trend above.");
+    lines.push("\nGenerate YouTube video project context based on the trend above. Tailor the title and structure to the specified video type. If a video URL is provided, reference the video's topic and content.");
   }
 
   return lines.join("\n");
@@ -215,6 +233,7 @@ function generateMockOutput(input: AIProjectGenerationInput): AIProjectGeneratio
     estimatedViews: "50K-150K",
     suggestedTone: options.preferredTone || "informative",
     suggestedDifficulty: "medium",
+    suggestedVideoLength: (options.videoLength as "short" | "medium" | "long") || "medium",
   };
 }
 
