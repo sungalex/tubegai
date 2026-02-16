@@ -1,31 +1,48 @@
 # To-Do
 
-## AI 호출 프롬프트 미세 조정 가능한 Playground 기능 구현
+## TubeGAI 전면 재구축 : [통합 실행 계획서](./unified-rebuild-plan.md)
 
-## 저장된 아이디어 탭, 아이디어 Hub 통합
+> 아래 4개 개별 계획서를 전략적으로 종합 분석하여 17개 Phase × 6 Batch 통합 실행 로드맵으로 정리
 
-## "내 채널 컨텐츠": 내 채널의 기존 컨텐츠 기반 프로젝트 생성
+### Project-Studio AI 중복 최소화 및 연계 활용 최적화 : [계획서](./project-studio-ai-optimization-plan.md)
 
-## Project와 Studio AI 생성결과 중복 제거
+### Studio + TrendTube 통합 고도화 : [계획서](./studio-enhancement-plan.md)
 
-- Project: 아이디어 생성, AI 추천 생성, 프로젝트 생성 시 동영상 생성에 필요한 정보가 생성됨
-- Studio: Script, Storyboard, trendtube에서 Project에서 생성한 정보를 중복으로 생성함
-- 최적화 방안 수립 필요
+- Studio + TrendTube 통합
+- Studio Script, Storyboard, Scene Video 기능 고도화
 
-## Studio 기능 구현(Studio 고도화 계획)
+### 프로젝트 폴더 구조 리펙토링 : [계획서](./project-structure-refactoring-plan.md)
 
-## 검증 및 수정 사항
+### 데이터베이스 스키마 리빌드 : [계획서](./db-schema-rebuild-strategy.md)
+
+## Phase 2 고도화 (Next Phase)
+
+### Project 대시보드 "저장된 아이디어" 탭, 트랜드 탭 "아이디어 Hub" 통합 (Next Phase)
+
+- 중복된 기능을 "저장된 아이디어" 탭에 통합
+
+### AI 호출 프롬프트 미세 조정 가능한 Playground 기능 구현 (Next Phase)
+
+### "내 채널 컨텐츠": 내 채널의 기존 컨텐츠 기반 프로젝트 생성 및 동영상 컨텐츠 생성 (Next Phase)
+
+### AI 사용량(요청, 응답) 데이터 및 비용 예측 (Next Phase)
+
+- 모든 AI 호출 시 사용량 데이터 저장
+- 사용량 데이터 기반 비용 예측 기능 구현
+- 향후 사용자별 사용량 통제 및 비용 산정 도구로 활용
+
+### API 및 MCP를 이용한 어플리케이션 확장 (Next Phase)
+
+- ElevenLabs (Speech-to-Speech API)
+- CapCut
+- Vrew
+- OpenClaw
+
+### 구현된 기능에 대한 검증 및 수정 방안 검토 (Next Phase)
 
 - 만료된 데이터 물리적 삭제(삭제 기능은 이미 구현됨) - cron 또는 호출 로직 구현
   - cleanupExpiredIdeas() (line 595-610)가 만료된 unsaved AI 아이디어를 DB에서 삭제합니다. 다만 현재 이 함수를 호출하는 곳이 없으므로 cron이나 적절한 시점에 호출을 추가하는 것이 좋습니다.
 
-- Audit_log 동작 여부 검증
+- 데이터베이스 테이블 audit_log 활용 방안 검토
 
-- 데이터베이스 스키마 정제 및 데이터 정제
-  - 테이블, 필드 사용 용도 및 기능 반영 여부 점검(테이블 릴레이션, 필드 속성, 데이터 사용 방식 및 업데이트 방식 등)
-  - outdate old 데이터 삭제
-
-- common/types에 .ts 파일과 .react-router/types/app/features/\*\*/+types의 .ts 비교
-  - common/types에 별도로 생성한 이유와 사용 목적 확인
-
-- api 별 요금 분석을 위해 AI 모델별 api key 세분화
+- api 별 요금 분석을 위해 AI 모델별 api key 세분화 방안

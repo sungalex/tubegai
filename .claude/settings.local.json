@@ -8,7 +8,8 @@
       "Bash(npm run lint:*)",
       "Bash(npx react-router typegen:*)",
       "Bash(npx tsc:*)",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(test:*)"
     ]
   }
 }

@@ -162,7 +162,7 @@ export async function generateStoryboardStream(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    const model = getTextModel("nano-banana-pro-preview", systemPrompt)!;
+    const model = getTextModel("gemini-2.5-flash", systemPrompt)!;
 
     const result = await model.generateContentStream({
       contents: [
@@ -261,7 +261,7 @@ export async function generateStoryboard(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    const model = getTextModel("nano-banana-pro-preview", systemPrompt)!;
+    const model = getTextModel("gemini-2.5-flash", systemPrompt)!;
 
     const result = await withRetry(() =>
       model.generateContent({
