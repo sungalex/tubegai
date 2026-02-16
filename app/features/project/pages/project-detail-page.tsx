@@ -15,7 +15,6 @@ import {
   Download,
   Target,
   Eye,
-  Zap,
   TrendingUp,
   Sparkles,
   Play,
@@ -200,8 +199,6 @@ interface ProjectFormData {
   contentTone: string;
   videoLength: string;
   difficulty: string;
-  hooks: string;
-  scriptGuidelines: string;
   additionalNotes: string;
   channelId: string;
 }
@@ -255,15 +252,6 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
     contentTone: project.contentTone ?? "",
     videoLength: project.videoLength ?? "",
     difficulty: project.difficulty ?? "",
-    hooks: project.hooks?.join("\n") ?? "",
-    scriptGuidelines: project.scriptGuidelines
-      ? [
-          project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
-          project.scriptGuidelines.mainPoints?.length ? `핵심 포인트:\n${project.scriptGuidelines.mainPoints.join("\n")}` : "",
-          project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
-          project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
-        ].filter(Boolean).join("\n\n")
-      : (project.aiContext?.scriptGuidelinesText ?? ""),
     additionalNotes: project.aiContext?.additionalNotes ?? "",
     channelId: project.channel?.id ?? "",
   });
@@ -308,10 +296,8 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
       contentTone: formData.contentTone || undefined,
       videoLength: formData.videoLength || undefined,
       difficulty: formData.difficulty || undefined,
-      hooks: formData.hooks ? formData.hooks.split("\n").filter(Boolean) : [],
       aiContext: {
         ...project.aiContext,
-        scriptGuidelinesText: formData.scriptGuidelines || undefined,
         additionalNotes: formData.additionalNotes || undefined,
       },
     };
@@ -340,15 +326,6 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
       contentTone: project.contentTone ?? "",
       videoLength: project.videoLength ?? "",
       difficulty: project.difficulty ?? "",
-      hooks: project.hooks?.join("\n") ?? "",
-      scriptGuidelines: project.scriptGuidelines
-        ? [
-            project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
-            project.scriptGuidelines.mainPoints?.length ? `핵심 포인트:\n${project.scriptGuidelines.mainPoints.join("\n")}` : "",
-            project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
-            project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
-          ].filter(Boolean).join("\n\n")
-        : (project.aiContext?.scriptGuidelinesText ?? ""),
       additionalNotes: project.aiContext?.additionalNotes ?? "",
       channelId: project.channel?.id ?? "",
     });
@@ -629,41 +606,6 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                 )}
               </div>
 
-              {/* Hooks */}
-              <div className="pt-4 border-t">
-                {isEditMode ? (
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Zap className="h-3 w-3 text-yellow-500" /> 오프닝 훅
-                    </label>
-                    <Textarea
-                      value={formData.hooks}
-                      onChange={(e) => handleFieldChange("hooks", e.target.value)}
-                      placeholder="각 훅을 줄바꿈으로 구분하여 입력하세요..."
-                      className="text-sm min-h-20"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <Zap className="h-3 w-3 text-yellow-500" />
-                      오프닝 훅
-                    </div>
-                    {project.hooks && project.hooks.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {project.hooks.map((hook, index) => (
-                          <Badge key={index} variant="secondary" className="py-1 px-2 text-xs">
-                            {hook}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground italic">미설정</span>
-                    )}
-                  </>
-                )}
-              </div>
-
               {/* Keywords */}
               <div className="pt-4 border-t">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
@@ -680,35 +622,6 @@ export default function ProjectDetailPage({ loaderData }: Route.ComponentProps) 
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground italic">미설정</span>
-                )}
-              </div>
-
-              {/* Script Guidelines */}
-              <div className="pt-4 border-t">
-                {isEditMode ? (
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">스크립트 가이드라인</label>
-                    <Textarea
-                      value={formData.scriptGuidelines}
-                      onChange={(e) => handleFieldChange("scriptGuidelines", e.target.value)}
-                      placeholder="AI 스크립트 생성 시 참고할 가이드라인을 입력하세요..."
-                      className="text-sm min-h-20"
-                    />
-                  </div>
-                ) : (
-                  <ReadOnlyField
-                    label="스크립트 가이드라인"
-                    value={
-                      project.scriptGuidelines
-                        ? [
-                            project.scriptGuidelines.openingStrategy ? `오프닝: ${project.scriptGuidelines.openingStrategy}` : "",
-                            project.scriptGuidelines.mainPoints?.length ? `핵심 포인트: ${project.scriptGuidelines.mainPoints.join(", ")}` : "",
-                            project.scriptGuidelines.ctaStrategy ? `CTA: ${project.scriptGuidelines.ctaStrategy}` : "",
-                            project.scriptGuidelines.closingStrategy ? `마무리: ${project.scriptGuidelines.closingStrategy}` : "",
-                          ].filter(Boolean).join(" | ")
-                        : project.aiContext?.scriptGuidelinesText
-                    }
-                  />
                 )}
               </div>
 

@@ -34,18 +34,18 @@ interface PipelineInput {
 const INITIAL_STEPS: TrendTubePipelineStep[] = [
   { step: 1, name: "트렌드 추출", status: "pending" },
   { step: 2, name: "영상 아이디어 생성", status: "pending" },
-  { step: 3, name: "영상 생성 (Veo 3)", status: "pending" },
-  { step: 4, name: "배경음악 생성 (Lyria 2)", status: "pending" },
-  { step: 5, name: "나레이션 스크립트 생성", status: "pending" },
+  { step: 3, name: "나레이션 스크립트 생성", status: "pending" },
+  { step: 4, name: "영상 클립 생성 (Veo 3)", status: "pending" },
+  { step: 5, name: "배경음악 생성 (Lyria 2)", status: "pending" },
   { step: 6, name: "보이스오버 생성", status: "pending" },
   { step: 7, name: "영상 합성", status: "pending" },
 ];
 
 // Map media substep to UI step number
 const SUBSTEP_TO_STEP: Record<string, number> = {
-  video: 3,
-  music: 4,
-  script: 5,
+  script: 3,
+  video: 4,
+  music: 5,
   voiceover: 6,
 };
 
@@ -174,10 +174,8 @@ export function useTrendTubePipeline() {
   const runStep3 = useCallback(
     async (sid: string, signal: AbortSignal): Promise<void> => {
       setPhase("step3");
-      // Mark all media steps as in_progress
+      // Mark script step as in_progress (others will be marked by SSE events)
       updateStep(3, { status: "in_progress" });
-      updateStep(4, { status: "in_progress" });
-      updateStep(5, { status: "in_progress" });
 
       const response = await fetch("/api/studio/trendtube-step-media", {
         method: "POST",
@@ -225,6 +223,30 @@ export function useTrendTubePipeline() {
               if (stepNum) {
                 updateStep(stepNum, { status: "in_progress" });
               }
+              break;
+            }
+            case "media_clip_start": {
+              // Update video step with clip progress info
+              updateStep(4, {
+                status: "in_progress",
+                output: {
+                  type: "text",
+                  label: event.label,
+                  textPreview: `클립 ${event.clipNumber}/${event.totalClips} 생성 중...`,
+                },
+              });
+              break;
+            }
+            case "media_clip_complete": {
+              // Update video step with clip completion
+              updateStep(4, {
+                status: "in_progress",
+                output: event.output ?? {
+                  type: "text",
+                  label: `클립 ${event.clipNumber}/${event.totalClips}`,
+                  textPreview: `클립 ${event.clipNumber} 완료`,
+                },
+              });
               break;
             }
             case "media_complete": {

@@ -148,6 +148,8 @@ export async function saveTrendTubeMedia(input: {
   publicUrl?: string;
   mediaAssetId?: string;
   metadata?: Record<string, unknown>;
+  clipNumber?: number;
+  prompt?: string;
 }) {
   const [media] = await db
     .insert(schema.trendtubeMedia)
@@ -157,6 +159,8 @@ export async function saveTrendTubeMedia(input: {
       publicUrl: input.publicUrl ?? null,
       mediaAssetId: input.mediaAssetId ?? null,
       metadata: input.metadata ?? null,
+      clipNumber: input.clipNumber ?? null,
+      prompt: input.prompt ?? null,
     })
     .returning();
 
@@ -261,6 +265,7 @@ export function buildResultsFromSession(session: {
     mediaType: string;
     publicUrl?: string | null;
     metadata?: unknown;
+    clipNumber?: number | null;
     createdAt: Date;
   }>;
 }): TrendTubeResults {
@@ -272,16 +277,31 @@ export function buildResultsFromSession(session: {
       .filter((m) => m.mediaType === type && m.publicUrl)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
+  // Collect all video clips sorted by clipNumber
+  const videoClips = media
+    .filter((m) => m.mediaType === "generated_video" && m.publicUrl)
+    .sort((a, b) => (a.clipNumber ?? 0) - (b.clipNumber ?? 0));
+
   const video = findLatestMedia("generated_video");
   const music = findLatestMedia("background_music");
   const voiceover = findLatestMedia("voiceover");
   const composited = findLatestMedia("composited_video");
+
+  // Build clip URLs array if multiple clips exist
+  const videoClipUrls = videoClips.length > 1
+    ? videoClips.map((c) => c.publicUrl!).filter(Boolean)
+    : undefined;
+  const clipCount = videoClips.length > 1 ? videoClips.length : undefined;
+  const totalDuration = clipCount ? clipCount * 8 : undefined;
 
   return {
     extractedTrends: result?.extractedTrends ?? "",
     videoIdeas: result?.videoIdeas ?? "",
     narrationScript: result?.narrationScript ?? "",
     videoUrl: video?.publicUrl ?? undefined,
+    videoClipUrls,
+    clipCount,
+    totalDuration,
     musicUrl: music?.publicUrl ?? undefined,
     musicDuration: (music?.metadata as Record<string, unknown> | null)?.duration as number | undefined,
     voiceoverUrl: voiceover?.publicUrl ?? undefined,

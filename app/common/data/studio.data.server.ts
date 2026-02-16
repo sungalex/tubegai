@@ -13,12 +13,140 @@ import type {
   VideoPart,
   StudioProject,
   SubtitleSegment,
-  ColorPreset,
   StockVideo,
   BRollSceneContext,
   BRollColor,
+  SceneHint,
 } from "../types/studio.types";
+import type { ScriptGuidelines } from "../types/trend.types";
 import { BROLL_COLORS } from "../constants/colors";
+
+// =============================================================================
+// Session Management
+// =============================================================================
+
+/**
+ * Get the active session for a project (there can be at most one).
+ */
+export async function getActiveSession(
+  projectId: string,
+): Promise<{ id: string; version: number } | null> {
+  const session = await db.query.studioSessions.findFirst({
+    where: and(
+      eq(schema.studioSessions.projectId, projectId),
+      eq(schema.studioSessions.status, "active"),
+    ),
+    columns: { id: true, version: true },
+  });
+  return session ?? null;
+}
+
+/**
+ * Create a new active session for a project.
+ * Archives the existing active session first if one exists.
+ */
+export async function createSession({
+  projectId,
+  userId,
+  name,
+}: {
+  projectId: string;
+  userId: string;
+  name?: string;
+}): Promise<string> {
+  // Archive existing active session
+  const existing = await getActiveSession(projectId);
+  let nextVersion = 1;
+
+  if (existing) {
+    await db
+      .update(schema.studioSessions)
+      .set({ status: "archived", archivedAt: new Date() })
+      .where(eq(schema.studioSessions.id, existing.id));
+    nextVersion = existing.version + 1;
+  }
+
+  // Create new active session
+  const [session] = await db
+    .insert(schema.studioSessions)
+    .values({
+      projectId,
+      userId,
+      version: nextVersion,
+      status: "active",
+      name: name ?? null,
+    })
+    .returning({ id: schema.studioSessions.id });
+
+  return session.id;
+}
+
+/**
+ * Get or create the active session for a project.
+ * Returns the existing active session ID, or creates a new one.
+ */
+export async function getOrCreateActiveSession(
+  projectId: string,
+  userId: string,
+): Promise<string> {
+  const existing = await getActiveSession(projectId);
+  if (existing) return existing.id;
+  return createSession({ projectId, userId });
+}
+
+/**
+ * Archive the active session for a project (if any).
+ */
+export async function archiveActiveSession(
+  projectId: string,
+): Promise<void> {
+  const existing = await getActiveSession(projectId);
+  if (existing) {
+    await db
+      .update(schema.studioSessions)
+      .set({ status: "archived", archivedAt: new Date() })
+      .where(eq(schema.studioSessions.id, existing.id));
+  }
+}
+
+/**
+ * Get session history for a project (newest first).
+ */
+export async function getSessionHistory(
+  projectId: string,
+): Promise<Array<{ id: string; version: number; status: string; name: string | null; createdAt: Date; archivedAt: Date | null }>> {
+  return db.query.studioSessions.findMany({
+    where: eq(schema.studioSessions.projectId, projectId),
+    orderBy: [desc(schema.studioSessions.version)],
+    columns: {
+      id: true,
+      version: true,
+      status: true,
+      name: true,
+      createdAt: true,
+      archivedAt: true,
+    },
+  });
+}
+
+/**
+ * Get a storyboard scene by its ID (for data layer access from generate-scene-image).
+ */
+export async function getStoryboardSceneById(
+  sceneId: string,
+): Promise<{ id: string; projectId: string; sessionId: string | null; sceneNumber: number; visualPrompt: string | null } | null> {
+  const scene = await db.query.storyboards.findFirst({
+    where: eq(schema.storyboards.id, sceneId),
+    columns: {
+      id: true,
+      projectId: true,
+      sessionId: true,
+      sceneNumber: true,
+      visualPrompt: true,
+    },
+  });
+  return scene ?? null;
+}
 
 // =============================================================================
 // Types
@@ -27,14 +155,22 @@ import { BROLL_COLORS } from "../constants/colors";
 export interface ScriptWithSegments {
   id: string;
   projectId: string;
+  sessionId: string | null;
   prompt: string | null;
   targetDuration: number | null;
   savedAt: Date | null;
+  // Pre-Production fields
+  hooks: string[] | null;
+  scriptGuidelines: unknown | null;
+  seoKeywords: string[] | null;
+  preProductionStatus: string | null;
   segments: ScriptSegment[];
 }
 
 export interface SaveScriptInput {
   projectId: string;
+  sessionId?: string;
+  sourceTrendtubeSessionId?: string;
   prompt?: string | null;
   targetDuration?: number | null;
   segments: Array<{
@@ -42,6 +178,10 @@ export interface SaveScriptInput {
     type: "hook" | "intro" | "body" | "cta" | "outro";
     content: string;
     estimatedDuration?: number;
+    visualNotes?: string;
+    emotionalTone?: string;
+    keywords?: string[];
+    sceneHints?: unknown;
   }>;
 }
 
@@ -93,14 +233,23 @@ export async function getScriptWithSegments(
   return {
     id: script.id,
     projectId: script.projectId,
+    sessionId: script.sessionId,
     prompt: script.prompt,
     targetDuration: script.targetDuration,
     savedAt: script.savedAt,
+    hooks: script.hooks,
+    scriptGuidelines: script.scriptGuidelines,
+    seoKeywords: script.seoKeywords,
+    preProductionStatus: script.preProductionStatus,
     segments: script.segments.map((seg) => ({
       id: seg.id,
       type: seg.type as ScriptSegment["type"],
       content: seg.content,
       duration: seg.estimatedDuration ?? 0,
+      visualNotes: seg.visualNotes ?? undefined,
+      emotionalTone: seg.emotionalTone ?? undefined,
+      keywords: seg.keywords ?? undefined,
+      sceneHints: seg.sceneHints as SceneHint[] | undefined,
     })),
   };
 }
@@ -109,7 +258,7 @@ export async function getScriptWithSegments(
  * Save script with segments (upsert operation)
  */
 export async function saveScript(input: SaveScriptInput): Promise<void> {
-  const { projectId, prompt, targetDuration, segments } = input;
+  const { projectId, sessionId, sourceTrendtubeSessionId, prompt, targetDuration, segments } = input;
 
   // Get or create script
   let script = await db.query.scripts.findFirst({
@@ -118,13 +267,18 @@ export async function saveScript(input: SaveScriptInput): Promise<void> {
 
   if (script) {
     // Update existing script
+    const updateData: Record<string, unknown> = {
+      prompt: prompt ?? script.prompt,
+      targetDuration: targetDuration ?? script.targetDuration,
+      sessionId: sessionId ?? script.sessionId,
+      savedAt: new Date(),
+    };
+    if (sourceTrendtubeSessionId !== undefined) {
+      updateData.sourceTrendtubeSessionId = sourceTrendtubeSessionId;
+    }
     await db
       .update(schema.scripts)
-      .set({
-        prompt: prompt ?? script.prompt,
-        targetDuration: targetDuration ?? script.targetDuration,
-        savedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(schema.scripts.id, script.id));
   } else {
     // Create new script
@@ -132,8 +286,10 @@ export async function saveScript(input: SaveScriptInput): Promise<void> {
       .insert(schema.scripts)
       .values({
         projectId,
+        sessionId,
         prompt,
         targetDuration,
+        sourceTrendtubeSessionId: sourceTrendtubeSessionId ?? null,
         savedAt: new Date(),
       })
       .returning();
@@ -154,6 +310,10 @@ export async function saveScript(input: SaveScriptInput): Promise<void> {
         type: seg.type,
         content: seg.content,
         estimatedDuration: seg.estimatedDuration ?? Math.ceil(seg.content.length / 15),
+        visualNotes: seg.visualNotes ?? null,
+        emotionalTone: seg.emotionalTone ?? null,
+        keywords: seg.keywords ?? null,
+        sceneHints: seg.sceneHints ?? null,
       }))
     );
   }
@@ -236,6 +396,104 @@ export async function updateScriptPrompt(
 }
 
 // =============================================================================
+// Pre-Production Data Functions
+// =============================================================================
+
+/**
+ * Save Pre-Production data (hooks, scriptGuidelines, seoKeywords) to studio_script
+ */
+export async function savePreProduction(input: {
+  projectId: string;
+  sessionId?: string;
+  hooks: string[];
+  scriptGuidelines: ScriptGuidelines;
+  seoKeywords: string[];
+  preProductionStatus: "pending" | "generating" | "completed" | "failed";
+}): Promise<void> {
+  const { projectId, sessionId, hooks, scriptGuidelines, seoKeywords, preProductionStatus } = input;
+
+  // Get or create script record
+  let script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+  });
+
+  if (script) {
+    await db
+      .update(schema.scripts)
+      .set({
+        hooks,
+        scriptGuidelines,
+        seoKeywords,
+        preProductionStatus,
+        sessionId: sessionId ?? script.sessionId,
+      })
+      .where(eq(schema.scripts.id, script.id));
+  } else {
+    await db.insert(schema.scripts).values({
+      projectId,
+      sessionId,
+      hooks,
+      scriptGuidelines,
+      seoKeywords,
+      preProductionStatus,
+    });
+  }
+}
+
+/**
+ * Get Pre-Production data from studio_script
+ */
+export async function getPreProductionData(projectId: string): Promise<{
+  hooks: string[] | null;
+  scriptGuidelines: ScriptGuidelines | null;
+  seoKeywords: string[] | null;
+  preProductionStatus: string | null;
+} | null> {
+  const script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+    columns: {
+      hooks: true,
+      scriptGuidelines: true,
+      seoKeywords: true,
+      preProductionStatus: true,
+    },
+  });
+
+  if (!script) return null;
+
+  return {
+    hooks: script.hooks,
+    scriptGuidelines: script.scriptGuidelines as ScriptGuidelines | null,
+    seoKeywords: script.seoKeywords,
+    preProductionStatus: script.preProductionStatus,
+  };
+}
+
+/**
+ * Update Pre-Production status only
+ */
+export async function updatePreProductionStatus(
+  projectId: string,
+  status: "pending" | "generating" | "completed" | "failed",
+): Promise<void> {
+  const script = await db.query.scripts.findFirst({
+    where: eq(schema.scripts.projectId, projectId),
+  });
+
+  if (script) {
+    await db
+      .update(schema.scripts)
+      .set({ preProductionStatus: status })
+      .where(eq(schema.scripts.id, script.id));
+  } else {
+    await db.insert(schema.scripts).values({
+      projectId,
+      preProductionStatus: status,
+    });
+  }
+}
+
+// =============================================================================
 // Storyboard Types
 // =============================================================================
 
@@ -246,6 +504,8 @@ export interface StoryboardSceneData {
   visualPrompt: string;
   duration: number;
   imageUrl?: string;
+  emotionalTone?: string;
+  cameraAngle?: string;
 }
 
 export interface StoryboardSegmentData {
@@ -263,6 +523,7 @@ export interface StoryboardWithScenes {
 
 export interface SaveStoryboardInput {
   projectId: string;
+  sessionId?: string;
   scenes: Array<{
     scriptSegmentId: string;
     sceneNumber: number;
@@ -270,6 +531,8 @@ export interface SaveStoryboardInput {
     description: string;
     visualPrompt: string;
     duration: number;
+    emotionalTone?: string;
+    cameraAngle?: string;
   }>;
 }
 
@@ -322,6 +585,8 @@ export async function getStoryboardWithScenes(
       visualPrompt: sb.visualPrompt ?? "",
       duration: sb.duration ?? 5,
       imageUrl: sb.imageAsset?.publicUrl ?? undefined,
+      emotionalTone: sb.emotionalTone ?? undefined,
+      cameraAngle: sb.cameraAngle ?? undefined,
     });
   }
 
@@ -343,27 +608,43 @@ export async function getStoryboardWithScenes(
 /**
  * Save storyboard scenes (upsert operation)
  */
-export async function saveStoryboard(input: SaveStoryboardInput): Promise<void> {
-  const { projectId, scenes } = input;
+export async function saveStoryboard(input: SaveStoryboardInput): Promise<string[]> {
+  const { projectId, sessionId, scenes } = input;
 
-  // Delete existing storyboards for this project
-  await db
-    .delete(schema.storyboards)
-    .where(eq(schema.storyboards.projectId, projectId));
+  // Delete existing storyboards for this project (scoped to session if provided)
+  if (sessionId) {
+    await db
+      .delete(schema.storyboards)
+      .where(
+        and(
+          eq(schema.storyboards.projectId, projectId),
+          eq(schema.storyboards.sessionId, sessionId),
+        ),
+      );
+  } else {
+    await db
+      .delete(schema.storyboards)
+      .where(eq(schema.storyboards.projectId, projectId));
+  }
 
-  // Insert new scenes
+  // Insert new scenes and return IDs
+  let savedIds: string[] = [];
   if (scenes.length > 0) {
-    await db.insert(schema.storyboards).values(
+    const inserted = await db.insert(schema.storyboards).values(
       scenes.map((scene) => ({
         projectId,
+        sessionId,
         scriptSegmentId: scene.scriptSegmentId,
         sceneNumber: scene.sceneNumber,
         orderIndex: scene.orderIndex,
         description: scene.description,
         visualPrompt: scene.visualPrompt,
         duration: scene.duration,
+        emotionalTone: scene.emotionalTone ?? null,
+        cameraAngle: scene.cameraAngle ?? null,
       }))
-    );
+    ).returning({ id: schema.storyboards.id });
+    savedIds = inserted.map((r) => r.id);
   }
 
   // Update script savedAt timestamp
@@ -377,6 +658,8 @@ export async function saveStoryboard(input: SaveStoryboardInput): Promise<void> 
       .set({ savedAt: new Date() })
       .where(eq(schema.scripts.id, script.id));
   }
+
+  return savedIds;
 }
 
 /**
@@ -513,6 +796,136 @@ export async function getSceneSegments(
 }
 
 // =============================================================================
+// Scene Video Data Functions
+// =============================================================================
+
+const MAX_CLIP_DURATION = 8;
+
+/**
+ * Create a scene video record for a storyboard scene
+ */
+export async function createSceneVideo({
+  storyboardId,
+  projectId,
+  sessionId,
+  duration,
+}: {
+  storyboardId: string;
+  projectId: string;
+  sessionId: string;
+  duration: number;
+}): Promise<string> {
+  const [video] = await db
+    .insert(schema.sceneVideos)
+    .values({
+      storyboardId,
+      projectId,
+      sessionId,
+      duration,
+      status: "generating",
+    })
+    .returning({ id: schema.sceneVideos.id });
+
+  return video.id;
+}
+
+/**
+ * Create video parts for a scene video (8-second clip splitting)
+ */
+export async function createSceneVideoParts(
+  videoId: string,
+  totalDuration: number,
+): Promise<string[]> {
+  const clipCount = Math.ceil(totalDuration / MAX_CLIP_DURATION);
+  const parts = Array.from({ length: clipCount }, (_, i) => {
+    const startTime = i * MAX_CLIP_DURATION;
+    const endTime = Math.min(startTime + MAX_CLIP_DURATION, totalDuration);
+    return {
+      videoId,
+      partNumber: i + 1,
+      startTime,
+      endTime,
+      duration: endTime - startTime,
+      status: "pending" as const,
+    };
+  });
+
+  const inserted = await db
+    .insert(schema.videoParts)
+    .values(parts)
+    .returning({ id: schema.videoParts.id });
+
+  return inserted.map((r) => r.id);
+}
+
+/**
+ * Update a video part status and optionally link a video asset
+ */
+export async function updateSceneVideoPart(
+  partId: string,
+  data: { status: string; videoAssetId?: string },
+): Promise<void> {
+  await db
+    .update(schema.videoParts)
+    .set({
+      status: data.status as "pending" | "generating" | "completed" | "failed",
+      videoAssetId: data.videoAssetId ?? undefined,
+    })
+    .where(eq(schema.videoParts.id, partId));
+}
+
+/**
+ * Update a scene video's overall status
+ */
+export async function updateSceneVideoStatus(
+  videoId: string,
+  status: string,
+): Promise<void> {
+  await db
+    .update(schema.sceneVideos)
+    .set({ status: status as "pending" | "generating" | "completed" | "failed" })
+    .where(eq(schema.sceneVideos.id, videoId));
+}
+
+/**
+ * Get a storyboard scene with full details for video generation
+ */
+export async function getStoryboardSceneForVideo(
+  sceneId: string,
+): Promise<{
+  id: string;
+  projectId: string;
+  sessionId: string | null;
+  sceneNumber: number;
+  description: string | null;
+  visualPrompt: string | null;
+  duration: number | null;
+  imageAsset: { id: string; publicUrl: string; storageKey: string } | null;
+} | null> {
+  const scene = await db.query.storyboards.findFirst({
+    where: eq(schema.storyboards.id, sceneId),
+    with: {
+      imageAsset: {
+        columns: { id: true, publicUrl: true, storageKey: true },
+      },
+    },
+  });
+  if (!scene) return null;
+  return {
+    id: scene.id,
+    projectId: scene.projectId,
+    sessionId: scene.sessionId,
+    sceneNumber: scene.sceneNumber,
+    description: scene.description,
+    visualPrompt: scene.visualPrompt,
+    duration: scene.duration,
+    imageAsset: scene.imageAsset
+      ? { id: scene.imageAsset.id, publicUrl: scene.imageAsset.publicUrl, storageKey: scene.imageAsset.storageKey }
+      : null,
+  };
+}
+
+// =============================================================================
 // Studio Project Data Functions
 // =============================================================================
 
@@ -566,21 +979,6 @@ export async function getSubtitles(
     startTime: s.startTime,
     endTime: s.endTime,
     text: s.text,
-  }));
-}
-
-/**
- * Fetch color grading presets
- */
-export async function getColorPresets(): Promise<ColorPreset[]> {
-  const presets = await db.query.coloringPresets.findMany();
-  return presets.map((p) => ({
-    id: p.id,
-    name: p.name,
-    filter: (p.filterParameters as { filter: string }).filter ?? "none",
-    previewColor:
-      (p.filterParameters as { previewColor: string }).previewColor ??
-      "bg-zinc-500",
   }));
 }
 

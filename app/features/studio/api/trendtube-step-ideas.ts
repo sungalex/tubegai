@@ -6,12 +6,13 @@
 
 import type { Route } from "./+types/trendtube-step-ideas";
 import { requireAuth } from "~/lib/auth.server";
+import { getProjectById } from "~/common/data/project.data.server";
 import {
   getTrendTubeSessionForUser,
   updateSessionStatus,
   saveTrendTubeResult,
 } from "~/common/data/trendtube.data.server";
-import { generateVideoIdeas } from "~/lib/ai-trendtube.server";
+import { generateVideoIdeas } from "~/lib/ai/trendtube.server";
 import type { TrendTubeStepSessionInput } from "~/common/types/trendtube.types";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -49,10 +50,24 @@ export async function action({ request }: Route.ActionArgs) {
 
     await updateSessionStatus(session.id, "generating_ideas", 2);
 
+    // Enrich extractedTrends with project context
+    let enrichedTrends = extractedTrends;
+    const project = await getProjectById(session.projectId, userId);
+    if (project) {
+      const contextLines: string[] = [];
+      if (project.title) contextLines.push(`프로젝트 제목: ${project.title}`);
+      if (project.description) contextLines.push(`프로젝트 설명: ${project.description}`);
+      if (project.targetAudience) contextLines.push(`타겟 시청자: ${project.targetAudience}`);
+      if (project.contentTone) contextLines.push(`콘텐츠 톤: ${project.contentTone}`);
+      if (contextLines.length > 0) {
+        enrichedTrends = `## 프로젝트 컨텍스트\n${contextLines.join("\n")}\n\n${extractedTrends}`;
+      }
+    }
+
     // Generate video ideas
     let videoIdeas: string;
     try {
-      videoIdeas = await generateVideoIdeas(extractedTrends);
+      videoIdeas = await generateVideoIdeas(enrichedTrends);
     } catch (err) {
       const errorMessage =
         err instanceof Error

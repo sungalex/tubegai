@@ -6,6 +6,7 @@ import { requireAuth } from "~/lib/auth.server";
 import { getProjectById } from "~/common/data/project.data.server";
 import {
   getTrendTubeSessionForUser,
+  getTrendTubeSessions,
   buildResultsFromSession,
 } from "~/common/data/trendtube.data.server";
 import { StudioProjectSelector } from "../components/studio-project-selector";
@@ -13,6 +14,14 @@ import { TrendTubeInputForm } from "../components/trendtube-input-form";
 import { TrendTubePipelineProgress } from "../components/trendtube-pipeline-progress";
 import { TrendTubeResultsDisplay } from "../components/trendtube-results-display";
 import { useTrendTubePipeline } from "../hooks/use-trendtube-pipeline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/common/components/ui/select";
+import { Badge } from "~/common/components/ui/badge";
 import type { TrendTubeVoiceOption } from "~/common/types/trendtube.types";
 
 export const meta = () => {
@@ -33,27 +42,46 @@ export const meta = () => {
 export async function loader({ request, params }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
   const { projectId } = params;
-  if (!projectId) return { project: null, savedResults: null };
+  if (!projectId) return { project: null, savedResults: null, sessionHistory: [], activeSessionId: null };
 
   const project = await getProjectById(projectId, userId);
 
-  // Restore session results from URL search param
+  // Fetch all sessions for this project
+  const allSessions = await getTrendTubeSessions(projectId);
+  const sessionHistory = allSessions.map((s) => ({
+    id: s.id,
+    status: s.status,
+    createdAt: s.createdAt.toISOString(),
+    userIdea: s.userIdea ?? "",
+  }));
+
+  // Restore session results from URL search param or auto-load latest
   const url = new URL(request.url);
-  const sessionId = url.searchParams.get("session");
+  let sessionId = url.searchParams.get("session");
   let savedResults = null;
+  let activeSessionId: string | null = null;
+
+  // Auto-load latest completed session if no session param
+  if (!sessionId) {
+    const latestCompleted = allSessions.find((s) => s.status === "completed");
+    if (latestCompleted) {
+      sessionId = latestCompleted.id;
+    }
+  }
 
   if (sessionId) {
     try {
       const session = await getTrendTubeSessionForUser(sessionId, userId);
       if (session && session.status === "completed") {
         savedResults = buildResultsFromSession(session);
+        activeSessionId = sessionId;
       }
     } catch {
       // Session may not exist or be accessible
     }
   }
 
-  return { project, savedResults };
+  return { project, savedResults, sessionHistory, activeSessionId };
 }
 
 // =============================================================================
@@ -66,7 +94,6 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
   if (project.title) lines.push(`[제목] ${project.title}`);
   if (project.description) lines.push(`[설명] ${project.description}`);
   if (project.topic) lines.push(`[주제] ${project.topic}`);
-  if (project.hooks?.length) lines.push(`[훅] ${project.hooks.join(", ")}`);
   if (project.targetAudience) lines.push(`[타겟] ${project.targetAudience}`);
 
   const ctx = project.aiContext;
@@ -74,18 +101,6 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
     if (ctx.keywords?.length) lines.push(`[키워드] ${ctx.keywords.join(", ")}`);
     if (ctx.styleNotes) lines.push(`[스타일] ${ctx.styleNotes}`);
     if (ctx.callToAction) lines.push(`[CTA] ${ctx.callToAction}`);
-  }
-
-  const sg = project.scriptGuidelines;
-  if (sg) {
-    lines.push("[스크립트 가이드]");
-    if (sg.openingStrategy) lines.push(`- 도입: ${sg.openingStrategy}`);
-    if (sg.mainPoints?.length) lines.push(`- 핵심: ${sg.mainPoints.join(" / ")}`);
-    if (sg.ctaStrategy) lines.push(`- CTA: ${sg.ctaStrategy}`);
-    if (sg.closingStrategy) lines.push(`- 마무리: ${sg.closingStrategy}`);
-    if (sg.targetLength) lines.push(`- 목표 길이: ${sg.targetLength}`);
-    if (sg.keyMessages?.length) lines.push(`- 핵심 메시지: ${sg.keyMessages.join(", ")}`);
-    if (sg.avoidTopics?.length) lines.push(`- 피할 주제: ${sg.avoidTopics.join(", ")}`);
   }
 
   return lines.join("\n");
@@ -102,6 +117,8 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
   const [searchParams, setSearchParams] = useSearchParams();
   const project = loaderData.project;
   const savedResults = loaderData.savedResults;
+  const sessionHistory = loaderData.sessionHistory ?? [];
+  const activeSessionId = loaderData.activeSessionId;
 
   const {
     phase,
@@ -181,12 +198,65 @@ export default function StudioDashboardPage({ loaderData }: Route.ComponentProps
     );
   }, [reset, setSearchParams]);
 
+  const handleSessionSwitch = useCallback(
+    (selectedSessionId: string) => {
+      setSearchParams(
+        (prev) => {
+          prev.set("session", selectedSessionId);
+          return prev;
+        },
+        { replace: false },
+      );
+    },
+    [setSearchParams],
+  );
+
   if (!projectId) {
     return <StudioProjectSelector />;
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {/* Session History Switcher */}
+      {sessionHistory.length > 1 && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground shrink-0">세션 이력:</span>
+          <Select
+            value={activeSessionId ?? undefined}
+            onValueChange={handleSessionSwitch}
+          >
+            <SelectTrigger className="w-full max-w-sm">
+              <SelectValue placeholder="세션 선택..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sessionHistory.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">
+                      {new Date(s.createdAt).toLocaleDateString("ko-KR", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <Badge
+                      variant={s.status === "completed" ? "secondary" : "outline"}
+                      className="text-[10px] h-4"
+                    >
+                      {s.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground truncate max-w-40">
+                      {s.userIdea.slice(0, 30)}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Input Form: only when idle with no results */}
       {isIdle && (
         <TrendTubeInputForm

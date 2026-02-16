@@ -1,11 +1,12 @@
 /**
  * ============================================
- * Studio Schema - Full Version (Phase 1 + Phase 2+)
+ * Studio Schema
  * ============================================
  *
- * MVP Tables:
- * - studio_script: Script records
- * - studio_script_segment: Script segments (hook, intro, body, cta, outro)
+ * Tables:
+ * - studio_session: Session-based management (active 1, archived N)
+ * - studio_script: Script records (with Pre-Production fields)
+ * - studio_script_segment: Script segments with metadata
  * - studio_storyboard: Visual scene descriptions
  * - studio_video: Generated scene videos
  * - studio_video_part: Video parts for auto-split scenes
@@ -15,14 +16,8 @@
  *
  * Phase 2+ Tables:
  * - studio_b_roll: B-Roll assignments
- * - studio_coloring_preset: Color grading presets
- * - studio_coloring_setting: Per-project color settings
- * - studio_thumbnail: Thumbnail container
- * - studio_thumbnail_candidate: Thumbnail AI candidates
- * - studio_thumbnail_overlay: Thumbnail text/image overlays
- * - studio_rough_cut_timeline: Timeline state
- * - studio_rough_cut_timeline_segment: Timeline segments
- * - studio_rough_cut_version: Version history
+ * - studio_thumbnail, studio_thumbnail_candidate, studio_thumbnail_overlay
+ * - studio_rough_cut_timeline, studio_rough_cut_timeline_segment, studio_rough_cut_version
  */
 
 import {
@@ -39,6 +34,8 @@ import { relations } from "drizzle-orm";
 import {
   scriptSegmentTypeEnum,
   sceneVideoStatusEnum,
+  studioSessionStatusEnum,
+  preProductionStatusEnum,
   exportFormatEnum,
   exportResolutionEnum,
   exportStatusEnum,
@@ -49,21 +46,50 @@ import {
   timelineResourceTypeEnum,
 } from "../../drizzle/enums";
 import { projects, mediaAssets } from "../project/project-schema";
+import { users } from "../auth/auth-schema";
+import { trendtubeSessions } from "./studio-trendtube-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
 
 // ============================================
-// MVP Tables: Pre-Production
+// Session Management
+// ============================================
+
+export const studioSessions = tubegaiSchema.table("studio_session", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  version: integer("version").default(1).notNull(),
+  status: studioSessionStatusEnum("status").default("active").notNull(),
+  name: text("name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  archivedAt: timestamp("archived_at"),
+});
+
+// ============================================
+// Pre-Production + Script
 // ============================================
 
 export const scripts = tubegaiSchema.table("studio_script", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
-    .unique()
     .notNull(),
+  sessionId: uuid("session_id")
+    .references(() => studioSessions.id, { onDelete: "cascade" }),
   prompt: text("prompt"),
   targetDuration: integer("target_duration"),
   savedAt: timestamp("saved_at").defaultNow(),
+  // Pre-Production fields (Phase A-C)
+  hooks: text("hooks").array(),
+  scriptGuidelines: jsonb("script_guidelines"),
+  seoKeywords: text("seo_keywords").array(),
+  preProductionStatus: preProductionStatusEnum("pre_production_status"),
+  sourceTrendtubeSessionId: uuid("source_trendtube_session_id")
+    .references(() => trendtubeSessions.id, { onDelete: "set null" }),
 });
 
 export const scriptSegments = tubegaiSchema.table("studio_script_segment", {
@@ -75,6 +101,11 @@ export const scriptSegments = tubegaiSchema.table("studio_script_segment", {
   type: scriptSegmentTypeEnum("type").notNull(),
   content: text("content").notNull(),
   estimatedDuration: integer("estimated_duration"),
+  // Enhanced metadata for storyboard/scene generation
+  visualNotes: text("visual_notes"),
+  emotionalTone: text("emotional_tone"),
+  keywords: text("keywords").array(),
+  sceneHints: jsonb("scene_hints"),
 });
 
 export const storyboards = tubegaiSchema.table("studio_storyboard", {
@@ -82,14 +113,18 @@ export const storyboards = tubegaiSchema.table("studio_storyboard", {
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
     .notNull(),
+  sessionId: uuid("session_id")
+    .references(() => studioSessions.id, { onDelete: "cascade" }),
   scriptSegmentId: uuid("script_segment_id")
     .references(() => scriptSegments.id, { onDelete: "set null" })
-    .notNull(), // Phase 2: Made required for proper grouping
+    .notNull(),
   sceneNumber: integer("scene_number").notNull(),
   orderIndex: integer("order_index").default(0).notNull(),
   description: text("description"),
   visualPrompt: text("visual_prompt"),
-  duration: integer("duration"), // Phase 2: Added duration field
+  duration: integer("duration"),
+  emotionalTone: text("emotional_tone"),
+  cameraAngle: text("camera_angle"),
   imageAssetId: uuid("image_asset_id").references(() => mediaAssets.id, {
     onDelete: "set null",
   }),
@@ -108,6 +143,8 @@ export const sceneVideos = tubegaiSchema.table("studio_video", {
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
     .notNull(),
+  sessionId: uuid("session_id")
+    .references(() => studioSessions.id, { onDelete: "cascade" }),
   videoAssetId: uuid("video_asset_id").references(() => mediaAssets.id, {
     onDelete: "set null",
   }),
@@ -169,13 +206,35 @@ export const exportHistorys = tubegaiSchema.table("studio_export_history", {
 });
 
 // ============================================
-// MVP Relations
+// Relations
 // ============================================
+
+export const studioSessionsRelations = relations(studioSessions, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [studioSessions.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [studioSessions.userId],
+    references: [users.id],
+  }),
+  scripts: many(scripts),
+  storyboards: many(storyboards),
+  sceneVideos: many(sceneVideos),
+}));
 
 export const scriptsRelations = relations(scripts, ({ one, many }) => ({
   project: one(projects, {
     fields: [scripts.projectId],
     references: [projects.id],
+  }),
+  session: one(studioSessions, {
+    fields: [scripts.sessionId],
+    references: [studioSessions.id],
+  }),
+  sourceTrendtubeSession: one(trendtubeSessions, {
+    fields: [scripts.sourceTrendtubeSessionId],
+    references: [trendtubeSessions.id],
   }),
   segments: many(scriptSegments),
 }));
@@ -192,6 +251,10 @@ export const storyboardsRelations = relations(storyboards, ({ one }) => ({
   project: one(projects, {
     fields: [storyboards.projectId],
     references: [projects.id],
+  }),
+  session: one(studioSessions, {
+    fields: [storyboards.sessionId],
+    references: [studioSessions.id],
   }),
   scriptSegment: one(scriptSegments, {
     fields: [storyboards.scriptSegmentId],
@@ -212,6 +275,10 @@ export const sceneVideosRelations = relations(sceneVideos, ({ one, many }) => ({
   project: one(projects, {
     fields: [sceneVideos.projectId],
     references: [projects.id],
+  }),
+  session: one(studioSessions, {
+    fields: [sceneVideos.sessionId],
+    references: [studioSessions.id],
   }),
   videoAsset: one(mediaAssets, {
     fields: [sceneVideos.videoAssetId],
@@ -306,28 +373,6 @@ export const bRolls = tubegaiSchema.table("studio_b_roll", {
   sourceUrl: text("source_url"),
   startTime: doublePrecision("start_time").default(0),
   endTime: doublePrecision("end_time"),
-});
-
-// ============================================
-// Phase 2+ Tables: Coloring
-// ============================================
-
-export const coloringPresets = tubegaiSchema.table("studio_coloring_preset", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  filterParameters: jsonb("filter_parameters").notNull(),
-});
-
-export const coloringSettings = tubegaiSchema.table("studio_coloring_setting", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id")
-    .references(() => projects.id, { onDelete: "cascade" })
-    .unique()
-    .notNull(),
-  presetId: text("preset_id").references(() => coloringPresets.id, {
-    onDelete: "set null",
-  }),
-  customParameters: jsonb("custom_parameters"),
 });
 
 // ============================================
@@ -427,21 +472,6 @@ export const bRollsRelations = relations(bRolls, ({ one }) => ({
   asset: one(mediaAssets, {
     fields: [bRolls.assetId],
     references: [mediaAssets.id],
-  }),
-}));
-
-export const coloringPresetsRelations = relations(coloringPresets, ({ many }) => ({
-  settings: many(coloringSettings),
-}));
-
-export const coloringSettingsRelations = relations(coloringSettings, ({ one }) => ({
-  project: one(projects, {
-    fields: [coloringSettings.projectId],
-    references: [projects.id],
-  }),
-  preset: one(coloringPresets, {
-    fields: [coloringSettings.presetId],
-    references: [coloringPresets.id],
   }),
 }));
 

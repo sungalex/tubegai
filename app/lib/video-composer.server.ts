@@ -14,9 +14,11 @@ const execFileAsync = promisify(execFile);
 const FFMPEG_PATH = process.env.FFMPEG_PATH || "ffmpeg";
 
 export interface ComposeVideoInput {
-  videoUrl: string;
+  videoUrl?: string;
+  videoClipUrls?: string[];
   musicUrl: string;
   voiceoverUrl: string;
+  totalDuration?: number;
   outputFormat?: "mp4";
 }
 
@@ -28,6 +30,7 @@ export interface ComposeVideoResult {
 /**
  * Compose video + background music + voiceover into a single MP4
  * Background music at 30% volume, voiceover at 100% volume
+ * Supports N-clip concat via videoClipUrls or single video via videoUrl
  */
 export async function composeVideo(
   input: ComposeVideoInput
@@ -36,33 +39,86 @@ export async function composeVideo(
   const ffmpegAvailable = await checkFfmpeg();
   if (!ffmpegAvailable) {
     console.warn("FFmpeg not available, returning placeholder");
-    return createPlaceholderComposition();
+    return createPlaceholderComposition(input.totalDuration);
   }
 
-  // Check if all inputs have valid URLs
-  if (!input.videoUrl || !input.musicUrl || !input.voiceoverUrl) {
-    console.warn("Missing media inputs for composition, returning placeholder");
-    return createPlaceholderComposition();
+  // Determine video source: multi-clip or single
+  const hasMultiClip = input.videoClipUrls && input.videoClipUrls.length > 0;
+  const hasSingleVideo = !!input.videoUrl;
+
+  if (!hasMultiClip && !hasSingleVideo) {
+    console.warn("No video input for composition, returning placeholder");
+    return createPlaceholderComposition(input.totalDuration);
   }
 
+  if (!input.musicUrl || !input.voiceoverUrl) {
+    console.warn("Missing audio inputs for composition, returning placeholder");
+    return createPlaceholderComposition(input.totalDuration);
+  }
+
+  const duration = input.totalDuration ?? 8;
   const tempDir = await mkdtemp(join(tmpdir(), "trendtube-"));
+  const tempFiles: string[] = [];
 
-  const videoPath = join(tempDir, "video.mp4");
   const musicPath = join(tempDir, "music.wav");
   const voiceoverPath = join(tempDir, "voiceover.mp3");
   const outputPath = join(tempDir, "output.mp4");
+  tempFiles.push(musicPath, voiceoverPath, outputPath);
 
   try {
-    // Download media files to temp directory
+    // Download audio files
     await Promise.all([
-      downloadMedia(input.videoUrl, videoPath),
       downloadMedia(input.musicUrl, musicPath),
       downloadMedia(input.voiceoverUrl, voiceoverPath),
     ]);
 
-    // Run FFmpeg composition
+    let videoInputPath: string;
+
+    if (hasMultiClip && input.videoClipUrls!.length > 1) {
+      // --- N-clip concat ---
+      const clipPaths: string[] = [];
+
+      // Download all clips
+      for (let i = 0; i < input.videoClipUrls!.length; i++) {
+        const clipPath = join(tempDir, `clip_${i}.mp4`);
+        await downloadMedia(input.videoClipUrls![i], clipPath);
+        clipPaths.push(clipPath);
+        tempFiles.push(clipPath);
+      }
+
+      // Create concat list file
+      const concatListPath = join(tempDir, "concat_list.txt");
+      const concatContent = clipPaths
+        .map((p) => `file '${p}'`)
+        .join("\n");
+      await writeFile(concatListPath, concatContent);
+      tempFiles.push(concatListPath);
+
+      // Concat clips
+      const concatOutputPath = join(tempDir, "concat.mp4");
+      tempFiles.push(concatOutputPath);
+
+      await execFileAsync(FFMPEG_PATH, [
+        "-f", "concat",
+        "-safe", "0",
+        "-i", concatListPath,
+        "-c", "copy",
+        "-y",
+        concatOutputPath,
+      ], { timeout: 120000 });
+
+      videoInputPath = concatOutputPath;
+    } else {
+      // --- Single video ---
+      const singleUrl = hasMultiClip ? input.videoClipUrls![0] : input.videoUrl!;
+      videoInputPath = join(tempDir, "video.mp4");
+      await downloadMedia(singleUrl, videoInputPath);
+      tempFiles.push(videoInputPath);
+    }
+
+    // Final composition: video + music + voiceover
     await execFileAsync(FFMPEG_PATH, [
-      "-i", videoPath,
+      "-i", videoInputPath,
       "-i", musicPath,
       "-i", voiceoverPath,
       "-filter_complex",
@@ -72,23 +128,22 @@ export async function composeVideo(
       "-c:v", "copy",
       "-c:a", "aac",
       "-shortest",
-      "-t", "8",
+      "-t", String(duration),
       "-y",
       outputPath,
-    ], { timeout: 60000 });
+    ], { timeout: 120000 });
 
     // Read output and convert to base64 data URL
     const outputBuffer = await readFile(outputPath);
     const base64 = outputBuffer.toString("base64");
     const url = `data:video/mp4;base64,${base64}`;
 
-    return { url, duration: 8 };
+    return { url, duration };
   } catch (error) {
     console.error("FFmpeg composition error:", error);
-    return createPlaceholderComposition();
+    return createPlaceholderComposition(duration);
   } finally {
-    // Cleanup temp files
-    await cleanupFiles([videoPath, musicPath, voiceoverPath, outputPath]);
+    await cleanupFiles(tempFiles);
   }
 }
 
@@ -140,6 +195,6 @@ async function cleanupFiles(paths: string[]): Promise<void> {
 /**
  * Create a placeholder composition result
  */
-function createPlaceholderComposition(): ComposeVideoResult {
-  return { url: "", duration: 8 };
+function createPlaceholderComposition(duration?: number): ComposeVideoResult {
+  return { url: "", duration: duration ?? 8 };
 }

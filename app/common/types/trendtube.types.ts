@@ -127,6 +127,9 @@ export interface TrendTubeResults {
   videoIdeas: string;
   narrationScript: string;
   videoUrl?: string;
+  videoClipUrls?: string[];
+  clipCount?: number;
+  totalDuration?: number;
   musicUrl?: string;
   musicDuration?: number;
   voiceoverUrl?: string;
@@ -154,9 +157,10 @@ export interface TrendTubeStepTrendsOutput {
   extractedTrends: string;
 }
 
-/** Steps 2/3/4 input: only sessionId */
+/** Steps 2/3/4 input: sessionId + optional overrides */
 export interface TrendTubeStepSessionInput {
   sessionId: string;
+  clipCount?: number;
 }
 
 /** Step 2 output */
@@ -176,10 +180,15 @@ export interface TrendTubeStepComposeOutput {
 export type TrendTubeMediaSubstep = "video" | "music" | "script" | "voiceover";
 
 export type TrendTubeMediaStreamEvent =
-  | { type: "media_start"; substep: TrendTubeMediaSubstep; label: string }
+  | { type: "media_start"; substep: TrendTubeMediaSubstep; label: string;
+      clipNumber?: number; totalClips?: number }
+  | { type: "media_clip_start"; clipNumber: number; totalClips: number; label: string }
+  | { type: "media_clip_complete"; clipNumber: number; totalClips: number;
+      output?: TrendTubeStepIO }
   | { type: "media_complete"; substep: TrendTubeMediaSubstep; output?: TrendTubeStepIO }
-  | { type: "media_error"; substep: TrendTubeMediaSubstep; error: string }
-  | { type: "media_all_complete" };
+  | { type: "media_error"; substep: TrendTubeMediaSubstep; error: string;
+      clipNumber?: number }
+  | { type: "media_all_complete"; totalDuration?: number; clipCount?: number };
 
 // ---------------------------
 // Session Status (for resume)

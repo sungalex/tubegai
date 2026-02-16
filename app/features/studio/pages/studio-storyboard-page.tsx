@@ -420,6 +420,54 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                   });
                   break;
 
+                case "text_complete":
+                  setStreamingProgress(`텍스트 생성 완료 (${data.sceneCount}개 씬). 이미지 생성을 시작합니다...`);
+                  break;
+
+                case "image_progress":
+                  setStreamingProgress(`씬 ${data.sceneNumber} 이미지 생성 중...`);
+                  // Mark scene as generating image
+                  setSegments((prev) =>
+                    prev.map((seg) => ({
+                      ...seg,
+                      scenes: seg.scenes.map((s) =>
+                        s.sceneNumber === data.sceneNumber
+                          ? { ...s, isGeneratingImage: true }
+                          : s
+                      ),
+                    }))
+                  );
+                  break;
+
+                case "image_complete":
+                  setStreamingProgress(`씬 ${data.sceneNumber} 이미지 생성 완료`);
+                  // Update scene with image URL and clear generating state
+                  setSegments((prev) =>
+                    prev.map((seg) => ({
+                      ...seg,
+                      scenes: seg.scenes.map((s) =>
+                        s.sceneNumber === data.sceneNumber || s.id === data.sceneId
+                          ? { ...s, imageUrl: data.imageUrl, isGeneratingImage: false }
+                          : s
+                      ),
+                    }))
+                  );
+                  break;
+
+                case "image_error":
+                  // Clear generating state on error
+                  setSegments((prev) =>
+                    prev.map((seg) => ({
+                      ...seg,
+                      scenes: seg.scenes.map((s) =>
+                        s.sceneNumber === data.sceneNumber
+                          ? { ...s, isGeneratingImage: false }
+                          : s
+                      ),
+                    }))
+                  );
+                  break;
+
                 case "complete":
                   setIsStreaming(false);
                   setHasChanges(false);

@@ -1,16 +1,13 @@
 /**
  * ============================================
- * Drizzle Enums - MVP Version
+ * Drizzle Enums
  * ============================================
  *
  * MVP Enums:
  * - Media: mediaTypeEnum, mediaProviderEnum
- * - Project: projectTypeEnum, projectToneEnum, projectVisibilityEnum, projectStatusEnum
- * - Studio: scriptSegmentTypeEnum, sceneVideoStatusEnum
+ * - Project: projectTypeEnum, projectVisibilityEnum, projectStatusEnum
+ * - Studio: scriptSegmentTypeEnum, sceneVideoStatusEnum, studioSessionStatusEnum, preProductionStatusEnum
  * - Export: exportFormatEnum, exportResolutionEnum, exportStatusEnum, uploadStatusEnum
- *
- * DISABLED (Phase 2+):
- * - Channel, Pipeline, B-Roll, Timeline, Thumbnail, Settings enums
  */
 
 import { tubegaiSchema } from "./schema-def";
@@ -40,13 +37,6 @@ export const projectTypeEnum = tubegaiSchema.enum("project_type", [
   "long",
 ]);
 
-export const projectToneEnum = tubegaiSchema.enum("project_tone", [
-  "informative",
-  "funny",
-  "cinematic",
-  "vlog",
-]);
-
 export const projectVisibilityEnum = tubegaiSchema.enum("project_visibility", [
   "public",
   "private",
@@ -72,6 +62,18 @@ export const scriptSegmentTypeEnum = tubegaiSchema.enum("script_segment_type", [
 ]);
 
 export const sceneVideoStatusEnum = tubegaiSchema.enum("scene_video_status", [
+  "pending",
+  "generating",
+  "completed",
+  "failed",
+]);
+
+export const studioSessionStatusEnum = tubegaiSchema.enum("studio_session_status", [
+  "active",
+  "archived",
+]);
+
+export const preProductionStatusEnum = tubegaiSchema.enum("pre_production_status", [
   "pending",
   "generating",
   "completed",

@@ -114,13 +114,26 @@ export interface SubtitleSegment {
 }
 
 // ---------------------------
-// Coloring Types
+// Session Types
 // ---------------------------
-export interface ColorPreset {
+export interface StudioSession {
   id: string;
-  name: string;
-  filter: string; // CSS filter string
-  previewColor: string;
+  projectId: string;
+  userId: string;
+  version: number;
+  status: "active" | "archived";
+  name: string | null;
+  createdAt: string;
+  archivedAt: string | null;
+}
+
+// ---------------------------
+// Storyboard Scene (with session metadata)
+// ---------------------------
+export interface StoryboardSceneWithImage extends StoryboardScene {
+  emotionalTone?: string;
+  cameraAngle?: string;
+  imageAssetId?: string;
 }
 
 // ---------------------------

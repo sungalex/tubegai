@@ -72,6 +72,8 @@ export const trendtubeMedia = tubegaiSchema.table("trendtube_media", {
   }),
   publicUrl: text("public_url"),
   metadata: jsonb("metadata"),
+  prompt: text("prompt"),
+  clipNumber: integer("clip_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

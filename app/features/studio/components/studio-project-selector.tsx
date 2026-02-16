@@ -11,7 +11,6 @@ import {
   Presentation,
   Film,
   Captions,
-  Palette,
   Image as ImageIcon,
   LineChart,
   Download,
@@ -60,11 +59,9 @@ const QUICK_ACCESS_STEPS = [
   { id: "script", icon: FileText, label: "Script" },
   { id: "storyboard", icon: Presentation, label: "Storyboard" },
   { id: "scene", icon: Clapperboard, label: "Scene" },
-  { id: "scene", icon: Clapperboard, label: "Scene" },
   { id: "b-roll", icon: Film, label: "B-Roll" },
   { id: "roughcut", icon: Scissors, label: "Rough Cut" },
   { id: "subtitles", icon: Captions, label: "Subtitles" },
-  { id: "coloring", icon: Palette, label: "Coloring" },
   { id: "thumbnail", icon: ImageIcon, label: "Thumbnail" },
   { id: "seo", icon: LineChart, label: "SEO" },
   { id: "export", icon: Download, label: "Export" },
@@ -75,7 +72,7 @@ const ITEMS_PER_PAGE = 6;
 interface StudioProjectSelectorProps {
   title?: string;
   description?: string;
-  context?: "dashboard" | "script" | "storyboard" | "scene" | "b-roll" | "subtitles" | "coloring" | "thumbnail" | "seo" | "export" | "roughcut";
+  context?: "dashboard" | "script" | "storyboard" | "scene" | "b-roll" | "subtitles" | "thumbnail" | "seo" | "export" | "roughcut";
 }
 
 export function StudioProjectSelector({
@@ -120,8 +117,6 @@ export function StudioProjectSelector({
         return { label: "Go Rough Cut", segment: "roughcut" };
       case "subtitles":
         return { label: "Go Subtitles", segment: "subtitles" };
-      case "coloring":
-        return { label: "Go Coloring", segment: "coloring" };
       case "thumbnail":
         return { label: "Go Thumbnail", segment: "thumbnail" };
       case "seo":

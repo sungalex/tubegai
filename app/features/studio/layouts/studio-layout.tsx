@@ -7,7 +7,7 @@ import { StudioSidebar } from "../components/studio-sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "~/common/components/ui/sheet";
 import { Button } from "~/common/components/ui/button";
 import { Menu } from "lucide-react";
-import { useMediaQuery } from "~/hooks/use-media-query";
+import { useMediaQuery } from "../hooks/use-media-query";
 
 export default function StudioLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);

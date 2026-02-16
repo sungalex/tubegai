@@ -9,7 +9,7 @@ import { db, schema } from "~/lib/db.server";
 import {
   generateAIRecommendations,
   type AIGeneratedRecommendation,
-} from "~/lib/ai.server";
+} from "~/lib/ai/recommendations.server";
 import type {
   Idea,
   IdeaSource,

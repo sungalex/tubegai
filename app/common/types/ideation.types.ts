@@ -156,7 +156,7 @@ export interface SavedIdea {
 }
 
 /**
- * Convert legacy SavedIdea to unified Idea
+ * @deprecated Convert legacy SavedIdea to unified Idea
  */
 export function savedIdeaToIdea(savedIdea: SavedIdea): Idea {
   return {
@@ -171,7 +171,7 @@ export function savedIdeaToIdea(savedIdea: SavedIdea): Idea {
 }
 
 /**
- * Convert Idea to legacy SavedIdea format
+ * @deprecated Convert Idea to legacy SavedIdea format
  */
 export function ideaToSavedIdea(idea: Idea): SavedIdea {
   const primaryTrend = idea.trends.find((t) => t.isPrimary) || idea.trends[0];

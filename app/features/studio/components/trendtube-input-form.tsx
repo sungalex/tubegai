@@ -3,12 +3,19 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sparkles, Link2, Lightbulb, ImageIcon, ChevronDown } from "lucide-react";
+import { Sparkles, Link2, Lightbulb, ImageIcon, ChevronDown, Film } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import { Input } from "~/common/components/ui/input";
 import { Textarea } from "~/common/components/ui/textarea";
 import { Label } from "~/common/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/common/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/common/components/ui/select";
 import {
   Card,
   CardContent,
@@ -42,6 +49,7 @@ const formSchema = z.object({
     .max(500, "500자 이내로 입력해주세요"),
   referenceImageUrl: z.string().optional(),
   voiceOption: z.string(),
+  clipCount: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,6 +60,7 @@ interface TrendTubeInputFormProps {
     userIdea: string;
     referenceImageUrl?: string;
     voiceOption: TrendTubeVoiceOption;
+    clipCount?: number;
   }) => void;
   isLoading?: boolean;
   initialValues?: {
@@ -75,15 +84,20 @@ export function TrendTubeInputForm({
       userIdea: initialValues?.userIdea || "",
       referenceImageUrl: "",
       voiceOption: "female_ko",
+      clipCount: "auto",
     },
   });
 
   function handleSubmit(values: FormValues) {
+    const clipCountNum = values.clipCount && values.clipCount !== "auto"
+      ? parseInt(values.clipCount, 10)
+      : undefined;
     onSubmit({
       trendsUrl: values.trendsUrl,
       userIdea: values.userIdea,
       referenceImageUrl: values.referenceImageUrl || undefined,
       voiceOption: values.voiceOption as TrendTubeVoiceOption,
+      clipCount: clipCountNum,
     });
   }
 
@@ -249,6 +263,38 @@ export function TrendTubeInputForm({
                             <span className="text-sm">Male (English)</span>
                           </Label>
                         </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Clip Count */}
+                <FormField
+                  control={form.control}
+                  name="clipCount"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <Label className="flex items-center gap-1.5 text-sm font-medium">
+                        <Film className="h-4 w-4 text-muted-foreground" />
+                        영상 클립 수
+                        <span className="text-xs text-muted-foreground">(선택)</span>
+                      </Label>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="자동 (나레이션 길이 기반)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">자동 (나레이션 길이 기반)</SelectItem>
+                            <SelectItem value="1">1개 (8초)</SelectItem>
+                            <SelectItem value="2">2개 (16초)</SelectItem>
+                            <SelectItem value="3">3개 (24초)</SelectItem>
+                            <SelectItem value="4">4개 (32초)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}

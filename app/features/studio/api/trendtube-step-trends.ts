@@ -12,7 +12,7 @@ import {
   updateSessionStatus,
   saveTrendTubeResult,
 } from "~/common/data/trendtube.data.server";
-import { extractYouTubeTrends } from "~/lib/ai-trendtube.server";
+import { extractYouTubeTrends } from "~/lib/ai/trendtube.server";
 import type {
   TrendTubeStepTrendsInput,
   TrendTubeVoiceOption,
@@ -57,15 +57,37 @@ export async function action({ request }: Route.ActionArgs) {
 
     await updateSessionStatus(session.id, "extracting", 1);
 
-    // Extract trends
+    // Extract trends (reuse trendSnapshot if available)
     let extractedTrends: string;
-    try {
-      extractedTrends = await extractYouTubeTrends(trendsUrl, userIdea);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "트렌드 추출에 실패했습니다.";
-      await updateSessionStatus(session.id, "failed", 1, errorMessage);
-      return Response.json({ error: errorMessage }, { status: 500 });
+    let reusedSnapshot = false;
+
+    if (project.trendSnapshot) {
+      // Build extractedTrends from existing trendSnapshot — skip AI call
+      const snap = project.trendSnapshot;
+      const lines: string[] = [];
+      lines.push(`## 트렌드 분석 (프로젝트 스냅샷)`);
+      lines.push(`- 제목: ${snap.title}`);
+      if (snap.description) lines.push(`- 설명: ${snap.description}`);
+      lines.push(`- 카테고리: ${snap.category}`);
+      lines.push(`- 성장률: ${snap.growthRate}`);
+      lines.push(`- 조회수: ${snap.viewsCount}`);
+      if (snap.tags.length > 0) lines.push(`- 태그: ${snap.tags.join(", ")}`);
+      if (snap.metrics) {
+        lines.push(`- 상세 메트릭: 조회수 ${snap.metrics.viewCount}, 좋아요 ${snap.metrics.likeCount}, 댓글 ${snap.metrics.commentCount}`);
+      }
+      if (snap.externalUrl) lines.push(`- 참조 URL: ${snap.externalUrl}`);
+      extractedTrends = lines.join("\n");
+      reusedSnapshot = true;
+      console.log(`[TrendTube] Reusing trendSnapshot for project ${projectId}`);
+    } else {
+      try {
+        extractedTrends = await extractYouTubeTrends(trendsUrl, userIdea);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "트렌드 추출에 실패했습니다.";
+        await updateSessionStatus(session.id, "failed", 1, errorMessage);
+        return Response.json({ error: errorMessage }, { status: 500 });
+      }
     }
 
     // Save result
@@ -74,6 +96,7 @@ export async function action({ request }: Route.ActionArgs) {
     return Response.json({
       sessionId: session.id,
       extractedTrends,
+      reusedSnapshot,
     });
   } catch (error) {
     console.error("TrendTube step-trends error:", error);

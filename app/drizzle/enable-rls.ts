@@ -43,9 +43,10 @@ const TABLES = [
   "channel",
   "label",
   "project_label",
-  "saved_idea",
+  "idea",
+  "idea_trend",
   "trend",
-  "ai_recommendation",
+  "studio_session",
   "studio_script",
   "studio_script_segment",
   "studio_storyboard",
@@ -54,6 +55,9 @@ const TABLES = [
   "studio_export_history",
   "studio_subtitle",
   "studio_seo",
+  "trendtube_session",
+  "trendtube_result",
+  "trendtube_media",
   "audit_log",
 ];
 
@@ -222,31 +226,53 @@ const POLICIES: RLSPolicy[] = [
   },
 
   // ============================================
-  // 7. SAVED_IDEA
+  // 7. IDEA
   // ============================================
   {
-    name: "saved_idea_select_own",
-    table: "saved_idea",
+    name: "idea_select_own",
+    table: "idea",
     operation: "SELECT",
     using: "user_id = auth.uid()",
   },
   {
-    name: "saved_idea_insert_own",
-    table: "saved_idea",
+    name: "idea_insert_own",
+    table: "idea",
     operation: "INSERT",
     withCheck: "user_id = auth.uid()",
   },
   {
-    name: "saved_idea_update_own",
-    table: "saved_idea",
+    name: "idea_update_own",
+    table: "idea",
     operation: "UPDATE",
     using: "user_id = auth.uid()",
   },
   {
-    name: "saved_idea_delete_own",
-    table: "saved_idea",
+    name: "idea_delete_own",
+    table: "idea",
     operation: "DELETE",
     using: "user_id = auth.uid()",
+  },
+
+  // ============================================
+  // 7b. IDEA_TREND
+  // ============================================
+  {
+    name: "idea_trend_select_own",
+    table: "idea_trend",
+    operation: "SELECT",
+    using: `EXISTS (SELECT 1 FROM "public"."idea" i WHERE i.id = idea_id AND i.user_id = auth.uid())`,
+  },
+  {
+    name: "idea_trend_insert_own",
+    table: "idea_trend",
+    operation: "INSERT",
+    withCheck: `EXISTS (SELECT 1 FROM "public"."idea" i WHERE i.id = idea_id AND i.user_id = auth.uid())`,
+  },
+  {
+    name: "idea_trend_delete_own",
+    table: "idea_trend",
+    operation: "DELETE",
+    using: `EXISTS (SELECT 1 FROM "public"."idea" i WHERE i.id = idea_id AND i.user_id = auth.uid())`,
   },
 
   // ============================================
@@ -278,29 +304,29 @@ const POLICIES: RLSPolicy[] = [
   },
 
   // ============================================
-  // 9. AI_RECOMMENDATION
+  // 9. STUDIO_SESSION
   // ============================================
   {
-    name: "ai_recommendation_select_own_or_public",
-    table: "ai_recommendation",
+    name: "studio_session_select_own",
+    table: "studio_session",
     operation: "SELECT",
-    using: "user_id = auth.uid() OR user_id IS NULL",
+    using: "user_id = auth.uid()",
   },
   {
-    name: "ai_recommendation_insert_own",
-    table: "ai_recommendation",
+    name: "studio_session_insert_own",
+    table: "studio_session",
     operation: "INSERT",
-    withCheck: "user_id = auth.uid() OR user_id IS NULL",
+    withCheck: "user_id = auth.uid()",
   },
   {
-    name: "ai_recommendation_update_own",
-    table: "ai_recommendation",
+    name: "studio_session_update_own",
+    table: "studio_session",
     operation: "UPDATE",
     using: "user_id = auth.uid()",
   },
   {
-    name: "ai_recommendation_delete_own",
-    table: "ai_recommendation",
+    name: "studio_session_delete_own",
+    table: "studio_session",
     operation: "DELETE",
     using: "user_id = auth.uid()",
   },
@@ -530,7 +556,91 @@ const POLICIES: RLSPolicy[] = [
   },
 
   // ============================================
-  // 18. AUDIT_LOG
+  // 18. TRENDTUBE_SESSION
+  // ============================================
+  {
+    name: "trendtube_session_select_own",
+    table: "trendtube_session",
+    operation: "SELECT",
+    using: "user_id = auth.uid()",
+  },
+  {
+    name: "trendtube_session_insert_own",
+    table: "trendtube_session",
+    operation: "INSERT",
+    withCheck: "user_id = auth.uid()",
+  },
+  {
+    name: "trendtube_session_update_own",
+    table: "trendtube_session",
+    operation: "UPDATE",
+    using: "user_id = auth.uid()",
+  },
+  {
+    name: "trendtube_session_delete_own",
+    table: "trendtube_session",
+    operation: "DELETE",
+    using: "user_id = auth.uid()",
+  },
+
+  // ============================================
+  // 19. TRENDTUBE_RESULT
+  // ============================================
+  {
+    name: "trendtube_result_select_own",
+    table: "trendtube_result",
+    operation: "SELECT",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_result_insert_own",
+    table: "trendtube_result",
+    operation: "INSERT",
+    withCheck: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_result_update_own",
+    table: "trendtube_result",
+    operation: "UPDATE",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_result_delete_own",
+    table: "trendtube_result",
+    operation: "DELETE",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+
+  // ============================================
+  // 20. TRENDTUBE_MEDIA
+  // ============================================
+  {
+    name: "trendtube_media_select_own",
+    table: "trendtube_media",
+    operation: "SELECT",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_media_insert_own",
+    table: "trendtube_media",
+    operation: "INSERT",
+    withCheck: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_media_update_own",
+    table: "trendtube_media",
+    operation: "UPDATE",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+  {
+    name: "trendtube_media_delete_own",
+    table: "trendtube_media",
+    operation: "DELETE",
+    using: `EXISTS (SELECT 1 FROM "public"."trendtube_session" s WHERE s.id = session_id AND s.user_id = auth.uid())`,
+  },
+
+  // ============================================
+  // 21. AUDIT_LOG
   // ============================================
   {
     name: "audit_log_select_own",

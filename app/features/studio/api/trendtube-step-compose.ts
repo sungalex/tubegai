@@ -39,7 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
 
-    // Find latest media assets
+    // Find media assets
     const media = session.media ?? [];
     const findLatestMedia = (type: string) =>
       media
@@ -49,23 +49,33 @@ export async function action({ request }: Route.ActionArgs) {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
 
-    const video = findLatestMedia("generated_video");
+    // Collect all video clips sorted by clipNumber
+    const videoClips = media
+      .filter((m) => m.mediaType === "generated_video" && m.publicUrl)
+      .sort((a, b) => (a.clipNumber ?? 0) - (b.clipNumber ?? 0));
+
+    const videoClipUrls = videoClips
+      .map((c) => c.publicUrl)
+      .filter((url): url is string => !!url);
+
     const music = findLatestMedia("background_music");
     const voiceover = findLatestMedia("voiceover");
 
-    const videoUrl = video?.publicUrl;
     const musicUrl = music?.publicUrl;
     const voiceoverUrl = voiceover?.publicUrl;
+    const totalDuration = videoClipUrls.length > 0 ? videoClipUrls.length * 8 : 8;
 
     await updateSessionStatus(session.id, "compositing", 7);
 
-    // Compose if all media available
-    if (videoUrl && musicUrl && voiceoverUrl) {
+    // Compose if audio available and at least one video clip exists
+    if (videoClipUrls.length > 0 && musicUrl && voiceoverUrl) {
       try {
         const compositeResult = await composeVideo({
-          videoUrl,
+          videoClipUrls: videoClipUrls.length > 1 ? videoClipUrls : undefined,
+          videoUrl: videoClipUrls.length === 1 ? videoClipUrls[0] : undefined,
           musicUrl,
           voiceoverUrl,
+          totalDuration,
         });
 
         if (compositeResult.url) {

@@ -25,8 +25,134 @@ const BUCKET_NAME = "media";
 // - immutable: 브라우저가 재검증 요청 생략 (egress 비용 절감)
 const CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
 
+// =============================================================================
+// Session-based Upload Functions
+// =============================================================================
+
+function getExtension(mimeType: string): string {
+  const map: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+  };
+  return map[mimeType] ?? "bin";
+}
+
+function buildStudioPath(
+  projectId: string,
+  sessionId: string,
+  category: string,
+  sceneNumber: number,
+): string {
+  const timestamp = Date.now();
+  const ext = "png"; // default, overridden by caller
+  return `projects/${projectId}/studio/${sessionId}/${category}/scene-${sceneNumber}_${timestamp}`;
+}
+
+function buildTrendTubePath(
+  projectId: string,
+  sessionId: string,
+  mediaType: string,
+): string {
+  const timestamp = Date.now();
+  return `projects/${projectId}/trendtube/${sessionId}/${mediaType}_${timestamp}`;
+}
+
 /**
- * Upload a storyboard scene image to Supabase Storage
+ * Upload Studio media (storyboard images, scene videos, etc.)
+ * Uses session-scoped path: projects/{projectId}/studio/{sessionId}/{category}/scene-{N}_{timestamp}.ext
+ */
+export async function uploadStudioMedia({
+  projectId,
+  sessionId,
+  category,
+  sceneNumber,
+  buffer,
+  mimeType,
+}: {
+  projectId: string;
+  sessionId: string;
+  category: string;
+  sceneNumber: number;
+  buffer: Buffer;
+  mimeType: string;
+}): Promise<{ storageKey: string; publicUrl: string }> {
+  const ext = getExtension(mimeType);
+  const basePath = buildStudioPath(projectId, sessionId, category, sceneNumber);
+  const storageKey = `${basePath}.${ext}`;
+
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .upload(storageKey, buffer, {
+      contentType: mimeType,
+      cacheControl: CACHE_CONTROL_IMMUTABLE,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("Studio media upload error:", error);
+    throw new Error(`미디어 업로드 실패: ${error.message}`);
+  }
+
+  const { data: urlData } = supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(storageKey);
+
+  return { storageKey, publicUrl: urlData.publicUrl };
+}
+
+/**
+ * Upload TrendTube media (video, music, voiceover, composited)
+ * Uses session-scoped path: projects/{projectId}/trendtube/{sessionId}/{mediaType}_{timestamp}.ext
+ */
+export async function uploadTrendTubeMedia({
+  projectId,
+  sessionId,
+  mediaType,
+  buffer,
+  mimeType,
+}: {
+  projectId: string;
+  sessionId: string;
+  mediaType: string;
+  buffer: Buffer;
+  mimeType: string;
+}): Promise<{ storageKey: string; publicUrl: string }> {
+  const ext = getExtension(mimeType);
+  const basePath = buildTrendTubePath(projectId, sessionId, mediaType);
+  const storageKey = `${basePath}.${ext}`;
+
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .upload(storageKey, buffer, {
+      contentType: mimeType,
+      cacheControl: CACHE_CONTROL_IMMUTABLE,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("TrendTube media upload error:", error);
+    throw new Error(`미디어 업로드 실패: ${error.message}`);
+  }
+
+  const { data: urlData } = supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(storageKey);
+
+  return { storageKey, publicUrl: urlData.publicUrl };
+}
+
+// =============================================================================
+// Legacy Upload Functions
+// =============================================================================
+
+/**
+ * @deprecated Use uploadStudioMedia instead. Kept for backward compatibility.
  */
 export async function uploadStoryboardImage(
   projectId: string,

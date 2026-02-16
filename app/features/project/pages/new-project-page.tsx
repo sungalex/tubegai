@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useLocation, redirect } from "react-router";
-import { ChevronLeft, Sparkles, Loader2, Plus, X, Lightbulb, Target, Eye, TrendingUp, Zap } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, Lightbulb, Target, Eye, TrendingUp, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/common/components/ui/badge";
@@ -60,25 +60,21 @@ const projectFormSchema = z.object({
   }),
   description: z.string().optional(),
   type: z.enum(["short", "long"]),
-  tone: z.string().optional(),
   visibility: z.enum(["public", "private"]),
   topic: z.string().optional(),
   channelId: z.string().optional(),
   labels: z.array(z.string()),
   // AI Context fields
-  hooks: z.array(z.string()).optional(),
   targetAudience: z.string().optional(),
   estimatedViews: z.string().optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
   contentTone: z.enum(["informative", "funny", "dramatic", "casual", "professional"]).optional(),
   videoLength: z.enum(["short", "medium", "long"]).optional(),
   basedOnTrend: z.string().optional(),
-  basedOnTrendId: z.number().optional(),
   sourceIdeaId: z.string().optional(),
   // AI Context JSON fields
   keywords: z.string().optional(),
   styleNotes: z.string().optional(),
-  scriptGuidelines: z.string().optional(),
   callToAction: z.string().optional(),
   // Reference URL
   referenceUrl: z.string().url().optional().or(z.literal("")),
@@ -94,7 +90,6 @@ const defaultValues: Partial<ProjectFormValues> = {
   topic: "",
   channelId: "",
   labels: [],
-  hooks: [],
   targetAudience: "",
   estimatedViews: "",
   difficulty: "medium",
@@ -102,7 +97,6 @@ const defaultValues: Partial<ProjectFormValues> = {
   videoLength: "medium",
   keywords: "",
   styleNotes: "",
-  scriptGuidelines: "",
   callToAction: "",
   referenceUrl: "",
 };
@@ -131,7 +125,6 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     // Parse arrays and JSON fields
-    const hooks = data.hooks ? JSON.parse(data.hooks as string) : undefined;
     const labels = data.labels ? JSON.parse(data.labels as string) : [];
     const aiContext: Record<string, unknown> = {};
 
@@ -141,39 +134,24 @@ export async function action({ request }: Route.ActionArgs) {
     if (data.styleNotes) aiContext.styleNotes = data.styleNotes;
     if (data.callToAction) aiContext.callToAction = data.callToAction;
 
-    // Parse scriptGuidelines as proper JSON object (not string)
-    let scriptGuidelines;
-    if (data.scriptGuidelines) {
-      try {
-        scriptGuidelines = JSON.parse(data.scriptGuidelines as string);
-      } catch {
-        // If parsing fails, store as text in aiContext
-        aiContext.scriptGuidelinesText = data.scriptGuidelines;
-      }
-    }
-
     const result = await createProject(userId, {
       title: (data.title as string) || "Untitled Project",
       description: (data.description as string) || undefined,
       type: (data.type as "short" | "long") || "long",
-      tone: (data.tone as string) ? (data.tone as "informative" | "funny" | "cinematic" | "vlog") : undefined,
       visibility: (data.visibility as "public" | "private") || "private",
       topic: (data.topic as string) || undefined,
       channelId: (data.channelId as string) || undefined,
       thumbnailUrl: (data.thumbnailUrl as string) || undefined,
       labels,
-      hooks,
       targetAudience: (data.targetAudience as string) || undefined,
       estimatedViews: (data.estimatedViews as string) || undefined,
       difficulty: (data.difficulty as string) ? (data.difficulty as "easy" | "medium" | "hard") : undefined,
       contentTone: (data.contentTone as string) ? (data.contentTone as "informative" | "funny" | "dramatic" | "casual" | "professional") : undefined,
       videoLength: (data.videoLength as string) ? (data.videoLength as "short" | "medium" | "long") : undefined,
       basedOnTrend: (data.basedOnTrend as string) || undefined,
-      basedOnTrendId: data.basedOnTrendId ? parseInt(data.basedOnTrendId as string) : undefined,
       basedOnTrendUuid: (data.basedOnTrendUuid as string) || undefined,
       sourceIdeaId: (data.sourceIdeaId as string) || undefined,
       aiContext: Object.keys(aiContext).length > 0 ? aiContext : undefined,
-      scriptGuidelines,
       referenceUrl: (data.referenceUrl as string) || undefined,
     });
 
@@ -197,7 +175,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [newHook, setNewHook] = useState("");
 
   // Get source data from navigation state
   const sourceData = location.state as {
@@ -205,7 +182,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
     idea?: Idea;
     fromTrend?: boolean;
     trendId?: number;
-    hooks?: string[];
     targetAudience?: string;
     estimatedViews?: string;
     difficulty?: string;
@@ -221,12 +197,10 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
       topic: sourceData?.topic || sourceData?.idea?.title || "",
       title: sourceData?.topic ? `${sourceData.topic}` : sourceData?.idea?.title || "",
       description: sourceData?.description || sourceData?.idea?.description || "",
-      hooks: sourceData?.hooks || sourceData?.idea?.hooks || [],
       targetAudience: sourceData?.targetAudience || sourceData?.idea?.targetAudience || "",
       estimatedViews: sourceData?.estimatedViews || sourceData?.idea?.estimatedViews || "",
       difficulty: (sourceData?.difficulty || sourceData?.idea?.difficulty || "medium") as "easy" | "medium" | "hard",
       basedOnTrend: (sourceData?.idea ? getPrimaryTrend(sourceData.idea)?.trend?.title : null) || sourceData?.topic || "",
-      basedOnTrendId: typeof sourceData?.trendId === "number" ? sourceData.trendId : undefined,
       sourceIdeaId: sourceData?.idea?.id,
       referenceUrl: sourceData?.referenceUrl || sourceData?.idea?.referenceUrl || "",
     },
@@ -240,19 +214,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
     }
   }, [actionData]);
 
-  const hooks = form.watch("hooks") || [];
-
-  const addHook = () => {
-    if (newHook.trim()) {
-      form.setValue("hooks", [...hooks, newHook.trim()]);
-      setNewHook("");
-    }
-  };
-
-  const removeHook = (index: number) => {
-    form.setValue("hooks", hooks.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = () => {
     setIsLoading(true);
   };
@@ -263,7 +224,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
     form.setValue("title", idea.title);
     form.setValue("description", idea.description || "");
     form.setValue("topic", basedOnTrend || idea.title);
-    form.setValue("hooks", idea.hooks || []);
     form.setValue("targetAudience", idea.targetAudience || "");
     form.setValue("estimatedViews", idea.estimatedViews || "");
     form.setValue("difficulty", idea.difficulty || "medium");
@@ -357,11 +317,9 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
           <input type="hidden" name="title" value={form.watch("title") || ""} />
           <input type="hidden" name="description" value={form.watch("description") || ""} />
           <input type="hidden" name="type" value={form.watch("type") || "long"} />
-          <input type="hidden" name="tone" value={form.watch("tone") || ""} />
           <input type="hidden" name="visibility" value={form.watch("visibility") || "private"} />
           <input type="hidden" name="topic" value={form.watch("topic") || ""} />
           <input type="hidden" name="channelId" value={form.watch("channelId") || ""} />
-          <input type="hidden" name="hooks" value={JSON.stringify(hooks)} />
           <input type="hidden" name="labels" value={JSON.stringify(form.watch("labels"))} />
           <input type="hidden" name="targetAudience" value={form.watch("targetAudience") || ""} />
           <input type="hidden" name="estimatedViews" value={form.watch("estimatedViews") || ""} />
@@ -370,16 +328,11 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
           <input type="hidden" name="videoLength" value={form.watch("videoLength") || ""} />
           <input type="hidden" name="basedOnTrend" value={form.watch("basedOnTrend") || ""} />
           <input type="hidden" name="keywords" value={form.watch("keywords") || ""} />
-          <input type="hidden" name="scriptGuidelines" value={form.watch("scriptGuidelines") || ""} />
           <input type="hidden" name="callToAction" value={form.watch("callToAction") || ""} />
           <input type="hidden" name="referenceUrl" value={form.watch("referenceUrl") || ""} />
           {form.watch("sourceIdeaId") && (
             <input type="hidden" name="sourceIdeaId" value={form.watch("sourceIdeaId")} />
           )}
-          {form.watch("basedOnTrendId") && (
-            <input type="hidden" name="basedOnTrendId" value={String(form.watch("basedOnTrendId"))} />
-          )}
-
           {/* Basic Info Card */}
           <Card>
             <CardHeader>
@@ -515,56 +468,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Hooks */}
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  오프닝 훅
-                </FormLabel>
-                <div className="space-y-3">
-                  {hooks.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {hooks.map((hook, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="py-1.5 px-3 text-sm flex items-center gap-1"
-                        >
-                          <span className="max-w-60 truncate">{hook}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeHook(index)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="시청자의 관심을 끄는 첫 문장을 입력하세요"
-                      value={newHook}
-                      onChange={(e) => setNewHook(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addHook();
-                        }
-                      }}
-                      disabled={isLoading}
-                    />
-                    <Button type="button" variant="outline" onClick={addHook} disabled={isLoading}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <FormDescription>
-                  영상 시작 부분에 사용할 훅 아이디어들
-                </FormDescription>
-              </FormItem>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -735,35 +638,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="tone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>프로젝트 톤</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={isLoading}
-                          name="tone"
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="톤 선택" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="informative">정보 전달</SelectItem>
-                            <SelectItem value="funny">재미/유머</SelectItem>
-                            <SelectItem value="cinematic">시네마틱</SelectItem>
-                            <SelectItem value="vlog">브이로그</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 <FormField
@@ -819,27 +693,6 @@ export default function NewProjectPage({ loaderData, actionData }: Route.Compone
                       <FormDescription>
                         검색 최적화에 사용될 키워드
                       </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="scriptGuidelines"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>스크립트 가이드라인</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="AI가 스크립트 작성 시 참고할 가이드라인을 입력하세요"
-                          className="resize-none"
-                          rows={3}
-                          {...field}
-                          disabled={isLoading}
-                          name="scriptGuidelines"
-                        />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

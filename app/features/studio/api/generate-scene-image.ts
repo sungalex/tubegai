@@ -5,15 +5,14 @@
 
 import type { Route } from "./+types/generate-scene-image";
 import { requireAuth } from "~/lib/auth.server";
-import { generateImage, generatePlaceholderImage } from "~/lib/ai-image.server";
-import { uploadStoryboardImage } from "~/lib/supabase-storage.server";
+import { generateImage, generatePlaceholderImage } from "~/lib/ai/image.server";
+import { uploadStudioMedia } from "~/lib/supabase-storage.server";
 import {
   createMediaAsset,
   linkImageToStoryboard,
 } from "~/common/data/media.data.server";
 import { getProjectById } from "~/common/data/project.data.server";
-import { db, schema } from "~/lib/db.server";
-import { eq } from "drizzle-orm";
+import { getStoryboardSceneById } from "~/common/data/studio.data.server";
 
 interface GenerateSceneImageRequest {
   sceneId: string;
@@ -42,10 +41,8 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
 
-    // 1. Get scene data
-    const scene = await db.query.storyboards.findFirst({
-      where: eq(schema.storyboards.id, sceneId),
-    });
+    // 1. Get scene data via data layer
+    const scene = await getStoryboardSceneById(sceneId);
 
     if (!scene) {
       return Response.json(
@@ -88,13 +85,15 @@ export async function action({ request }: Route.ActionArgs) {
       });
     }
 
-    // 5. Upload to Supabase Storage
-    const { storageKey, publicUrl } = await uploadStoryboardImage(
-      scene.projectId,
-      sceneId,
-      generatedImage.buffer,
-      generatedImage.mimeType
-    );
+    // 5. Upload to Supabase Storage (session-scoped path)
+    const { storageKey, publicUrl } = await uploadStudioMedia({
+      projectId: scene.projectId,
+      sessionId: scene.sessionId ?? "default",
+      category: "storyboard",
+      sceneNumber: scene.sceneNumber,
+      buffer: generatedImage.buffer,
+      mimeType: generatedImage.mimeType,
+    });
 
     // 6. Create media asset record
     const assetId = await createMediaAsset({

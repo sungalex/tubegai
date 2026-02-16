@@ -67,10 +67,12 @@ import { Progress } from "~/common/components/ui/progress";
 import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import type { ScriptSegment } from "~/common/types/studio.types";
-import { getScriptWithSegments } from "~/common/data/studio.data.server";
+import { getScriptWithSegments, getPreProductionData } from "~/common/data/studio.data.server";
 import { getProjectById } from "~/common/data/project.data.server";
-import { refineScriptSegment } from "~/lib/ai-script.server";
+import { getTrendTubeSessions } from "~/common/data/trendtube.data.server";
+import { refineScriptSegment } from "~/lib/ai/script.server";
 import { saveScript } from "~/common/data/studio.data.server";
+import { PreProductionCard } from "../components/pre-production-card";
 import type { Route } from "./+types/studio-script-page";
 import { requireAuth } from "~/lib/auth.server";
 
@@ -80,18 +82,30 @@ import { requireAuth } from "~/lib/auth.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   if (!params.projectId) {
-    return { project: null, script: null, segments: [] };
+    return { project: null, script: null, segments: [], trendtubeSessions: [], preProduction: null };
   }
 
   const userId = await requireAuth(request);
-  const [project, scriptData] = await Promise.all([
+  const [project, scriptData, ttSessions, preProduction] = await Promise.all([
     getProjectById(params.projectId, userId),
     getScriptWithSegments(params.projectId),
+    getTrendTubeSessions(params.projectId),
+    getPreProductionData(params.projectId),
   ]);
 
   if (!project) {
-    return { project: null, script: null, segments: [] };
+    return { project: null, script: null, segments: [], trendtubeSessions: [], preProduction: null };
   }
+
+  // Filter TrendTube sessions that have narration scripts
+  const completedSessions = ttSessions
+    .filter((s) => s.status === "completed" && s.result?.narrationScript)
+    .map((s) => ({
+      id: s.id,
+      createdAt: s.createdAt.toISOString(),
+      userIdea: s.userIdea,
+      narrationPreview: s.result?.narrationScript?.slice(0, 50) ?? "",
+    }));
 
   return {
     project,
@@ -104,6 +118,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         }
       : null,
     segments: scriptData?.segments ?? [],
+    trendtubeSessions: completedSessions,
+    preProduction,
   };
 }
 
@@ -186,11 +202,12 @@ export function meta({ data }: Route.MetaArgs) {
 
 export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
-  const { project, script, segments: initialSegments } = loaderData;
+  const { project, script, segments: initialSegments, trendtubeSessions, preProduction } = loaderData;
   const [segments, setSegments] = useState<ScriptSegment[]>(initialSegments);
   const [hasChanges, setHasChanges] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Streaming state
   const [isStreaming, setIsStreaming] = useState(false);
@@ -453,6 +470,34 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
     toast.info("변경사항이 초기화되었습니다.");
   };
 
+  // TrendTube import handler
+  const handleImportTrendTube = async (sessionId: string) => {
+    if (!projectId) return;
+    setIsImporting(true);
+
+    try {
+      const res = await fetch("/api/studio/import-trendtube-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, trendtubeSessionId: sessionId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "임포트 실패");
+        return;
+      }
+
+      toast.success(data.message ?? "TrendTube 스크립트가 임포트되었습니다.");
+      // Reload page to get fresh data
+      window.location.reload();
+    } catch {
+      toast.error("TrendTube 스크립트 임포트 중 오류 발생");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const totalDuration = segments.reduce((acc, curr) => acc + curr.duration, 0);
   const selectedSegment = segments.find((s) => s.id === selectedSegmentId);
 
@@ -600,6 +645,44 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
                     AI 생성
                   </Button>
                 </div>
+
+                {/* TrendTube Import Section */}
+                {trendtubeSessions.length > 0 && (
+                  <div className="mt-6 pt-6 border-t w-full max-w-md">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      또는 TrendTube 나레이션을 가져올 수 있습니다
+                    </p>
+                    <Select
+                      onValueChange={handleImportTrendTube}
+                      disabled={isImporting}
+                    >
+                      <SelectTrigger className="w-full">
+                        {isImporting ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            임포트 중...
+                          </span>
+                        ) : (
+                          <SelectValue placeholder="TrendTube 세션 선택..." />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {trendtubeSessions.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm">
+                                {new Date(s.createdAt).toLocaleDateString("ko-KR")}
+                              </span>
+                              <span className="text-xs text-muted-foreground truncate max-w-60">
+                                {s.narrationPreview}...
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             ) : (
               segments.map((segment, index) => (
@@ -736,41 +819,11 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
 
         {/* Right Col: AI Assistant */}
         <div className="lg:col-span-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
-          {/* Project Context Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Lightbulb className="w-4 h-4" />
-                프로젝트 컨텍스트
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">타겟 시청자</span>
-                <span>{project.targetAudience ?? "미설정"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">콘텐츠 톤</span>
-                <span>{project.contentTone ?? "미설정"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">영상 길이</span>
-                <span>{project.videoLength ?? "미설정"}</span>
-              </div>
-              {project.hooks && project.hooks.length > 0 && (
-                <div className="pt-2 border-t">
-                  <span className="text-muted-foreground text-xs">추천 훅</span>
-                  <ul className="mt-1 space-y-1">
-                    {project.hooks.slice(0, 2).map((hook, i) => (
-                      <li key={i} className="text-xs bg-muted px-2 py-1 rounded">
-                        "{hook}"
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Pre-Production Card */}
+          <PreProductionCard
+            projectId={projectId}
+            data={preProduction}
+          />
 
           {/* AI Generate Card */}
           <Card className="border-primary/20">

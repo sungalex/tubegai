@@ -20,7 +20,6 @@ import {
   mediaTypeEnum,
   mediaProviderEnum,
   projectTypeEnum,
-  projectToneEnum,
   projectVisibilityEnum,
   projectStatusEnum,
   channelStatusEnum,
@@ -31,7 +30,7 @@ import {
 } from "../../drizzle/enums";
 import { users } from "../auth/auth-schema";
 import { tubegaiSchema } from "../../drizzle/schema-def";
-import type { TrendSnapshot, ScriptGuidelines } from "../../common/types/trend.types";
+import type { TrendSnapshot } from "../../common/types/trend.types";
 
 // ============================================
 // MVP Tables
@@ -64,7 +63,6 @@ export const projects = tubegaiSchema.table("project", {
   title: text("title").default("Untitled Project").notNull(),
   description: text("description"),
   type: projectTypeEnum("type").default("short").notNull(),
-  tone: projectToneEnum("tone"),
   visibility: projectVisibilityEnum("visibility").default("private").notNull(),
   topic: text("topic"),
   status: projectStatusEnum("status").default("draft").notNull(),
@@ -79,8 +77,6 @@ export const projects = tubegaiSchema.table("project", {
   // ============================================
   // AI Context Fields (for Studio AI generation)
   // ============================================
-  // Opening hooks for the video (AI-generated or user-provided)
-  hooks: text("hooks").array(),
   // Target audience description
   targetAudience: text("target_audience"),
   // Expected view range (e.g., "50K-100K")
@@ -93,8 +89,6 @@ export const projects = tubegaiSchema.table("project", {
   videoLength: videoLengthEnum("video_length"),
   // Source trend title (if based on trend)
   basedOnTrend: text("based_on_trend"),
-  // Source trend ID (for reference) - LEGACY: use basedOnTrendUuid instead
-  basedOnTrendId: integer("based_on_trend_id"),
   // Source trend UUID (FK to trends table - constraint defined in migration)
   basedOnTrendUuid: uuid("based_on_trend_uuid"),
   // Source saved idea ID (if created from saved idea)
@@ -108,17 +102,13 @@ export const projects = tubegaiSchema.table("project", {
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
-    // Legacy: simple text guidelines (use scriptGuidelines JSONB for structured data)
-    scriptGuidelinesText?: string;
   }>(),
 
   // ============================================
-  // Trend Snapshot & Script Guidelines (Phase 1 Enhancement)
+  // Trend Snapshot (Phase 1 Enhancement)
   // ============================================
   // Snapshot of trend data at project creation time
   trendSnapshot: jsonb("trend_snapshot").$type<TrendSnapshot>(),
-  // AI-generated script guidelines
-  scriptGuidelines: jsonb("script_guidelines").$type<ScriptGuidelines>(),
   // YouTube reference video URL
   referenceUrl: text("reference_url"),
 });

@@ -78,8 +78,17 @@ export default [
       "features/studio/api/generate-scene-image.ts",
     ),
     route(
-      "studio/trendtube-generate-stream",
-      "features/studio/api/trendtube-generate-stream.ts",
+      "studio/generate-scene-video-stream",
+      "features/studio/api/generate-scene-video-stream.ts",
+    ),
+    route(
+      "studio/import-trendtube-script",
+      "features/studio/api/import-trendtube-script.ts",
+    ),
+    // Pre-Production API
+    route(
+      "studio/generate-pre-production",
+      "features/studio/api/generate-pre-production.ts",
     ),
     // TrendTube Step APIs (4-step pipeline split)
     route(
@@ -155,7 +164,6 @@ export default [
       // route("b-roll", "features/studio/pages/studio-b-roll-page.tsx", { id: "studio-b-roll-static" }),
       // route("roughcut", "features/studio/pages/studio-rough-cut-page.tsx", { id: "studio-rough-cut-static" }),
       // route("subtitles", "features/studio/pages/studio-subtitles-page.tsx", { id: "studio-subtitles-static" }),
-      // route("coloring", "features/studio/pages/studio-coloring-page.tsx", { id: "studio-coloring-static" }),
       // route("thumbnail", "features/studio/pages/studio-thumbnail-page.tsx", { id: "studio-thumbnail-static" }),
       // route("seo", "features/studio/pages/studio-seo-page.tsx", { id: "studio-seo-static" }),
       //
@@ -164,7 +172,6 @@ export default [
       // route("b-roll/:projectId", "features/studio/pages/studio-b-roll-page.tsx"),
       // route("roughcut/:projectId", "features/studio/pages/studio-rough-cut-page.tsx"),
       // route("subtitles/:projectId", "features/studio/pages/studio-subtitles-page.tsx"),
-      // route("coloring/:projectId", "features/studio/pages/studio-coloring-page.tsx"),
       // route("thumbnail/:projectId", "features/studio/pages/studio-thumbnail-page.tsx"),
       // route("seo/:projectId", "features/studio/pages/studio-seo-page.tsx"),
     ]),

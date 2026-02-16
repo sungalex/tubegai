@@ -1097,6 +1097,7 @@ npm run db:migrate  # 마이그레이션 성공
 | 저장된 아이디어 통합     | Project 대시보드 "저장된 아이디어" 탭, 트렌드 탭 "아이디어 Hub" 통합 |
 | AI Playground            | AI 호출 프롬프트 미세 조정 가능한 Playground 기능                    |
 | 내 채널 컨텐츠 기반 생성 | 기존 컨텐츠 분석 → 프로젝트 생성                                     |
+| TrendTube 고도화         | 이미지, 동영상에서 생성하기. 내 채널 재생목록에서 생성하기           |
 | AI 사용량 추적           | 모든 AI 호출 시 사용량 데이터 저장 → 비용 예측/통제                  |
 | 외부 API 연동            | ElevenLabs (Speech-to-Speech), CapCut, Vrew, OpenClaw                |
 

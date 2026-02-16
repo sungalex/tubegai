@@ -12,7 +12,7 @@ import {
   createTrendSnapshot,
   type AIProjectGenerationInput,
   type AIProjectGenerationOutput,
-} from "~/lib/ai-project-generator.server";
+} from "~/lib/ai/project-generator.server";
 
 // =============================================================================
 // GET: Prompt Preview (Verification Step 1)

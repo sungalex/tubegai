@@ -1,2 +1,0 @@
--- Enum value 'pending' already added via add-pending-enum.ts
--- ALTER TYPE "public"."scene_video_status" ADD VALUE 'pending' BEFORE 'generating';

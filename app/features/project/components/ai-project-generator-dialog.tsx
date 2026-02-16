@@ -21,7 +21,6 @@ import { Textarea } from "~/common/components/ui/textarea";
 import { Input } from "~/common/components/ui/input";
 import { Label } from "~/common/components/ui/label";
 import { Badge } from "~/common/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/common/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -100,10 +99,6 @@ export function AIProjectGeneratorDialog({
     title: string;
     description: string;
     targetAudience: string;
-    openingStrategy: string;
-    mainPoints: string;
-    ctaStrategy: string;
-    keywords: string;
   } | null>(null);
 
   // Refs to track processed responses (prevent duplicate processing on re-renders)
@@ -154,10 +149,6 @@ export function AIProjectGeneratorDialog({
           title: result.title,
           description: result.description,
           targetAudience: result.targetAudience,
-          openingStrategy: result.scriptGuidelines.openingStrategy,
-          mainPoints: result.scriptGuidelines.mainPoints.join("\n"),
-          ctaStrategy: result.scriptGuidelines.ctaStrategy,
-          keywords: result.keywords.join(", "),
         });
         setStep("result");
       }
@@ -262,15 +253,8 @@ export function AIProjectGeneratorDialog({
     const suggestedDifficulty = result.suggestedDifficulty?.toLowerCase() || "medium";
     const difficulty = validDifficulties.includes(suggestedDifficulty) ? suggestedDifficulty : "medium";
 
-    // Build scriptGuidelines as proper object
-    const scriptGuidelines = {
-      openingStrategy: editedResult.openingStrategy,
-      mainPoints: editedResult.mainPoints.split("\n").filter(Boolean),
-      ctaStrategy: editedResult.ctaStrategy,
-      closingStrategy: result.scriptGuidelines.closingStrategy || "",
-    };
-
     // Create project with AI-generated context using FormData
+    // Note: hooks, scriptGuidelines, keywords are now generated in Studio Pre-Production
     const formData = new FormData();
     formData.set("_returnJson", "true"); // Signal to return JSON instead of redirect
     formData.set("title", editedResult.title);
@@ -283,13 +267,10 @@ export function AIProjectGeneratorDialog({
     if (trend.trendUuid) {
       formData.set("basedOnTrendUuid", trend.trendUuid);
     }
-    formData.set("hooks", JSON.stringify(result.hooks));
     formData.set("targetAudience", editedResult.targetAudience);
     formData.set("contentTone", contentTone);
     formData.set("difficulty", difficulty);
-    formData.set("keywords", editedResult.keywords);
     formData.set("estimatedViews", result.estimatedViews || "");
-    formData.set("scriptGuidelines", JSON.stringify(scriptGuidelines));
     formData.set("labels", "[]");
     // Add channel if selected
     if (selectedChannelId) {
@@ -687,106 +668,47 @@ function ResultStep({
     title: string;
     description: string;
     targetAudience: string;
-    openingStrategy: string;
-    mainPoints: string;
-    ctaStrategy: string;
-    keywords: string;
   };
   onEditedResultChange: (result: typeof editedResult) => void;
 }) {
   return (
     <div className="space-y-4 py-4">
-      <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="basic" className="flex-1">기본 정보</TabsTrigger>
-          <TabsTrigger value="script" className="flex-1">스크립트 가이드</TabsTrigger>
-        </TabsList>
+      <div className="space-y-2">
+        <Label>프로젝트 제목</Label>
+        <Input
+          value={editedResult.title}
+          onChange={(e) =>
+            onEditedResultChange({ ...editedResult, title: e.target.value })
+          }
+        />
+      </div>
 
-        <TabsContent value="basic" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>프로젝트 제목</Label>
-            <Input
-              value={editedResult.title}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, title: e.target.value })
-              }
-            />
-          </div>
+      <div className="space-y-2">
+        <Label>설명</Label>
+        <Textarea
+          value={editedResult.description}
+          onChange={(e) =>
+            onEditedResultChange({ ...editedResult, description: e.target.value })
+          }
+          rows={3}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label>설명</Label>
-            <Textarea
-              value={editedResult.description}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, description: e.target.value })
-              }
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>타겟 시청자</Label>
-            <Input
-              value={editedResult.targetAudience}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, targetAudience: e.target.value })
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>키워드 (쉼표로 구분)</Label>
-            <Input
-              value={editedResult.keywords}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, keywords: e.target.value })
-              }
-              placeholder="키워드1, 키워드2, 키워드3"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="script" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>오프닝 전략</Label>
-            <Textarea
-              value={editedResult.openingStrategy}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, openingStrategy: e.target.value })
-              }
-              rows={2}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>핵심 포인트 (줄바꿈으로 구분)</Label>
-            <Textarea
-              value={editedResult.mainPoints}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, mainPoints: e.target.value })
-              }
-              rows={4}
-              placeholder="첫 번째 포인트&#10;두 번째 포인트&#10;세 번째 포인트"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>CTA 전략</Label>
-            <Textarea
-              value={editedResult.ctaStrategy}
-              onChange={(e) =>
-                onEditedResultChange({ ...editedResult, ctaStrategy: e.target.value })
-              }
-              rows={2}
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-2">
+        <Label>타겟 시청자</Label>
+        <Input
+          value={editedResult.targetAudience}
+          onChange={(e) =>
+            onEditedResultChange({ ...editedResult, targetAudience: e.target.value })
+          }
+        />
+      </div>
 
       <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
         <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
         <p className="text-sm text-green-600 dark:text-green-400">
           AI가 생성한 결과를 검토하고 수정한 후, "프로젝트 생성" 버튼을 클릭하세요.
+          오프닝 훅, 스크립트 가이드라인, SEO 키워드는 Studio에서 Pre-Production 단계에서 생성됩니다.
         </p>
       </div>
     </div>

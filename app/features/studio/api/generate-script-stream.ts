@@ -6,8 +6,8 @@
 import type { Route } from "./+types/generate-script-stream";
 import { requireAuth } from "~/lib/auth.server";
 import { getProjectById } from "~/common/data/project.data.server";
-import { generateScriptStream, type ScriptGenerationOptions } from "~/lib/ai-script.server";
-import { saveScript } from "~/common/data/studio.data.server";
+import { generateScriptStream, type ScriptGenerationOptions } from "~/lib/ai/script.server";
+import { saveScript, getOrCreateActiveSession, getPreProductionData } from "~/common/data/studio.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -39,6 +39,21 @@ export async function action({ request }: Route.ActionArgs) {
       });
     }
 
+    // Get or create active session + fetch Pre-Production data
+    const [sessionId, preProductionRaw] = await Promise.all([
+      getOrCreateActiveSession(projectId, userId),
+      getPreProductionData(projectId),
+    ]);
+
+    // Build Pre-Production context for AI
+    const preProduction = preProductionRaw?.preProductionStatus === "completed"
+      ? {
+          hooks: preProductionRaw.hooks ?? undefined,
+          scriptGuidelines: preProductionRaw.scriptGuidelines ?? undefined,
+          seoKeywords: preProductionRaw.seoKeywords ?? undefined,
+        }
+      : undefined;
+
     // Create a readable stream for SSE
     const encoder = new TextEncoder();
     const allSegments: ScriptSegment[] = [];
@@ -51,13 +66,14 @@ export async function action({ request }: Route.ActionArgs) {
             encoder.encode(`data: ${JSON.stringify({ type: "start" })}\n\n`)
           );
 
-          // Generate script with streaming
+          // Generate script with streaming (includes Pre-Production context)
           await generateScriptStream({
             project,
             options: {
               ...options,
               language: "ko",
             },
+            preProduction,
             onSegment: (segment: ScriptSegment) => {
               allSegments.push(segment);
               controller.enqueue(
@@ -75,15 +91,20 @@ export async function action({ request }: Route.ActionArgs) {
             },
           });
 
-          // Save all segments to database
+          // Save all segments to database (with full metadata)
           if (allSegments.length > 0) {
             await saveScript({
               projectId,
+              sessionId,
               prompt: options.customPrompt,
               segments: allSegments.map((seg) => ({
                 type: seg.type,
                 content: seg.content,
                 estimatedDuration: seg.duration,
+                visualNotes: seg.visualNotes,
+                emotionalTone: seg.emotionalTone,
+                keywords: seg.keywords,
+                sceneHints: seg.sceneHints,
               })),
             });
           }

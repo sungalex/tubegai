@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useParams } from "react-router";
+import { useCallback, useRef, useState } from "react";
+import { useParams, useRevalidator } from "react-router";
 import { toast } from "sonner";
-import { Download, FileText, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { VideoGeneratorSidebar } from "../components/video-generator-sidebar";
@@ -9,7 +9,6 @@ import { SceneVideoCard, type SceneVideo, type VideoPart } from "../components/s
 import { StoryboardGrid } from "../components/storyboard-grid";
 import { getSceneSegments } from "~/common/data/studio.data.server";
 import type { Route } from "./+types/studio-scene-page";
-// import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { SceneScriptSegment } from "~/common/types/studio.types";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -23,9 +22,11 @@ export async function loader({ params }: Route.LoaderArgs) {
 export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
   const { segments: initialSegments } = loaderData;
+  const revalidator = useRevalidator();
 
   const [segments, setSegments] = useState<SceneScriptSegment[]>(initialSegments);
   const [isGenerating, setIsGenerating] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Handle No Project
   if (!projectId) {
@@ -39,126 +40,172 @@ export default function StudioScenePage({ loaderData }: Route.ComponentProps) {
   }
 
   // Helper to update a specific part status
-  const updatePartStatus = (sceneId: string, partId: string, status: VideoPart["status"], url?: string) => {
-    setSegments(prev => prev.map(seg => ({
-      ...seg,
-      scenes: seg.scenes.map(scene => {
-        if (scene.sceneId === sceneId) {
-          return {
-            ...scene,
-            parts: scene.parts.map(part =>
-              part.id === partId ? { ...part, status, url } : part
-            )
-          };
-        }
-        return scene;
-      })
-    })));
-  };
-
-  // Generate Single Part Logic
-  const handleRegeneratePart = async (sceneId: string, partId: string) => {
-    updatePartStatus(sceneId, partId, "generating");
-
-    // Simulate API Call
-    setTimeout(() => {
-      // Success
-      updatePartStatus(sceneId, partId, "completed", "https://example.com/video.mp4"); // URL is mock, card uses thumbnail
-      toast.success("비디오 클립 생성됨!");
-    }, 2500);
-  };
-
-  // Generate Single Scene Logic
-  const handleGenerateScene = async (sceneId: string) => {
-    toast.info("씬 비디오 생성 중...", { description: "처리 중..." });
-    const MAX_DURATION = 4;
-
-    setSegments(prev => prev.map(seg => ({
-      ...seg,
-      scenes: seg.scenes.map(scene => {
-        if (scene.sceneId === sceneId) {
-          // Apply Split Logic
-          if (scene.totalDuration > 5) {
-            const partCount = Math.ceil(scene.totalDuration / MAX_DURATION);
-            const newParts: VideoPart[] = Array.from({ length: partCount }).map((_, i) => ({
-              id: `p-${Date.now()}-${i}`,
-              duration: i === partCount - 1 ? scene.totalDuration % MAX_DURATION || MAX_DURATION : MAX_DURATION,
-              status: "generating"
-            }));
-            return { ...scene, parts: newParts };
-          } else {
+  const updatePartStatus = useCallback(
+    (sceneId: string, partId: string, status: VideoPart["status"], url?: string) => {
+      setSegments(prev => prev.map(seg => ({
+        ...seg,
+        scenes: seg.scenes.map(scene => {
+          if (scene.sceneId === sceneId) {
             return {
               ...scene,
-              parts: scene.parts.map(p => ({ ...p, status: "generating" as const }))
+              parts: scene.parts.map(part =>
+                part.id === partId ? { ...part, status, url } : part,
+              ),
             };
           }
+          return scene;
+        }),
+      })));
+    },
+    [],
+  );
+
+  // Helper to update parts by part number within a scene
+  const updatePartByNumber = useCallback(
+    (sceneId: string, partNumber: number, status: VideoPart["status"], url?: string) => {
+      setSegments(prev => prev.map(seg => ({
+        ...seg,
+        scenes: seg.scenes.map(scene => {
+          if (scene.sceneId === sceneId) {
+            return {
+              ...scene,
+              parts: scene.parts.map((part, idx) =>
+                idx + 1 === partNumber ? { ...part, status, url } : part,
+              ),
+            };
+          }
+          return scene;
+        }),
+      })));
+    },
+    [],
+  );
+
+  // Generate video for a single scene via SSE
+  const handleGenerateScene = useCallback(
+    async (sceneId: string) => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      // Set all parts to generating optimistically
+      const MAX_CLIP_DURATION = 8;
+      setSegments(prev => prev.map(seg => ({
+        ...seg,
+        scenes: seg.scenes.map(scene => {
+          if (scene.sceneId === sceneId) {
+            const partCount = Math.ceil(scene.totalDuration / MAX_CLIP_DURATION);
+            const newParts: VideoPart[] = Array.from({ length: partCount }, (_, i) => ({
+              id: `gen-${Date.now()}-${i}`,
+              duration: i === partCount - 1
+                ? scene.totalDuration % MAX_CLIP_DURATION || MAX_CLIP_DURATION
+                : MAX_CLIP_DURATION,
+              status: "generating" as const,
+            }));
+            return { ...scene, parts: newParts };
+          }
+          return scene;
+        }),
+      })));
+
+      try {
+        const res = await fetch("/api/studio/generate-scene-video-stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sceneId, options: { aspectRatio: "16:9" } }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "요청 실패" }));
+          toast.error("씬 비디오 생성 실패", { description: err.error });
+          return;
         }
-        return scene;
-      })
-    })));
 
-    // Simulate completion
-    await new Promise(resolve => setTimeout(resolve, 3000));
+        const reader = res.body?.getReader();
+        if (!reader) return;
 
-    setSegments(prev => prev.map(seg => ({
-      ...seg,
-      scenes: seg.scenes.map(scene => {
-        if (scene.sceneId === sceneId) {
-          return {
-            ...scene,
-            parts: scene.parts.map(p => ({ ...p, status: "completed" as const, url: "mock-url" }))
-          };
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const dataLine = line.trim();
+            if (!dataLine.startsWith("data: ")) continue;
+
+            try {
+              const event = JSON.parse(dataLine.slice(6));
+
+              switch (event.type) {
+                case "start":
+                  // Parts already set optimistically
+                  break;
+
+                case "clip_start":
+                  updatePartByNumber(sceneId, event.partNumber, "generating");
+                  break;
+
+                case "clip_complete":
+                  updatePartByNumber(sceneId, event.partNumber, "completed", event.publicUrl);
+                  break;
+
+                case "clip_error":
+                  updatePartByNumber(sceneId, event.partNumber, "failed");
+                  toast.error(`클립 ${event.partNumber} 생성 실패`);
+                  break;
+
+                case "complete":
+                  toast.success("씬 비디오 생성 완료!");
+                  revalidator.revalidate();
+                  break;
+
+                case "error":
+                  toast.error("씬 비디오 생성 오류", { description: event.error });
+                  break;
+              }
+            } catch {
+              // Skip malformed events
+            }
+          }
         }
-        return scene;
-      })
-    })));
-    toast.success("씬 비디오 생성됨!");
-  };
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        toast.error("씬 비디오 생성 중 오류 발생");
+      }
+    },
+    [revalidator, updatePartByNumber],
+  );
 
-  // Generate All Logic (The requirement: Split video length)
-  const handleGenerateAll = async () => {
+  // Regenerate a single part (re-triggers the whole scene for now)
+  const handleRegeneratePart = useCallback(
+    async (sceneId: string, _partId: string) => {
+      await handleGenerateScene(sceneId);
+    },
+    [handleGenerateScene],
+  );
+
+  // Generate all scenes sequentially
+  const handleGenerateAll = useCallback(async () => {
     setIsGenerating(true);
-    toast.info("모든 씬의 비디오 생성 중...", { description: "긴 씬에 AI 분할 로직 적용 중." });
+    toast.info("모든 씬의 비디오 생성 중...");
 
-    const MAX_DURATION = 4;
+    const allSceneIds = segments.flatMap(seg =>
+      seg.scenes.map(scene => scene.sceneId),
+    );
 
-    // Optimistic Update: Apply "Generating" status and Split logic
-    setSegments(prev => prev.map(seg => ({
-      ...seg,
-      scenes: seg.scenes.map(scene => {
-        // Logic: If duration > 5, split it.
-        if (scene.totalDuration > 5) {
-          const partCount = Math.ceil(scene.totalDuration / MAX_DURATION);
-          const newParts: VideoPart[] = Array.from({ length: partCount }).map((_, i) => ({
-            id: `p-${Date.now()}-${i}`,
-            duration: i === partCount - 1 ? scene.totalDuration % MAX_DURATION || MAX_DURATION : MAX_DURATION,
-            status: "generating"
-          }));
-          return { ...scene, parts: newParts }; // Replace parts with split parts
-        } else {
-          return {
-            ...scene,
-            parts: scene.parts.map(p => ({ ...p, status: "generating" as const }))
-          };
-        }
-      })
-    })));
-
-    // 2. Simulate Delay for completion
-    await new Promise(resolve => setTimeout(resolve, 4000));
-
-    // 3. Mark all as complete
-    setSegments(prev => prev.map(seg => ({
-      ...seg,
-      scenes: seg.scenes.map(scene => ({
-        ...scene,
-        parts: scene.parts.map(p => ({ ...p, status: "completed" as const, url: "mock-url" }))
-      }))
-    })));
+    for (const sceneId of allSceneIds) {
+      await handleGenerateScene(sceneId);
+    }
 
     setIsGenerating(false);
     toast.success("모든 비디오가 성공적으로 생성되었습니다!");
-  };
+  }, [segments, handleGenerateScene]);
 
   return (
     <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-4rem)] max-w-full overflow-visible lg:overflow-hidden">

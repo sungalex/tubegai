@@ -11,7 +11,6 @@ import {
   Image as ImageIcon,
   Clapperboard,
   Film,
-  Palette,
   LineChart,
   Download,
   Captions,
@@ -73,12 +72,6 @@ export function StudioSidebar({
       icon: Clapperboard,
       disabled: false,
     },
-    {
-      title: "내보내기 & 게시",
-      href: getPath("export"),
-      icon: Download,
-      disabled: false,
-    },
     // Phase 2+ Features (Disabled)
     { title: "B-Roll", href: "#", icon: Film, disabled: true },
     { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
@@ -89,18 +82,18 @@ export function StudioSidebar({
       disabled: true,
     },
     {
-      title: "색보정",
-      href: "#",
-      icon: Palette,
-      disabled: true,
-    },
-    {
       title: "썸네일",
       href: "#",
       icon: ImageIcon,
       disabled: true,
     },
     { title: "SEO", href: "#", icon: LineChart, disabled: true },
+    {
+      title: "내보내기 & 게시",
+      href: getPath("export"),
+      icon: Download,
+      disabled: false,
+    },
   ];
 
   return (
@@ -123,11 +116,7 @@ export function StudioSidebar({
             "p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors",
             !isCollapsed && "ml-2",
           )}
-          title={
-            isCollapsed
-              ? "사이드바 펼치기"
-              : "사이드바 접기"
-          }
+          title={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
         >
           {isCollapsed ? (
             <ChevronsRight className="h-5 w-5" />
@@ -188,9 +177,7 @@ export function StudioSidebar({
       {/* Footer Info Only */}
       <div className="mt-auto p-2 border-t text-[10px] text-muted-foreground text-center">
         {!isCollapsed && projectId && (
-          <div className="px-2 pb-2">
-            프로젝트: {projectId}
-          </div>
+          <div className="px-2 pb-2">프로젝트: {projectId}</div>
         )}
       </div>
     </div>

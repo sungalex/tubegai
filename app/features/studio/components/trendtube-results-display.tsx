@@ -50,8 +50,10 @@ export function TrendTubeResultsDisplay({
     a.click();
   };
 
-  // Determine hero video: prefer composited, fallback to raw video
-  const heroVideoUrl = results.compositedVideoUrl || results.videoUrl;
+  // Determine hero video: prefer composited, then first clip, then raw video
+  const heroVideoUrl = results.compositedVideoUrl
+    || results.videoClipUrls?.[0]
+    || results.videoUrl;
 
   return (
     <div className="space-y-6">
@@ -85,8 +87,16 @@ export function TrendTubeResultsDisplay({
               className="absolute top-3 right-3 opacity-80"
             >
               <Video className="mr-1 h-3 w-3" />
-              {results.compositedVideoUrl ? "합성 영상" : "원본 영상"}
-              {results.compositedDuration ? ` ${results.compositedDuration}초` : ""}
+              {results.compositedVideoUrl
+                ? "합성 영상"
+                : results.clipCount && results.clipCount > 1
+                  ? `클립 1/${results.clipCount}`
+                  : "원본 영상"}
+              {results.compositedDuration
+                ? ` ${results.compositedDuration}초`
+                : results.totalDuration
+                  ? ` ${results.totalDuration}초`
+                  : ""}
             </Badge>
           </div>
           {heroVideoUrl && (
@@ -112,24 +122,40 @@ export function TrendTubeResultsDisplay({
         </Card>
       )}
 
-      {/* Individual Assets: Video + Music + Voiceover */}
+      {/* Clip Gallery (when multiple clips exist) */}
+      {results.videoClipUrls && results.videoClipUrls.length > 1 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Video className="h-4 w-4 text-primary" />
+              영상 클립
+              <Badge variant="secondary" className="ml-auto text-xs">
+                {results.clipCount}개 / {results.totalDuration}초
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {results.videoClipUrls.map((clipUrl, i) => (
+                <div key={i} className="relative rounded-md overflow-hidden border">
+                  <video controls className="w-full aspect-video" src={clipUrl}>
+                    브라우저가 비디오를 지원하지 않습니다.
+                  </video>
+                  <Badge
+                    variant="secondary"
+                    className="absolute top-2 left-2 text-xs opacity-90"
+                  >
+                    클립 {i + 1}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Individual Assets: Music + Voiceover */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Raw Video (if composited exists, show raw separately) */}
-        {results.compositedVideoUrl && results.videoUrl && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Video className="h-4 w-4 text-primary" />
-                원본 영상
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <video controls className="w-full rounded-md" src={results.videoUrl}>
-                브라우저가 비디오를 지원하지 않습니다.
-              </video>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Background Music */}
         <Card>

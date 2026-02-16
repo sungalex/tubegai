@@ -1,4 +1,5 @@
-import { MoreVertical, RefreshCw, Wand2, Image as ImageIcon } from "lucide-react";
+import { MoreVertical, RefreshCw, Wand2, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Badge } from "~/common/components/ui/badge";
 import { cn } from "~/lib/utils";
 import { Button } from "~/common/components/ui/button";
 import {
@@ -21,6 +22,9 @@ export interface StoryboardScene {
   visualPrompt: string;
   imageUrl?: string;
   duration: number; // in seconds
+  emotionalTone?: string;
+  cameraAngle?: string;
+  isGeneratingImage?: boolean;
 }
 
 interface StoryboardSceneCardProps {
@@ -60,7 +64,12 @@ export function StoryboardSceneCard({
       <CardContent className="p-3 flex-1 flex flex-col gap-3">
         {/* Image Placeholder */}
         <div className="aspect-video bg-muted rounded-md relative group/scene-image overflow-hidden border">
-          {scene.imageUrl ? (
+          {scene.isGeneratingImage ? (
+            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-secondary/50">
+              <Loader2 className="h-8 w-8 mb-2 animate-spin text-primary" />
+              <span className="text-xs">이미지 생성 중...</span>
+            </div>
+          ) : scene.imageUrl ? (
             <img
               src={scene.imageUrl}
               alt={`Scene ${scene.sceneNumber}`}
@@ -73,22 +82,40 @@ export function StoryboardSceneCard({
             </div>
           )}
 
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/scene-image:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onRegenerateImage?.(scene.id)}
-              className="gap-2 transform translate-y-4 group-hover/scene-image:translate-y-0 transition-transform duration-300"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Re-Generate
-            </Button>
-          </div>
+          {!scene.isGeneratingImage && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/scene-image:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onRegenerateImage?.(scene.id)}
+                className="gap-2 transform translate-y-4 group-hover/scene-image:translate-y-0 transition-transform duration-300"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Re-Generate
+              </Button>
+            </div>
+          )}
 
           <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">
             {scene.duration}s
           </div>
         </div>
+
+        {/* Metadata badges */}
+        {(scene.emotionalTone || scene.cameraAngle) && (
+          <div className="flex flex-wrap gap-1">
+            {scene.emotionalTone && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {scene.emotionalTone}
+              </Badge>
+            )}
+            {scene.cameraAngle && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                {scene.cameraAngle}
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Text/Script */}
         <div className="space-y-2">

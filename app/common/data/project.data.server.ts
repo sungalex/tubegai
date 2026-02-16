@@ -32,7 +32,6 @@ import type {
 
 import type {
   TrendSnapshot,
-  ScriptGuidelines,
 } from "../types/trend.types";
 
 import { LABEL_COLORS } from "../constants/colors";
@@ -54,21 +53,18 @@ export interface CreateProjectInput {
   title: string;
   description?: string;
   type: "short" | "long";
-  tone?: "informative" | "funny" | "cinematic" | "vlog";
   visibility: "public" | "private";
   topic?: string;
   channelId?: string;
   labels?: string[];
   thumbnailUrl?: string;
   // AI Context fields
-  hooks?: string[];
   targetAudience?: string;
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
   contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
   videoLength?: "short" | "medium" | "long";
   basedOnTrend?: string;
-  basedOnTrendId?: number;
   sourceIdeaId?: string;
   aiContext?: {
     keywords?: string[];
@@ -82,7 +78,6 @@ export interface CreateProjectInput {
   // Phase 1 Enhancement: Trend integration
   basedOnTrendUuid?: string;
   trendSnapshot?: TrendSnapshot;
-  scriptGuidelines?: ScriptGuidelines;
   referenceUrl?: string;
 }
 
@@ -110,7 +105,6 @@ export async function createProject(
       title: input.title,
       description: emptyToNull(input.description),
       type: input.type,
-      tone: emptyToNull(input.tone),
       visibility: input.visibility,
       topic: emptyToNull(input.topic),
       channelId: emptyToNull(input.channelId),
@@ -119,20 +113,17 @@ export async function createProject(
       progress: 0,
       currentStep: "Script",
       // AI Context fields
-      hooks: input.hooks,
       targetAudience: emptyToNull(input.targetAudience),
       estimatedViews: emptyToNull(input.estimatedViews),
       difficulty: emptyToNull(input.difficulty),
       contentTone: emptyToNull(input.contentTone),
       videoLength: emptyToNull(input.videoLength),
       basedOnTrend: emptyToNull(input.basedOnTrend),
-      basedOnTrendId: input.basedOnTrendId,
       sourceIdeaId: emptyToNull(input.sourceIdeaId),
       aiContext: input.aiContext,
       // Phase 1 Enhancement: Trend integration
       basedOnTrendUuid: emptyToNull(input.basedOnTrendUuid),
       trendSnapshot: input.trendSnapshot,
-      scriptGuidelines: input.scriptGuidelines,
       referenceUrl: emptyToNull(input.referenceUrl),
     })
     .returning({ id: schema.projects.id });
@@ -321,20 +312,17 @@ export interface ProjectFullDetail {
   currentStep: string | null;
   thumbnailUrl: string | null;
   type: string;
-  tone: string | null;
   visibility: string;
   topic: string | null;
   createdAt: Date;
   updatedAt: Date;
   // AI Context fields
-  hooks: string[] | null;
   targetAudience: string | null;
   estimatedViews: string | null;
   difficulty: string | null;
   contentTone: string | null;
   videoLength: string | null;
   basedOnTrend: string | null;
-  basedOnTrendId: number | null;
   sourceIdeaId: string | null;
   aiContext: {
     keywords?: string[];
@@ -344,12 +332,10 @@ export interface ProjectFullDetail {
     targetLength?: string;
     callToAction?: string;
     additionalNotes?: string;
-    scriptGuidelinesText?: string;
   } | null;
   // Phase 1 Enhancement: Trend integration
   basedOnTrendUuid: string | null;
   trendSnapshot: TrendSnapshot | null;
-  scriptGuidelines: ScriptGuidelines | null;
   referenceUrl: string | null;
   // Relations
   channel: {
@@ -417,26 +403,22 @@ export async function getProjectById(
     currentStep: project.currentStep,
     thumbnailUrl: project.thumbnailUrl,
     type: project.type,
-    tone: project.tone,
     visibility: project.visibility,
     topic: project.topic,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     // AI Context fields
-    hooks: project.hooks,
     targetAudience: project.targetAudience,
     estimatedViews: project.estimatedViews,
     difficulty: project.difficulty,
     contentTone: project.contentTone,
     videoLength: project.videoLength,
     basedOnTrend: project.basedOnTrend,
-    basedOnTrendId: project.basedOnTrendId,
     sourceIdeaId: project.sourceIdeaId,
     aiContext: project.aiContext as ProjectFullDetail["aiContext"],
     // Phase 1 Enhancement: Trend integration
     basedOnTrendUuid: project.basedOnTrendUuid,
     trendSnapshot: project.trendSnapshot as TrendSnapshot | null,
-    scriptGuidelines: project.scriptGuidelines as ScriptGuidelines | null,
     referenceUrl: project.referenceUrl,
     // Relations
     channel: project.channel,
@@ -453,7 +435,6 @@ export interface UpdateProjectInput {
   description?: string;
   topic?: string;
   type?: "short" | "long";
-  tone?: "informative" | "funny" | "cinematic" | "vlog";
   visibility?: "public" | "private";
   channelId?: string | null;
   targetAudience?: string;
@@ -461,7 +442,6 @@ export interface UpdateProjectInput {
   difficulty?: "easy" | "medium" | "hard";
   contentTone?: "informative" | "funny" | "dramatic" | "casual" | "professional";
   videoLength?: "short" | "medium" | "long";
-  hooks?: string[];
   aiContext?: {
     keywords?: string[];
     competitors?: string[];
@@ -471,8 +451,6 @@ export interface UpdateProjectInput {
     callToAction?: string;
     additionalNotes?: string;
   };
-  // Phase 1 Enhancement: Trend integration
-  scriptGuidelines?: ScriptGuidelines;
 }
 
 export async function updateProject(
@@ -490,7 +468,6 @@ export async function updateProject(
   if (input.description !== undefined) updateData.description = input.description || null;
   if (input.topic !== undefined) updateData.topic = input.topic || null;
   if (input.type !== undefined) updateData.type = input.type;
-  if (input.tone !== undefined) updateData.tone = input.tone || null;
   if (input.visibility !== undefined) updateData.visibility = input.visibility;
   if (input.channelId !== undefined) updateData.channelId = input.channelId || null;
   if (input.targetAudience !== undefined) updateData.targetAudience = input.targetAudience || null;
@@ -498,9 +475,7 @@ export async function updateProject(
   if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
   if (input.contentTone !== undefined) updateData.contentTone = input.contentTone || null;
   if (input.videoLength !== undefined) updateData.videoLength = input.videoLength || null;
-  if (input.hooks !== undefined) updateData.hooks = input.hooks;
   if (input.aiContext !== undefined) updateData.aiContext = input.aiContext;
-  if (input.scriptGuidelines !== undefined) updateData.scriptGuidelines = input.scriptGuidelines;
 
   await db.update(schema.projects).set(updateData).where(eq(schema.projects.id, projectId));
   return { success: true };

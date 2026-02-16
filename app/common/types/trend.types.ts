@@ -113,16 +113,10 @@ export interface AIProjectGenerationOutput {
   title: string;
   /** 영상 설명 초안 */
   description: string;
-  /** 오프닝 훅 목록 */
-  hooks: string[];
   /** 상세 타겟 시청자 */
   targetAudience: string;
   /** 예상 조회수 범위 */
   estimatedViews: string;
-  /** 스크립트 가이드라인 */
-  scriptGuidelines: ScriptGuidelines;
-  /** SEO 키워드 */
-  keywords: string[];
   /** 추천 콘텐츠 톤 */
   suggestedTone: string;
   /** 제작 난이도 */
