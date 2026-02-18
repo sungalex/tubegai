@@ -5,17 +5,6 @@
 // Used by ai-script.server.ts and ai-storyboard.server.ts.
 
 import type { ProjectFullDetail } from "~/common/data/project.data.server";
-import type { ScriptGuidelines } from "~/common/types/trend.types";
-
-// =============================================================================
-// Types
-// =============================================================================
-
-export interface PreProductionContext {
-  hooks?: string[];
-  scriptGuidelines?: ScriptGuidelines;
-  seoKeywords?: string[];
-}
 
 // =============================================================================
 // Exports
@@ -30,7 +19,6 @@ export function formatNumber(num: number): string {
 export function buildProjectContext(
   project: ProjectFullDetail,
   language: "ko" | "en",
-  preProduction?: PreProductionContext,
 ): string {
   const lines: string[] = [];
 
@@ -111,13 +99,6 @@ export function buildProjectContext(
       lines.push(`태그: ${labelNames}`);
     }
 
-    // === 추천 훅 (Pre-Production) ===
-    const hooks = preProduction?.hooks;
-    if (hooks && hooks.length > 0) {
-      lines.push(`\n## 추천 훅`);
-      lines.push(`추천 훅: ${hooks.join(", ")}`);
-    }
-
     // === 트렌드 분석 ===
     if (project.trendSnapshot) {
       lines.push(`\n## 트렌드 분석`);
@@ -147,31 +128,6 @@ export function buildProjectContext(
     } else if (project.basedOnTrend) {
       lines.push(`\n## 트렌드`);
       lines.push(`관련 트렌드: ${project.basedOnTrend}`);
-    }
-
-    // === SEO 키워드 (Pre-Production) ===
-    if (preProduction?.seoKeywords && preProduction.seoKeywords.length > 0) {
-      lines.push(`\n## SEO 키워드`);
-      lines.push(`키워드: ${preProduction.seoKeywords.join(", ")}`);
-    }
-
-    // === 대본 가이드라인 (Pre-Production) ===
-    const sg = preProduction?.scriptGuidelines;
-    if (sg) {
-      lines.push(`\n## 대본 가이드라인`);
-      if (sg.openingStrategy) lines.push(`도입 전략: ${sg.openingStrategy}`);
-      if (sg.mainPoints && sg.mainPoints.length > 0) {
-        lines.push(`핵심 포인트:`);
-        sg.mainPoints.forEach((point, i) => lines.push(`  ${i + 1}. ${point}`));
-      }
-      if (sg.keyMessages && sg.keyMessages.length > 0) {
-        lines.push(`핵심 메시지: ${sg.keyMessages.join("; ")}`);
-      }
-      if (sg.ctaStrategy) lines.push(`CTA 전략: ${sg.ctaStrategy}`);
-      if (sg.closingStrategy) lines.push(`마무리 전략: ${sg.closingStrategy}`);
-      if (sg.avoidTopics && sg.avoidTopics.length > 0) {
-        lines.push(`피해야 할 주제: ${sg.avoidTopics.join(", ")}`);
-      }
     }
 
     // === 추가 컨텍스트 ===
@@ -273,13 +229,6 @@ export function buildProjectContext(
       lines.push(`Tags: ${labelNames}`);
     }
 
-    // === Suggested Hooks (Pre-Production) ===
-    const hooksEn = preProduction?.hooks;
-    if (hooksEn && hooksEn.length > 0) {
-      lines.push(`\n## Suggested Hooks`);
-      lines.push(`Suggested Hooks: ${hooksEn.join(", ")}`);
-    }
-
     // === Trend Analysis ===
     if (project.trendSnapshot) {
       lines.push(`\n## Trend Analysis`);
@@ -310,34 +259,6 @@ export function buildProjectContext(
     } else if (project.basedOnTrend) {
       lines.push(`\n## Trend`);
       lines.push(`Related Trend: ${project.basedOnTrend}`);
-    }
-
-    // === SEO Keywords (Pre-Production) ===
-    if (preProduction?.seoKeywords && preProduction.seoKeywords.length > 0) {
-      lines.push(`\n## SEO Keywords`);
-      lines.push(`Keywords: ${preProduction.seoKeywords.join(", ")}`);
-    }
-
-    // === Script Guidelines (Pre-Production) ===
-    const sgEn = preProduction?.scriptGuidelines;
-    if (sgEn) {
-      const sg = sgEn;
-      lines.push(`\n## Script Guidelines`);
-      if (sg.openingStrategy)
-        lines.push(`Opening Strategy: ${sg.openingStrategy}`);
-      if (sg.mainPoints && sg.mainPoints.length > 0) {
-        lines.push(`Main Points:`);
-        sg.mainPoints.forEach((point, i) => lines.push(`  ${i + 1}. ${point}`));
-      }
-      if (sg.keyMessages && sg.keyMessages.length > 0) {
-        lines.push(`Key Messages: ${sg.keyMessages.join("; ")}`);
-      }
-      if (sg.ctaStrategy) lines.push(`CTA Strategy: ${sg.ctaStrategy}`);
-      if (sg.closingStrategy)
-        lines.push(`Closing Strategy: ${sg.closingStrategy}`);
-      if (sg.avoidTopics && sg.avoidTopics.length > 0) {
-        lines.push(`Topics to Avoid: ${sg.avoidTopics.join(", ")}`);
-      }
     }
 
     // === Additional Context ===

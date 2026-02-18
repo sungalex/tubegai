@@ -7,7 +7,7 @@ import type { ProjectFullDetail } from "~/common/data/project.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
 import { getGeminiClient, getTextModel } from "./client.server";
 import { withRetry } from "./retry.server";
-import { buildProjectContext, type PreProductionContext } from "./context-builder.server";
+import { buildProjectContext } from "./context-builder.server";
 import { MOCK_SCRIPT_SEGMENTS } from "./__mocks__/fixtures";
 import { AI_MODELS } from "./models.server";
 
@@ -18,11 +18,10 @@ import { AI_MODELS } from "./models.server";
 export interface ScriptGenerationOptions {
   tone: "informative" | "casual" | "professional" | "dramatic" | "funny";
   length: "short" | "medium" | "long";
+  videoType: "short" | "long"; // project.type — determines segment structure
   customPrompt?: string;
-  includeHook?: boolean;
-  includeCTA?: boolean;
   language?: "ko" | "en";
-  // Advanced AI options (Note: presencePenalty and frequencyPenalty are NOT supported by gemini-2.5-flash)
+  // Advanced AI options
   temperature?: number; // 0.0 - 2.0, default 0.8
   topP?: number; // 0.0 - 1.0, default 0.9
   topK?: number; // 1 - 100, default 40
@@ -43,7 +42,6 @@ export interface RefineScriptInput {
 export interface GenerateScriptStreamInput {
   project: ProjectFullDetail;
   options: ScriptGenerationOptions;
-  preProduction?: PreProductionContext;
   onSegment: (segment: ScriptSegment) => void;
   onProgress: (text: string) => void;
 }
@@ -58,12 +56,25 @@ const SYSTEM_PROMPT_KO = `당신은 전문 유튜브 영상 대본 작가입니�
 - 각 세그먼트의 content는 **실제로 영상에서 말할 완전한 대본**이어야 합니다
 - 제목이나 요약이 아닌, 발표자가 카메라 앞에서 읽을 **전체 스크립트**를 작성하세요
 
-## 세그먼트별 분량 가이드
+## 사전 기획 (Pre-Production) 내재화
+대본 작성 전에 다음을 내부적으로 분석하세요:
+- 프로젝트 정보에서 최적의 훅(Hook) 전략 도출
+- 타겟 시청자와 채널 톤에 맞는 대본 가이드라인 수립
+- 트렌드/주제에서 SEO 키워드 자동 추출하여 대본에 반영
+
+## 일반 영상 (롱폼) 세그먼트별 분량 가이드
 - Hook: 2-4문장 (강렬한 질문이나 놀라운 사실로 시작)
 - Intro: 4-8문장 (영상 내용 소개 + 시청해야 하는 이유)
 - Body: 각 10-20문장 이상 (핵심 내용을 상세히 설명)
 - CTA: 3-5문장 (구체적인 행동 유도)
 - Outro: 3-5문장 (마무리 + 다음 영상 예고)
+
+## 쇼츠/릴스 (숏폼) 세그먼트 가이드
+- Body 1개만 반환 (Hook/Intro/CTA/Outro 제외)
+- 총 길이: 30-60초 (약 150-300자)
+- 첫 문장에서 시선을 끄는 표현 자연스럽게 포함
+- 마지막 문장에 간결한 액션 유도 포함
+- 빠른 템포, 군더더기 없는 문장
 
 응답은 반드시 유효한 JSON 배열 형식이어야 합니다.
 
@@ -88,12 +99,25 @@ const SYSTEM_PROMPT_EN = `You are a professional YouTube video script writer. Yo
 - Each segment's content must be the **actual script to be spoken**
 - NOT titles or summaries - write the **full narration**
 
-## Length Guidelines Per Segment
+## Pre-Production Internalization
+Before writing the script, internally analyze:
+- Derive optimal hook strategy from project information
+- Establish script guidelines matching the target audience and channel tone
+- Extract SEO keywords from the topic/trend and weave them into the script
+
+## Long-form Video Length Guidelines Per Segment
 - Hook: 2-4 sentences (powerful question or surprising fact)
 - Intro: 4-8 sentences (introduce content + why keep watching)
 - Body: 10-20+ sentences each (explain in detail)
 - CTA: 3-5 sentences (specific call to action)
 - Outro: 3-5 sentences (wrap-up + teaser)
+
+## Shorts/Reels Segment Guidelines
+- Return only 1 Body segment (no Hook/Intro/CTA/Outro)
+- Total length: 30-60 seconds (approx. 75-150 words)
+- Start with an attention-grabbing expression naturally within the Body
+- End with a brief call-to-action in the last sentence
+- Fast pace, no filler
 
 Your response must be a valid JSON array only.
 
@@ -204,7 +228,7 @@ export async function generateScript(
 export async function generateScriptStream(
   input: GenerateScriptStreamInput,
 ): Promise<void> {
-  const { project, options, preProduction, onSegment, onProgress } = input;
+  const { project, options, onSegment, onProgress } = input;
   const language = options.language ?? "ko";
 
   if (process.env.GEMINI_MOCK === "true") {
@@ -227,7 +251,7 @@ export async function generateScriptStream(
   }
 
   // Build context from project (with Pre-Production override)
-  const projectContext = buildProjectContext(project, language, preProduction);
+  const projectContext = buildProjectContext(project, language);
   const systemPrompt = language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
   const userPrompt = buildScriptUserPrompt(projectContext, options, language);
 
@@ -554,16 +578,22 @@ ${projectContext}
 ## 대본 요구사항
 - 톤/스타일: ${toneGuidance[options.tone]}
 - ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Hook 세그먼트 포함 (강렬한 오프닝)" : "- Hook 세그먼트 제외"}
-${options.includeCTA !== false ? "- CTA 세그먼트 포함 (구체적인 행동 유도)" : "- CTA 세그먼트 제외"}
+${options.videoType === "short" ? `- 세그먼트 구조: Body 1개만 반환 (쇼츠/릴스 형식)
+- 총 길이: 30-60초 (약 150-300자)
+- 첫 1-2초에 시선을 끄는 문장으로 시작 (Body 내부에 자연스럽게 포함)
+- 마지막 문장에 간결한 액션 유도 포함 (Body 내부에 자연스럽게 포함)
+- 빠른 템포, 군더더기 없는 문장` : `- 세그먼트 구조: Hook → Intro → Body(N) → CTA → Outro 전체 구조
+- Hook 세그먼트 포함 (강렬한 오프닝)
+- CTA 세그먼트 포함 (구체적인 행동 유도)`}
 ${options.customPrompt ? `\n## 추가 요청사항\n${options.customPrompt}` : ""}
 
 ## 중요 지침
 1. 각 세그먼트의 content는 **실제로 말할 완전한 대본**이어야 합니다
 2. 제목이나 요약이 아닌, **발표자가 읽을 전체 스크립트**를 작성하세요
-3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
+${options.videoType === "short" ? `3. 하나의 Body 세그먼트 안에 핵심 메시지를 압축적으로 전달하세요
+4. 짧고 임팩트 있는 문장으로 빠른 호흡을 유지하세요` : `3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
 4. 전체 스토리가 자연스럽게 흐르도록 세그먼트 간 연결을 고려하세요
-5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요
+5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요`}
 
 JSON 배열만 반환하세요.`;
   }
@@ -576,16 +606,22 @@ ${projectContext}
 ## Script Requirements
 - Tone/Style: ${toneGuidance[options.tone]}
 - ${lengthGuidance[options.length]}
-${options.includeHook !== false ? "- Include Hook segment (powerful opening)" : "- Exclude Hook segment"}
-${options.includeCTA !== false ? "- Include CTA segment (specific call to action)" : "- Exclude CTA segment"}
+${options.videoType === "short" ? `- Segment structure: Return only 1 Body segment (Shorts/Reels format)
+- Total length: 30-60 seconds (approx. 75-150 words)
+- Start with an attention-grabbing sentence in the first 1-2 seconds (naturally within Body)
+- End with a brief call-to-action in the last sentence (naturally within Body)
+- Fast pace, no filler` : `- Segment structure: Hook → Intro → Body(N) → CTA → Outro full structure
+- Include Hook segment (powerful opening)
+- Include CTA segment (specific call to action)`}
 ${options.customPrompt ? `\n## Additional Requirements\n${options.customPrompt}` : ""}
 
 ## Important Guidelines
 1. Each segment's content must be the **actual script to be spoken** in the video
 2. NOT titles or summaries - write the **full narration** the presenter will read
-3. Each Body segment should cover a specific subtopic with examples and explanations
+${options.videoType === "short" ? `3. Deliver the core message in a single compressed Body segment
+4. Maintain fast rhythm with short, impactful sentences` : `3. Each Body segment should cover a specific subtopic with examples and explanations
 4. Ensure natural flow and transitions between segments
-5. Build a narrative that makes viewers want to watch until the end
+5. Build a narrative that makes viewers want to watch until the end`}
 
 Return only a JSON array.`;
 }

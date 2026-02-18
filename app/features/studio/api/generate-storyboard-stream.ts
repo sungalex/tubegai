@@ -1,23 +1,18 @@
 // =============================================================================
 // API Route: POST /api/studio/generate-storyboard-stream
 // =============================================================================
-// Streams AI-generated storyboard scenes in real-time using Server-Sent Events
+// Streams AI-generated storyboard scenes in real-time using Server-Sent Events.
+// Image generation is handled separately via generate-scene-image API.
 
 import type { Route } from "./+types/generate-storyboard-stream";
 import { requireAuth } from "~/lib/auth.server";
 import { getProjectById } from "~/common/data/project.data.server";
-import { getScriptWithSegments, saveStoryboard, getOrCreateActiveSession } from "~/common/data/studio.data.server";
-import {
-  createMediaAsset,
-  linkImageToStoryboard,
-} from "~/common/data/media.data.server";
+import { getScriptWithSegments, saveStoryboard, getOrCreateActiveSession, updateSessionAspectRatio } from "~/common/data/studio.data.server";
 import {
   generateStoryboardStream,
   type StoryboardGenerationOptions,
   type StoryboardScene,
 } from "~/lib/ai/storyboard.server";
-import { generateImage, generatePlaceholderImage } from "~/lib/ai/image.server";
-import { uploadStudioMedia } from "~/lib/supabase-storage.server";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -63,6 +58,11 @@ export async function action({ request }: Route.ActionArgs) {
     // Get or create active session
     const sessionId = await getOrCreateActiveSession(projectId, userId);
 
+    // Save aspect ratio to session for downstream use (scene image/video generation)
+    if (options?.aspectRatio) {
+      await updateSessionAspectRatio(sessionId, options.aspectRatio);
+    }
+
     // Create a readable stream for SSE
     const encoder = new TextEncoder();
     const allScenes: StoryboardScene[] = [];
@@ -75,7 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
             encoder.encode(`data: ${JSON.stringify({ type: "start" })}\n\n`)
           );
 
-          // Generate storyboard with streaming
+          // Generate storyboard with streaming (text only — no image generation)
           await generateStoryboardStream({
             project,
             scriptSegments: scriptData.segments,
@@ -100,10 +100,10 @@ export async function action({ request }: Route.ActionArgs) {
             },
           });
 
-          // Save all scenes to database (returns saved scene IDs)
-          let savedSceneIds: string[] = [];
+          // Save all scenes to database and get real DB IDs
+          let scenesWithDbIds = allScenes;
           if (allScenes.length > 0) {
-            savedSceneIds = await saveStoryboard({
+            const savedIds = await saveStoryboard({
               projectId,
               sessionId,
               scenes: allScenes.map((scene) => ({
@@ -117,104 +117,17 @@ export async function action({ request }: Route.ActionArgs) {
                 cameraAngle: scene.cameraAngle,
               })),
             });
+            // Map DB-generated UUIDs back to scenes
+            scenesWithDbIds = allScenes.map((scene, index) => ({
+              ...scene,
+              id: savedIds[index] ?? scene.id,
+            }));
           }
 
-          // Notify text generation complete
+          // Send completion event with real DB IDs
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ type: "text_complete", sceneCount: allScenes.length })}\n\n`
-            )
-          );
-
-          // Sequential image generation with reference chaining
-          let prevBuffer: Buffer | undefined;
-          for (let i = 0; i < allScenes.length; i++) {
-            const scene = allScenes[i];
-            const dbSceneId = savedSceneIds[i];
-
-            // Send image progress event
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "image_progress", sceneNumber: scene.sceneNumber })}\n\n`
-              )
-            );
-
-            try {
-              // Generate image with reference chaining
-              let generatedImage;
-              try {
-                generatedImage = await generateImage(scene.visualPrompt, {
-                  aspectRatio: (options.aspectRatio as "16:9" | "9:16" | "1:1" | "4:3" | "3:4") || "16:9",
-                  style: options.style,
-                  negativePrompt: options.negativePrompt,
-                  referenceImage: prevBuffer,
-                });
-              } catch {
-                // Fallback to placeholder if AI generation fails
-                generatedImage = generatePlaceholderImage({
-                  aspectRatio: (options.aspectRatio as "16:9" | "9:16" | "1:1" | "4:3" | "3:4") || "16:9",
-                });
-              }
-
-              // Upload to Supabase Storage
-              const { storageKey, publicUrl } = await uploadStudioMedia({
-                projectId,
-                sessionId,
-                category: "storyboard",
-                sceneNumber: scene.sceneNumber,
-                buffer: generatedImage.buffer,
-                mimeType: generatedImage.mimeType,
-              });
-
-              // Create media asset + link to storyboard
-              if (dbSceneId) {
-                const assetId = await createMediaAsset({
-                  userId,
-                  projectId,
-                  type: "image",
-                  storageKey,
-                  publicUrl,
-                  fileSize: generatedImage.buffer.length,
-                  mimeType: generatedImage.mimeType,
-                  width: generatedImage.width,
-                  height: generatedImage.height,
-                });
-                await linkImageToStoryboard(dbSceneId, assetId);
-              }
-
-              // Update reference buffer for next scene
-              prevBuffer = generatedImage.buffer;
-
-              // Send image complete event
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "image_complete",
-                    sceneNumber: scene.sceneNumber,
-                    sceneId: scene.id,
-                    imageUrl: publicUrl,
-                  })}\n\n`
-                )
-              );
-            } catch (imgError) {
-              console.error(`Image generation failed for scene ${scene.sceneNumber}:`, imgError);
-              // Continue to next scene even if image fails
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "image_error",
-                    sceneNumber: scene.sceneNumber,
-                    error: "이미지 생성 실패",
-                  })}\n\n`
-                )
-              );
-            }
-          }
-
-          // Send completion event
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "complete", scenes: allScenes })}\n\n`
+              `data: ${JSON.stringify({ type: "complete", scenes: scenesWithDbIds })}\n\n`
             )
           );
 

@@ -55,20 +55,14 @@ export interface StoryboardScriptSegment {
 // ---------------------------
 // Scene Types
 // ---------------------------
-export interface VideoPart {
-  id: string;
-  duration: number;
-  status: "pending" | "generating" | "completed" | "failed";
-  url?: string;
-}
-
 export interface SceneVideo {
   sceneId: string;
   sceneNumber: number;
   description: string;
   thumbnailUrl: string;
-  totalDuration: number;
-  parts: VideoPart[];
+  duration: number; // always 8
+  status: "pending" | "generating" | "completed" | "failed";
+  videoUrl?: string;
 }
 
 export interface SceneScriptSegment {
@@ -76,6 +70,16 @@ export interface SceneScriptSegment {
   order: number;
   content: string;
   scenes: SceneVideo[];
+}
+
+/**
+ * @deprecated Use SceneVideo instead — parts are no longer used
+ */
+export interface VideoPart {
+  id: string;
+  duration: number;
+  status: "pending" | "generating" | "completed" | "failed";
+  url?: string;
 }
 
 // ---------------------------

@@ -1,0 +1,1 @@
+ALTER TABLE "studio_session" ADD COLUMN "aspect_ratio" text;

@@ -7,7 +7,7 @@ import type { Route } from "./+types/generate-script-stream";
 import { requireAuth } from "~/lib/auth.server";
 import { getProjectById, activateProject } from "~/common/data/project.data.server";
 import { generateScriptStream, type ScriptGenerationOptions } from "~/lib/ai/script.server";
-import { saveScript, getOrCreateActiveSession, getPreProductionData } from "~/common/data/studio.data.server";
+import { saveScript, getOrCreateActiveSession } from "~/common/data/studio.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -39,20 +39,8 @@ export async function action({ request }: Route.ActionArgs) {
       });
     }
 
-    // Get or create active session + fetch Pre-Production data
-    const [sessionId, preProductionRaw] = await Promise.all([
-      getOrCreateActiveSession(projectId, userId),
-      getPreProductionData(projectId),
-    ]);
-
-    // Build Pre-Production context for AI
-    const preProduction = preProductionRaw?.preProductionStatus === "completed"
-      ? {
-          hooks: preProductionRaw.hooks ?? undefined,
-          scriptGuidelines: preProductionRaw.scriptGuidelines ?? undefined,
-          seoKeywords: preProductionRaw.seoKeywords ?? undefined,
-        }
-      : undefined;
+    // Get or create active session
+    const sessionId = await getOrCreateActiveSession(projectId, userId);
 
     // Create a readable stream for SSE
     const encoder = new TextEncoder();
@@ -66,14 +54,14 @@ export async function action({ request }: Route.ActionArgs) {
             encoder.encode(`data: ${JSON.stringify({ type: "start" })}\n\n`)
           );
 
-          // Generate script with streaming (includes Pre-Production context)
+          // Generate script with streaming
           await generateScriptStream({
             project,
             options: {
               ...options,
+              videoType: (project.type as "short" | "long") ?? "long",
               language: "ko",
             },
-            preProduction,
             onSegment: (segment: ScriptSegment) => {
               allSegments.push(segment);
               controller.enqueue(

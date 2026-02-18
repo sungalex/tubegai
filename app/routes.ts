@@ -84,10 +84,22 @@ export default [
       "studio/import-trendtube-script",
       "features/studio/api/import-trendtube-script.ts",
     ),
-    // Pre-Production API
+    // History & Selection APIs
     route(
-      "studio/generate-pre-production",
-      "features/studio/api/generate-pre-production.ts",
+      "studio/storyboard-image-history",
+      "features/studio/api/storyboard-image-history.ts",
+    ),
+    route(
+      "studio/select-storyboard-image",
+      "features/studio/api/select-storyboard-image.ts",
+    ),
+    route(
+      "studio/scene-video-history",
+      "features/studio/api/scene-video-history.ts",
+    ),
+    route(
+      "studio/select-scene-video",
+      "features/studio/api/select-scene-video.ts",
     ),
     // TrendTube Step APIs (4-step pipeline split)
     route(

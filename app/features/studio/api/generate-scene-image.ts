@@ -1,7 +1,8 @@
 // =============================================================================
 // API Route: POST /api/studio/generate-scene-image
 // =============================================================================
-// Generates an image for a storyboard scene using AI and uploads to Supabase
+// Generates an image for a storyboard scene using AI and uploads to Supabase.
+// Supports referenceSceneId for visual consistency chaining.
 
 import type { Route } from "./+types/generate-scene-image";
 import { requireAuth } from "~/lib/auth.server";
@@ -10,12 +11,14 @@ import { uploadStudioMedia } from "~/lib/supabase-storage.server";
 import {
   createMediaAsset,
   linkImageToStoryboard,
+  getMediaAssetById,
 } from "~/common/data/media.data.server";
 import { getProjectById } from "~/common/data/project.data.server";
 import { getStoryboardSceneById } from "~/common/data/studio.data.server";
 
 interface GenerateSceneImageRequest {
   sceneId: string;
+  referenceSceneId?: string;
   visualPrompt?: string;
   options?: {
     aspectRatio?: string;
@@ -32,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
   try {
     const userId = await requireAuth(request);
     const body = (await request.json()) as GenerateSceneImageRequest;
-    const { sceneId, visualPrompt, options = {} } = body;
+    const { sceneId, referenceSceneId, visualPrompt, options = {} } = body;
 
     if (!sceneId) {
       return Response.json(
@@ -69,23 +72,51 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
 
-    // 4. Generate image
+    // 4. Load reference image buffer for consistency chaining
+    let referenceBuffer: Buffer | undefined;
+    if (referenceSceneId) {
+      try {
+        const refScene = await getStoryboardSceneById(referenceSceneId);
+        if (refScene) {
+          // Look up imageAssetId from storyboard record
+          const { db, schema } = await import("~/lib/db.server");
+          const { eq } = await import("drizzle-orm");
+          const storyboard = await db.query.storyboards.findFirst({
+            where: eq(schema.storyboards.id, referenceSceneId),
+            columns: { imageAssetId: true },
+          });
+          if (storyboard?.imageAssetId) {
+            const asset = await getMediaAssetById(storyboard.imageAssetId);
+            if (asset?.publicUrl) {
+              const res = await fetch(asset.publicUrl);
+              if (res.ok) {
+                referenceBuffer = Buffer.from(await res.arrayBuffer());
+              }
+            }
+          }
+        }
+      } catch (refError) {
+        console.warn("Reference image loading failed, continuing without:", refError);
+      }
+    }
+
+    // 5. Generate image
     let generatedImage;
     try {
       generatedImage = await generateImage(promptToUse, {
         aspectRatio: (options.aspectRatio as "16:9" | "9:16" | "1:1" | "4:3" | "3:4") || "16:9",
         style: options.style,
         negativePrompt: options.negativePrompt,
+        referenceImage: referenceBuffer,
       });
     } catch (error) {
       console.error("Image generation failed, using placeholder:", error);
-      // Use placeholder if AI generation fails
       generatedImage = generatePlaceholderImage({
         aspectRatio: (options.aspectRatio as "16:9" | "9:16" | "1:1" | "4:3" | "3:4") || "16:9",
       });
     }
 
-    // 5. Upload to Supabase Storage (session-scoped path)
+    // 6. Upload to Supabase Storage (session-scoped path)
     const { storageKey, publicUrl } = await uploadStudioMedia({
       projectId: scene.projectId,
       sessionId: scene.sessionId ?? "default",
@@ -95,7 +126,7 @@ export async function action({ request }: Route.ActionArgs) {
       mimeType: generatedImage.mimeType,
     });
 
-    // 6. Create media asset record
+    // 7. Create media asset record
     const assetId = await createMediaAsset({
       userId,
       projectId: scene.projectId,
@@ -108,7 +139,7 @@ export async function action({ request }: Route.ActionArgs) {
       height: generatedImage.height,
     });
 
-    // 7. Link image to storyboard
+    // 8. Link image to storyboard
     await linkImageToStoryboard(sceneId, assetId);
 
     return Response.json({

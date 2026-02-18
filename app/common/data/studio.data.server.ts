@@ -10,7 +10,6 @@ import type {
   ScriptSegment,
   SceneScriptSegment,
   SceneVideo,
-  VideoPart,
   StudioProject,
   SubtitleSegment,
   StockVideo,
@@ -18,7 +17,7 @@ import type {
   BRollColor,
   SceneHint,
 } from "../types/studio.types";
-import type { ScriptGuidelines } from "../types/trend.types";
+
 import { BROLL_COLORS } from "../constants/colors";
 
 // =============================================================================
@@ -30,13 +29,13 @@ import { BROLL_COLORS } from "../constants/colors";
  */
 export async function getActiveSession(
   projectId: string,
-): Promise<{ id: string; version: number } | null> {
+): Promise<{ id: string; version: number; aspectRatio: string | null } | null> {
   const session = await db.query.studioSessions.findFirst({
     where: and(
       eq(schema.studioSessions.projectId, projectId),
       eq(schema.studioSessions.status, "active"),
     ),
-    columns: { id: true, version: true },
+    columns: { id: true, version: true, aspectRatio: true },
   });
   return session ?? null;
 }
@@ -92,6 +91,19 @@ export async function getOrCreateActiveSession(
   const existing = await getActiveSession(projectId);
   if (existing) return existing.id;
   return createSession({ projectId, userId });
+}
+
+/**
+ * Update the aspect ratio for a session.
+ */
+export async function updateSessionAspectRatio(
+  sessionId: string,
+  aspectRatio: string,
+): Promise<void> {
+  await db
+    .update(schema.studioSessions)
+    .set({ aspectRatio })
+    .where(eq(schema.studioSessions.id, sessionId));
 }
 
 /**
@@ -396,104 +408,6 @@ export async function updateScriptPrompt(
 }
 
 // =============================================================================
-// Pre-Production Data Functions
-// =============================================================================
-
-/**
- * Save Pre-Production data (hooks, scriptGuidelines, seoKeywords) to studio_script
- */
-export async function savePreProduction(input: {
-  projectId: string;
-  sessionId?: string;
-  hooks: string[];
-  scriptGuidelines: ScriptGuidelines;
-  seoKeywords: string[];
-  preProductionStatus: "pending" | "generating" | "completed" | "failed";
-}): Promise<void> {
-  const { projectId, sessionId, hooks, scriptGuidelines, seoKeywords, preProductionStatus } = input;
-
-  // Get or create script record
-  let script = await db.query.scripts.findFirst({
-    where: eq(schema.scripts.projectId, projectId),
-  });
-
-  if (script) {
-    await db
-      .update(schema.scripts)
-      .set({
-        hooks,
-        scriptGuidelines,
-        seoKeywords,
-        preProductionStatus,
-        sessionId: sessionId ?? script.sessionId,
-      })
-      .where(eq(schema.scripts.id, script.id));
-  } else {
-    await db.insert(schema.scripts).values({
-      projectId,
-      sessionId,
-      hooks,
-      scriptGuidelines,
-      seoKeywords,
-      preProductionStatus,
-    });
-  }
-}
-
-/**
- * Get Pre-Production data from studio_script
- */
-export async function getPreProductionData(projectId: string): Promise<{
-  hooks: string[] | null;
-  scriptGuidelines: ScriptGuidelines | null;
-  seoKeywords: string[] | null;
-  preProductionStatus: string | null;
-} | null> {
-  const script = await db.query.scripts.findFirst({
-    where: eq(schema.scripts.projectId, projectId),
-    columns: {
-      hooks: true,
-      scriptGuidelines: true,
-      seoKeywords: true,
-      preProductionStatus: true,
-    },
-  });
-
-  if (!script) return null;
-
-  return {
-    hooks: script.hooks,
-    scriptGuidelines: script.scriptGuidelines as ScriptGuidelines | null,
-    seoKeywords: script.seoKeywords,
-    preProductionStatus: script.preProductionStatus,
-  };
-}
-
-/**
- * Update Pre-Production status only
- */
-export async function updatePreProductionStatus(
-  projectId: string,
-  status: "pending" | "generating" | "completed" | "failed",
-): Promise<void> {
-  const script = await db.query.scripts.findFirst({
-    where: eq(schema.scripts.projectId, projectId),
-  });
-
-  if (script) {
-    await db
-      .update(schema.scripts)
-      .set({ preProductionStatus: status })
-      .where(eq(schema.scripts.id, script.id));
-  } else {
-    await db.insert(schema.scripts).values({
-      projectId,
-      preProductionStatus: status,
-    });
-  }
-}
-
-// =============================================================================
 // Storyboard Types
 // =============================================================================
 
@@ -724,7 +638,8 @@ export async function addStoryboardScene(
 
 /**
  * Fetch scene segments for the scene video page
- * Joins scripts → segments → storyboards → sceneVideos → videoParts
+ * Joins scripts → segments → storyboards → sceneVideos
+ * Bug fix: loads videoAsset for URL + queries latest video per storyboard
  */
 export async function getSceneSegments(
   projectId: string
@@ -738,55 +653,56 @@ export async function getSceneSegments(
   });
   if (!script || script.segments.length === 0) return [];
 
-  // 2. Storyboards with sceneVideo + videoParts
+  // 2. Storyboards with imageAsset
   const storyboards = await db.query.storyboards.findMany({
     where: eq(schema.storyboards.projectId, projectId),
     orderBy: [asc(schema.storyboards.sceneNumber)],
     with: {
       imageAsset: true,
-      sceneVideo: {
-        with: {
-          parts: { orderBy: [asc(schema.videoParts.partNumber)] },
-          videoAsset: true,
-        },
-      },
     },
   });
 
-  // 3. Group by script segment
+  // 3. Fetch all scene videos separately, ordered by createdAt DESC
+  //    to guarantee we pick the latest video per storyboard
+  const allVideos = await db.query.sceneVideos.findMany({
+    where: eq(schema.sceneVideos.projectId, projectId),
+    orderBy: [desc(schema.sceneVideos.createdAt)],
+    with: {
+      videoAsset: true,
+    },
+  });
+
+  // Build storyboardId → latest video map (first entry wins = most recent)
+  const latestVideoMap = new Map<string, (typeof allVideos)[0]>();
+  for (const v of allVideos) {
+    if (!latestVideoMap.has(v.storyboardId)) {
+      latestVideoMap.set(v.storyboardId, v);
+    }
+  }
+
+  // 4. Group by script segment
   const segmentMap = new Map<string, SceneVideo[]>();
   for (const sb of storyboards) {
     if (!segmentMap.has(sb.scriptSegmentId)) {
       segmentMap.set(sb.scriptSegmentId, []);
     }
 
-    let parts: VideoPart[];
-    if (sb.sceneVideo && sb.sceneVideo.parts.length > 0) {
-      parts = sb.sceneVideo.parts.map((p) => ({
-        id: p.id,
-        duration: p.duration,
-        status: p.status as VideoPart["status"],
-      }));
-    } else {
-      // No video/parts yet → default pending part
-      parts = [{
-        id: `pending-${sb.id}`,
-        duration: sb.duration ?? 5,
-        status: "pending" as const,
-      }];
-    }
+    const video = latestVideoMap.get(sb.id);
+    const videoUrl = video?.videoAsset?.publicUrl ?? undefined;
+    const videoStatus = (video?.status as SceneVideo["status"]) ?? "pending";
 
     segmentMap.get(sb.scriptSegmentId)!.push({
       sceneId: sb.id,
       sceneNumber: sb.sceneNumber,
       description: sb.description ?? "",
       thumbnailUrl: sb.imageAsset?.publicUrl ?? "",
-      totalDuration: sb.duration ?? 5,
-      parts,
+      duration: sb.duration ?? 8,
+      status: video ? videoStatus : "pending",
+      videoUrl,
     });
   }
 
-  // 4. Build result
+  // 5. Build result
   return script.segments.map((seg, idx) => ({
     id: seg.id,
     order: idx + 1,
@@ -798,8 +714,6 @@ export async function getSceneSegments(
 // =============================================================================
 // Scene Video Data Functions
 // =============================================================================
-
-const MAX_CLIP_DURATION = 8;
 
 /**
  * Create a scene video record for a storyboard scene
@@ -827,51 +741,6 @@ export async function createSceneVideo({
     .returning({ id: schema.sceneVideos.id });
 
   return video.id;
-}
-
-/**
- * Create video parts for a scene video (8-second clip splitting)
- */
-export async function createSceneVideoParts(
-  videoId: string,
-  totalDuration: number,
-): Promise<string[]> {
-  const clipCount = Math.ceil(totalDuration / MAX_CLIP_DURATION);
-  const parts = Array.from({ length: clipCount }, (_, i) => {
-    const startTime = i * MAX_CLIP_DURATION;
-    const endTime = Math.min(startTime + MAX_CLIP_DURATION, totalDuration);
-    return {
-      videoId,
-      partNumber: i + 1,
-      startTime,
-      endTime,
-      duration: endTime - startTime,
-      status: "pending" as const,
-    };
-  });
-
-  const inserted = await db
-    .insert(schema.videoParts)
-    .values(parts)
-    .returning({ id: schema.videoParts.id });
-
-  return inserted.map((r) => r.id);
-}
-
-/**
- * Update a video part status and optionally link a video asset
- */
-export async function updateSceneVideoPart(
-  partId: string,
-  data: { status: string; videoAssetId?: string },
-): Promise<void> {
-  await db
-    .update(schema.videoParts)
-    .set({
-      status: data.status as "pending" | "generating" | "completed" | "failed",
-      videoAssetId: data.videoAssetId ?? undefined,
-    })
-    .where(eq(schema.videoParts.id, partId));
 }
 
 /**
@@ -923,6 +792,53 @@ export async function getStoryboardSceneForVideo(
       ? { id: scene.imageAsset.id, publicUrl: scene.imageAsset.publicUrl, storageKey: scene.imageAsset.storageKey }
       : null,
   };
+}
+
+/**
+ * Update a scene video's status and optionally link a video asset directly
+ */
+export async function updateSceneVideoAsset(
+  videoId: string,
+  data: { status: string; videoAssetId?: string },
+): Promise<void> {
+  await db
+    .update(schema.sceneVideos)
+    .set({
+      status: data.status as "pending" | "generating" | "completed" | "failed",
+      videoAssetId: data.videoAssetId ?? undefined,
+    })
+    .where(eq(schema.sceneVideos.id, videoId));
+}
+
+/**
+ * Get video history for a storyboard scene (newest first)
+ */
+export async function getSceneVideoHistory(
+  storyboardId: string,
+): Promise<Array<{ id: string; status: string; videoUrl: string | null; createdAt: Date | null }>> {
+  const videos = await db.query.sceneVideos.findMany({
+    where: eq(schema.sceneVideos.storyboardId, storyboardId),
+    orderBy: [desc(schema.sceneVideos.createdAt)],
+    with: {
+      videoAsset: true,
+    },
+  });
+  return videos.map((v) => ({
+    id: v.id,
+    status: v.status ?? "pending",
+    videoUrl: v.videoAsset?.publicUrl ?? null,
+    createdAt: v.createdAt,
+  }));
+}
+
+/**
+ * Select a specific scene video version as the latest by updating its createdAt
+ */
+export async function selectSceneVideo(videoId: string): Promise<void> {
+  await db
+    .update(schema.sceneVideos)
+    .set({ createdAt: new Date() })
+    .where(eq(schema.sceneVideos.id, videoId));
 }
 
 // =============================================================================

@@ -65,6 +65,7 @@ export const studioSessions = tubegaiSchema.table("studio_session", {
   version: integer("version").default(1).notNull(),
   status: studioSessionStatusEnum("status").default("active").notNull(),
   name: text("name"),
+  aspectRatio: text("aspect_ratio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   archivedAt: timestamp("archived_at"),
 });

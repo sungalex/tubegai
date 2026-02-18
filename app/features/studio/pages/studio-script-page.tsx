@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/common/components/ui/select";
-import { Switch } from "~/common/components/ui/switch";
+
 import { Slider } from "~/common/components/ui/slider";
 import {
   Collapsible,
@@ -67,12 +67,11 @@ import { Progress } from "~/common/components/ui/progress";
 import { toast } from "sonner";
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import type { ScriptSegment } from "~/common/types/studio.types";
-import { getScriptWithSegments, getPreProductionData } from "~/common/data/studio.data.server";
+import { getScriptWithSegments } from "~/common/data/studio.data.server";
 import { getProjectById } from "~/common/data/project.data.server";
 import { getTrendTubeSessions } from "~/common/data/trendtube.data.server";
 import { refineScriptSegment } from "~/lib/ai/script.server";
 import { saveScript } from "~/common/data/studio.data.server";
-import { PreProductionCard } from "../components/pre-production-card";
 import type { Route } from "./+types/studio-script-page";
 import { requireAuth } from "~/lib/auth.server";
 
@@ -82,19 +81,18 @@ import { requireAuth } from "~/lib/auth.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   if (!params.projectId) {
-    return { project: null, script: null, segments: [], trendtubeSessions: [], preProduction: null };
+    return { project: null, script: null, segments: [], trendtubeSessions: [] };
   }
 
   const userId = await requireAuth(request);
-  const [project, scriptData, ttSessions, preProduction] = await Promise.all([
+  const [project, scriptData, ttSessions] = await Promise.all([
     getProjectById(params.projectId, userId),
     getScriptWithSegments(params.projectId),
     getTrendTubeSessions(params.projectId),
-    getPreProductionData(params.projectId),
   ]);
 
   if (!project) {
-    return { project: null, script: null, segments: [], trendtubeSessions: [], preProduction: null };
+    return { project: null, script: null, segments: [], trendtubeSessions: [] };
   }
 
   // Filter TrendTube sessions that have narration scripts
@@ -119,7 +117,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       : null,
     segments: scriptData?.segments ?? [],
     trendtubeSessions: completedSessions,
-    preProduction,
   };
 }
 
@@ -202,7 +199,7 @@ export function meta({ data }: Route.MetaArgs) {
 
 export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   const { projectId } = useParams();
-  const { project, script, segments: initialSegments, trendtubeSessions, preProduction } = loaderData;
+  const { project, script, segments: initialSegments, trendtubeSessions } = loaderData;
   const [segments, setSegments] = useState<ScriptSegment[]>(initialSegments);
   const [hasChanges, setHasChanges] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
@@ -215,12 +212,26 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
   const [streamingSegmentCount, setStreamingSegmentCount] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // AI Generation Options
-  const [tone, setTone] = useState<string>("informative");
-  const [length, setLength] = useState<string>("medium");
-  const [customPrompt, setCustomPrompt] = useState(script?.prompt ?? "");
-  const [includeHook, setIncludeHook] = useState(true);
-  const [includeCTA, setIncludeCTA] = useState(true);
+  // AI Generation Options — tone/length mapped from project data
+  const toneFromProject = (() => {
+    const ct = project?.contentTone;
+    if (!ct) return "informative";
+    const map: Record<string, string> = { dramatic: "dramatic", casual: "casual", professional: "professional", funny: "funny" };
+    return map[ct] ?? "informative";
+  })();
+  const lengthFromProject = (() => {
+    if (project?.type === "short") return "short";
+    const vl = project?.videoLength;
+    if (!vl) return "medium";
+    if (vl.includes("1") || vl.includes("2") || vl.includes("short")) return "short";
+    if (vl.includes("10") || vl.includes("long") || vl.includes("15") || vl.includes("20")) return "long";
+    return "medium";
+  })();
+  const [tone, setTone] = useState<string>(toneFromProject);
+  const [length, setLength] = useState<string>(lengthFromProject);
+  const [customPrompt, setCustomPrompt] = useState(
+    script?.prompt ?? project?.aiContext?.additionalNotes ?? "",
+  );
 
   // Advanced AI Options (Note: presencePenalty and frequencyPenalty are NOT supported by gemini-2.5-flash)
   const [temperature, setTemperature] = useState(0.8);
@@ -356,12 +367,9 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
             tone,
             length,
             customPrompt: customPrompt || undefined,
-            includeHook,
-            includeCTA,
             temperature,
             topP,
             topK,
-            // Note: presencePenalty and frequencyPenalty are NOT supported by gemini-2.5-flash
           },
         }),
         signal: abortControllerRef.current.signal,
@@ -445,7 +453,7 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
       setStreamingProgress("");
       abortControllerRef.current = null;
     }
-  }, [projectId, tone, length, customPrompt, includeHook, includeCTA, temperature, topP, topK]);
+  }, [projectId, tone, length, customPrompt, temperature, topP, topK]);
 
   const handleCancelGeneration = () => {
     if (abortControllerRef.current) {
@@ -819,11 +827,31 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
 
         {/* Right Col: AI Assistant */}
         <div className="lg:col-span-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
-          {/* Pre-Production Card */}
-          <PreProductionCard
-            projectId={projectId}
-            data={preProduction}
-          />
+          {/* Project Context Summary */}
+          {project && (
+            <Card className="border-border/50 bg-muted/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  프로젝트 컨텍스트
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">{project.title}</p>
+                {project.channel && (
+                  <p>{project.channel.name} · {project.type === "short" ? "쇼츠" : "일반 영상"}</p>
+                )}
+                {project.contentTone && (
+                  <p>톤: {project.contentTone} · 길이: {project.type === "short" ? "30-60초" : (project.videoLength ?? "미설정")}</p>
+                )}
+                {project.targetAudience && <p>타겟: {project.targetAudience}</p>}
+                {project.category && <p>카테고리: {project.category}</p>}
+                {project.trendSnapshot && (
+                  <p className="text-primary/70">트렌드: {project.trendSnapshot.title}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* AI Generate Card */}
           <Card className="border-primary/20">
@@ -856,16 +884,22 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">영상 길이</Label>
-                  <Select value={length} onValueChange={setLength} disabled={isStreaming}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short">짧게 (1-2분)</SelectItem>
-                      <SelectItem value="medium">중간 (5-10분)</SelectItem>
-                      <SelectItem value="long">길게 (10분+)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {project.type === "short" ? (
+                    <div className="h-9 flex items-center px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground">
+                      30-60초 (쇼츠)
+                    </div>
+                  ) : (
+                    <Select value={length} onValueChange={setLength} disabled={isStreaming}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="short">짧게 (1-3분)</SelectItem>
+                        <SelectItem value="medium">중간 (5-10분)</SelectItem>
+                        <SelectItem value="long">길게 (10분+)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
 
@@ -900,25 +934,6 @@ export default function StudioScriptPage({ loaderData }: Route.ComponentProps) {
                       disabled={isStreaming}
                     />
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">오프닝 훅 포함</Label>
-                      <Switch
-                        checked={includeHook}
-                        onCheckedChange={setIncludeHook}
-                        disabled={isStreaming}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">CTA 세그먼트 포함</Label>
-                      <Switch
-                        checked={includeCTA}
-                        onCheckedChange={setIncludeCTA}
-                        disabled={isStreaming}
-                      />
-                    </div>
-                  </div>
-
                   {/* AI Generation Parameters */}
                   <div className="pt-3 border-t space-y-4">
                     <Label className="text-xs font-medium text-muted-foreground">AI 생성 파라미터</Label>

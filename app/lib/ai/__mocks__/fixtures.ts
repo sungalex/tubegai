@@ -7,8 +7,7 @@
 import type { AIGeneratedRecommendation } from "../recommendations.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
 import type { AIProjectGenerationOutput } from "../project-generator.server";
-import type { PreProductionOutput } from "../pre-production.server";
-import type { VideoGenerationResult, VideoBufferResult } from "../video.server";
+import type { VideoGenerationResult } from "../video.server";
 import type { MusicGenerationResult } from "../music.server";
 import type { StoryboardScene } from "../storyboard.server";
 
@@ -300,35 +299,6 @@ export const MOCK_PROJECT_CONTEXT: AIProjectGenerationOutput = {
 };
 
 // =============================================================================
-// ai-pre-production.server.ts - generatePreProduction
-// =============================================================================
-
-export const MOCK_PRE_PRODUCTION: PreProductionOutput = {
-  hooks: [
-    '"AI가 당신의 직업을 위협하고 있습니다"',
-    '"이 기술을 모르면 3년 안에 도태됩니다"',
-    '"지금 바로 시작해야 하는 이유"',
-  ],
-  scriptGuidelines: {
-    openingStrategy:
-      "충격적인 AI 대체 직업 통계로 시작하여 시청자의 위기감을 자극",
-    mainPoints: [
-      "AI가 대체할 수 있는 직업군 분석",
-      "AI와 공존하기 위한 스킬셋",
-      "지금 당장 시작할 수 있는 3가지 액션 플랜",
-    ],
-    ctaStrategy: "댓글로 자신의 직업과 AI 활용 경험 공유 유도",
-    closingStrategy: "긍정적 메시지로 마무리, 다음 편 예고",
-    keyMessages: [
-      "AI는 위협이 아니라 기회입니다",
-      "지금 시작하면 충분합니다",
-    ],
-    avoidTopics: ["지나치게 비관적인 전망", "특정 기업 비방"],
-  },
-  seoKeywords: ["AI", "직장인", "미래직업", "자기계발", "커리어", "AI활용법", "생존전략"],
-};
-
-// =============================================================================
 // ai-video.server.ts - generateVideoPrompt (internal)
 // =============================================================================
 
@@ -409,7 +379,7 @@ export const MOCK_STORYBOARD_SCENES: StoryboardScene[] = [
     description: "유튜브 분석 대시보드 화면",
     visualPrompt:
       "YouTube Analytics dashboard showing viewer retention graph with annotations highlighting key drop-off points",
-    duration: 15,
+    duration: 8,
   },
   {
     id: "scene-mock-5",
@@ -419,6 +389,6 @@ export const MOCK_STORYBOARD_SCENES: StoryboardScene[] = [
     description: "성공적인 영상과 실패한 영상의 비교 화면",
     visualPrompt:
       "Split screen comparison of two video thumbnails - left side with high views, right side with low views, analytical style",
-    duration: 10,
+    duration: 8,
   },
 ];

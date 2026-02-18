@@ -10,9 +10,7 @@ import {
   getStoryboardSceneForVideo,
   getOrCreateActiveSession,
   createSceneVideo,
-  createSceneVideoParts,
-  updateSceneVideoPart,
-  updateSceneVideoStatus,
+  updateSceneVideoAsset,
 } from "~/common/data/studio.data.server";
 import { createMediaAsset } from "~/common/data/media.data.server";
 import { generateSceneVideo } from "~/lib/ai/video.server";
@@ -51,18 +49,16 @@ export async function action({ request }: Route.ActionArgs) {
     const sessionId = scene.sessionId
       ?? await getOrCreateActiveSession(scene.projectId, userId);
 
-    const totalDuration = scene.duration ?? 5;
+    const duration = Math.min(scene.duration ?? 8, 8); // Max 8 seconds per scene
     const prompt = scene.visualPrompt ?? scene.description ?? "";
 
-    // Create video + parts records in DB
+    // Create video record in DB
     const videoId = await createSceneVideo({
       storyboardId: sceneId,
       projectId: scene.projectId,
       sessionId,
-      duration: totalDuration,
+      duration,
     });
-
-    const partIds = await createSceneVideoParts(videoId, totalDuration);
 
     // Download reference image buffer if available
     let referenceImageBuffer: Buffer | undefined;
@@ -90,101 +86,71 @@ export async function action({ request }: Route.ActionArgs) {
               `data: ${JSON.stringify({
                 type: "start",
                 videoId,
-                partCount: partIds.length,
               })}\n\n`,
             ),
           );
 
-          // Sequential clip generation
-          for (let i = 0; i < partIds.length; i++) {
-            const partId = partIds[i];
-            const partNumber = i + 1;
+          try {
+            // Generate single video clip (max 8s per scene)
+            const clipResult = await generateSceneVideo(prompt, {
+              durationSeconds: duration,
+              aspectRatio: options?.aspectRatio ?? "16:9",
+              referenceImageBuffer,
+            });
 
-            // Notify clip start
+            // Upload to Supabase Storage
+            const { storageKey, publicUrl } = await uploadStudioMedia({
+              projectId: scene.projectId,
+              sessionId,
+              category: "scene-video",
+              sceneNumber: scene.sceneNumber,
+              buffer: clipResult.buffer,
+              mimeType: clipResult.mimeType,
+            });
+
+            // Create media asset + link to video
+            const assetId = await createMediaAsset({
+              userId,
+              projectId: scene.projectId,
+              type: "video",
+              storageKey,
+              publicUrl,
+              fileSize: clipResult.buffer.length,
+              mimeType: clipResult.mimeType,
+              duration: clipResult.duration,
+            });
+
+            await updateSceneVideoAsset(videoId, {
+              status: "completed",
+              videoAssetId: assetId,
+            });
+
+            // Notify clip complete
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({
-                  type: "clip_start",
-                  partNumber,
-                  totalParts: partIds.length,
+                  type: "clip_complete",
+                  publicUrl,
                 })}\n\n`,
               ),
             );
+          } catch (clipError) {
+            console.error(
+              `Scene video generation failed for scene ${sceneId}:`,
+              clipError,
+            );
 
-            // Mark part as generating
-            await updateSceneVideoPart(partId, { status: "generating" });
+            await updateSceneVideoAsset(videoId, { status: "failed" });
 
-            try {
-              // Generate video clip
-              const clipResult = await generateSceneVideo(prompt, {
-                durationSeconds: 8,
-                aspectRatio: options?.aspectRatio ?? "16:9",
-                referenceImageBuffer,
-              });
-
-              // Upload to Supabase Storage
-              const { storageKey, publicUrl } = await uploadStudioMedia({
-                projectId: scene.projectId,
-                sessionId,
-                category: "scene-video",
-                sceneNumber: scene.sceneNumber,
-                buffer: clipResult.buffer,
-                mimeType: clipResult.mimeType,
-              });
-
-              // Create media asset + link to part
-              const assetId = await createMediaAsset({
-                userId,
-                projectId: scene.projectId,
-                type: "video",
-                storageKey,
-                publicUrl,
-                fileSize: clipResult.buffer.length,
-                mimeType: clipResult.mimeType,
-                duration: clipResult.duration,
-              });
-
-              await updateSceneVideoPart(partId, {
-                status: "completed",
-                videoAssetId: assetId,
-              });
-
-              // Notify clip complete
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "clip_complete",
-                    partNumber,
-                    publicUrl,
-                  })}\n\n`,
-                ),
-              );
-            } catch (clipError) {
-              console.error(
-                `Scene video clip ${partNumber} generation failed:`,
-                clipError,
-              );
-
-              await updateSceneVideoPart(partId, { status: "failed" });
-
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "clip_error",
-                    partNumber,
-                    error: "비디오 클립 생성 실패",
-                  })}\n\n`,
-                ),
-              );
-            }
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "clip_error",
+                  error: "비디오 생성 실패",
+                })}\n\n`,
+              ),
+            );
           }
-
-          // Check if all parts completed
-          const allCompleted = true; // We track individual failures above
-          await updateSceneVideoStatus(
-            videoId,
-            allCompleted ? "completed" : "failed",
-          );
 
           // Send completion event
           controller.enqueue(
@@ -203,7 +169,7 @@ export async function action({ request }: Route.ActionArgs) {
             error instanceof Error ? error.message : error,
           );
 
-          await updateSceneVideoStatus(videoId, "failed");
+          await updateSceneVideoAsset(videoId, { status: "failed" });
 
           controller.enqueue(
             encoder.encode(

@@ -3,7 +3,7 @@
 // =============================================================================
 // This layer handles all Supabase database operations for media assets.
 
-import { eq } from "drizzle-orm";
+import { eq, and, like, desc } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 
 // =============================================================================
@@ -131,4 +131,31 @@ export async function getStoryboardSceneWithImage(sceneId: string) {
   });
 
   return scene;
+}
+
+/**
+ * Get image history for a storyboard scene (newest first)
+ */
+export async function getStoryboardImageHistory(storyboardId: string) {
+  const scene = await db.query.storyboards.findFirst({
+    where: eq(schema.storyboards.id, storyboardId),
+    columns: { projectId: true, sceneNumber: true },
+  });
+  if (!scene) return [];
+
+  const pattern = `%storyboard/scene-${scene.sceneNumber}_%`;
+  const assets = await db.query.mediaAssets.findMany({
+    where: and(
+      eq(schema.mediaAssets.projectId, scene.projectId),
+      eq(schema.mediaAssets.type, "image"),
+      like(schema.mediaAssets.storageKey, pattern),
+    ),
+    orderBy: [desc(schema.mediaAssets.createdAt)],
+  });
+
+  return assets.map((a) => ({
+    id: a.id,
+    publicUrl: a.publicUrl,
+    createdAt: a.createdAt,
+  }));
 }

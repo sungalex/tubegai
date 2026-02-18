@@ -65,10 +65,11 @@ const SYSTEM_PROMPT_KO = `당신은 전문 스토리보드 작가입니다. 영�
 - 영상 흐름에 맞는 씬 순서 및 길이 결정
 
 ## 씬 생성 원칙
-1. 각 스크립트 세그먼트당 1-4개의 씬 생성 (density에 따라 조절)
-2. 비주얼 프롬프트는 구체적이고 묘사적으로 작성
-3. 카메라 앵글, 조명, 분위기를 포함
-4. 씬 간 자연스러운 전환 고려
+1. 각 씬의 duration은 **최대 8초** (Veo 3 영상 생성 제약)
+2. 세그먼트 duration ÷ 8 (올림)으로 씬 개수 자동 계산
+3. 비주얼 프롬프트는 구체적이고 묘사적으로 작성
+4. 카메라 앵글, 조명, 분위기를 포함
+5. 씬 간 자연스러운 전환 고려
 
 응답은 반드시 유효한 JSON 배열 형식이어야 합니다.
 
@@ -78,7 +79,7 @@ const SYSTEM_PROMPT_KO = `당신은 전문 스토리보드 작가입니다. 영�
 - orderIndex: 세그먼트 내 순서 (0부터 시작)
 - description: 씬 설명 (한국어, 1-2문장)
 - visualPrompt: AI 이미지 생성용 프롬프트 (영어, 상세하게)
-- duration: 씬 길이 (초)
+- duration: 씬 길이 (초, 최대 8초)
 - emotionalTone: 해당 씬의 감정 톤 (예: "exciting", "calm", "dramatic", "tense", "heartwarming")
 - cameraAngle: 카메라 앵글 ("wide", "close-up", "medium", "pov", "drone", "over-the-shoulder")`;
 
@@ -90,10 +91,11 @@ const SYSTEM_PROMPT_EN = `You are a professional storyboard artist. You analyze 
 - Determine scene order and duration that fits the video flow
 
 ## Scene Generation Principles
-1. Generate 1-4 scenes per script segment (adjusted by density)
-2. Write concrete and descriptive visual prompts
-3. Include camera angles, lighting, and mood
-4. Consider smooth transitions between scenes
+1. Each scene duration must be **max 8 seconds** (Veo 3 video generation constraint)
+2. Number of scenes per segment = ceil(segment duration / 8)
+3. Write concrete and descriptive visual prompts
+4. Include camera angles, lighting, and mood
+5. Consider smooth transitions between scenes
 
 Your response must be a valid JSON array only.
 
@@ -103,7 +105,7 @@ Each scene includes:
 - orderIndex: Order within the segment (starting from 0)
 - description: Scene description (1-2 sentences)
 - visualPrompt: Detailed prompt for AI image generation
-- duration: Scene duration (seconds)
+- duration: Scene duration (seconds, max 8)
 - emotionalTone: The emotional tone for this scene (e.g. "exciting", "calm", "dramatic", "tense", "heartwarming")
 - cameraAngle: Camera angle ("wide", "close-up", "medium", "pov", "drone", "over-the-shoulder")`;
 
@@ -147,7 +149,8 @@ export async function generateStoryboardStream(
   const language = options.language ?? "ko";
 
   if (process.env.GEMINI_MOCK === "true") {
-    for (const scene of MOCK_STORYBOARD_SCENES) {
+    const mockScenes = getDefaultScenes(scriptSegments, language);
+    for (const scene of mockScenes) {
       onScene(scene);
       onProgress(scene.description);
       await new Promise((r) => setTimeout(r, 300));
@@ -205,7 +208,8 @@ export async function generateStoryboardStream(
         if (!emittedSceneIds.has(i)) {
           emittedSceneIds.add(i);
           const scene = normalizeScene(extractedScenes[i], options);
-          onScene(scene);
+          const [resolved] = resolveSegmentIds([scene], scriptSegments);
+          onScene(resolved);
         }
       }
 
@@ -218,7 +222,10 @@ export async function generateStoryboardStream(
     }
 
     // Parse any remaining scenes that weren't caught during streaming
-    const allScenes = parseStoryboardResponse(fullText, options);
+    const allScenes = resolveSegmentIds(
+      parseStoryboardResponse(fullText, options),
+      scriptSegments
+    );
     const emittedCount = emittedSceneIds.size;
 
     for (let i = emittedCount; i < allScenes.length; i++) {
@@ -296,7 +303,7 @@ export async function generateStoryboard(
       return getDefaultScenes(scriptSegments, language);
     }
 
-    return parseStoryboardResponse(text, options);
+    return resolveSegmentIds(parseStoryboardResponse(text, options), scriptSegments);
   } catch (error) {
     console.error(
       "Failed to generate storyboard:",
@@ -316,16 +323,6 @@ function buildStoryboardPrompt(
   options: StoryboardGenerationOptions,
   language: "ko" | "en"
 ): string {
-  const densityLabel =
-    options.density > 70 ? (language === "ko" ? "높음" : "high") :
-    options.density < 30 ? (language === "ko" ? "낮음" : "low") :
-    (language === "ko" ? "보통" : "medium");
-
-  const scenesPerSegment =
-    options.density > 70 ? "3-4" :
-    options.density < 30 ? "1-2" :
-    "2-3";
-
   const stylePrompt = STYLE_PROMPTS[options.style] || STYLE_PROMPTS.cinematic;
   const lightingPrompt = options.lighting ? LIGHTING_PROMPTS[options.lighting] || "" : "";
   const cameraPrompt = options.camera ? CAMERA_PROMPTS[options.camera] || "" : "";
@@ -335,8 +332,9 @@ function buildStoryboardPrompt(
       const preview = seg.content.length > 300
         ? seg.content.slice(0, 300) + "..."
         : seg.content;
+      const expectedScenes = Math.ceil(seg.duration / 8);
       const lines: string[] = [];
-      lines.push(`${i + 1}. [ID: ${seg.id}] [Type: ${seg.type}] [Duration: ${seg.duration}s] ${preview}`);
+      lines.push(`${i + 1}. [ID: SEG_${i + 1}] [Type: ${seg.type}] [Duration: ${seg.duration}s] [Expected Scenes: ${expectedScenes}] ${preview}`);
       if (seg.visualNotes) {
         lines.push(`   Visual Notes: ${seg.visualNotes}`);
       }
@@ -364,7 +362,7 @@ ${projectContext}
 ## 스타일 설정
 - 비주얼 스타일: ${options.style} (${stylePrompt})
 - 화면 비율: ${options.aspectRatio}
-- 씬 밀도: ${densityLabel} (세그먼트당 ${scenesPerSegment}개 씬)
+- 씬 분할: 세그먼트 duration ÷ 8초 (올림)으로 자동 계산
 ${lightingPrompt ? `- 조명: ${lightingPrompt}` : ""}
 ${cameraPrompt ? `- 카메라: ${cameraPrompt}` : ""}
 ${options.negativePrompt ? `- 제외할 요소: ${options.negativePrompt}` : ""}
@@ -377,9 +375,10 @@ ${segmentsList}
 1. 각 세그먼트의 ID를 scriptSegmentId로 사용하세요
 2. sceneNumber는 전체 씬에 대해 1부터 순차적으로 부여
 3. visualPrompt는 영어로 작성하고, 스타일 키워드를 포함: "${stylePrompt}"
-4. 씬 duration 합계가 해당 세그먼트의 duration과 유사하도록 설정
-5. 각 씬에 emotionalTone (감정 톤)과 cameraAngle (카메라 앵글) 반드시 포함
-6. Scene Hints가 제공된 경우, 이를 참고하여 씬을 생성하되 cameraAngle도 반영
+4. **각 씬의 duration은 최대 8초** (Veo 3 영상 생성 제약)
+5. 씬 duration 합계가 해당 세그먼트의 duration과 유사하도록 설정
+6. 각 씬에 emotionalTone (감정 톤)과 cameraAngle (카메라 앵글) 반드시 포함
+7. Scene Hints가 제공된 경우, 이를 참고하여 씬을 생성하되 cameraAngle도 반영
 
 JSON 배열만 반환하세요.`;
   }
@@ -391,7 +390,7 @@ ${projectContext}
 ## Style Settings
 - Visual Style: ${options.style} (${stylePrompt})
 - Aspect Ratio: ${options.aspectRatio}
-- Scene Density: ${densityLabel} (${scenesPerSegment} scenes per segment)
+- Scene Split: Auto-calculated by ceil(segment duration / 8s)
 ${lightingPrompt ? `- Lighting: ${lightingPrompt}` : ""}
 ${cameraPrompt ? `- Camera: ${cameraPrompt}` : ""}
 ${options.negativePrompt ? `- Elements to Avoid: ${options.negativePrompt}` : ""}
@@ -404,9 +403,10 @@ ${segmentsList}
 1. Use each segment's ID as scriptSegmentId
 2. Assign sceneNumber sequentially starting from 1 for all scenes
 3. Write visualPrompt in English, including style keywords: "${stylePrompt}"
-4. Scene duration sum should roughly match the segment's duration
-5. Include emotionalTone and cameraAngle for every scene
-6. If Scene Hints are provided, use them as reference and reflect their cameraAngle
+4. **Each scene duration must be max 8 seconds** (Veo 3 video generation constraint)
+5. Scene duration sum should roughly match the segment's duration
+6. Include emotionalTone and cameraAngle for every scene
+7. If Scene Hints are provided, use them as reference and reflect their cameraAngle
 
 Return only a JSON array.`;
 }
@@ -467,6 +467,50 @@ function extractCompleteScenes(
   return scenes;
 }
 
+/**
+ * Maps AI-generated segment index labels (SEG_1, SEG_2, ...) back to real DB UUIDs.
+ * Falls back to matching by extracted number or known UUID if the AI returns unexpected identifiers.
+ */
+function resolveSegmentIds(
+  scenes: StoryboardScene[],
+  scriptSegments: ScriptSegment[],
+): StoryboardScene[] {
+  if (scriptSegments.length === 0) return scenes;
+
+  const indexToUuid = new Map<string, string>();
+  for (let i = 0; i < scriptSegments.length; i++) {
+    indexToUuid.set(`seg_${i + 1}`, scriptSegments[i].id);
+    indexToUuid.set(`${i + 1}`, scriptSegments[i].id);
+  }
+
+  const knownUuids = new Set(scriptSegments.map((s) => s.id));
+
+  return scenes.map((scene) => {
+    const key = scene.scriptSegmentId.trim().toLowerCase();
+
+    // Direct match on SEG_N or plain number
+    const resolved = indexToUuid.get(key);
+    if (resolved) return { ...scene, scriptSegmentId: resolved };
+
+    // Already a known UUID — pass through
+    if (knownUuids.has(scene.scriptSegmentId)) return scene;
+
+    // Extract any number from the string (handles "SEG_3", "segment_3", "3", etc.)
+    const numMatch = key.match(/(\d+)/);
+    if (numMatch) {
+      const idx = parseInt(numMatch[1], 10) - 1;
+      if (idx >= 0 && idx < scriptSegments.length) {
+        return { ...scene, scriptSegmentId: scriptSegments[idx].id };
+      }
+    }
+
+    console.warn(
+      `[storyboard] Could not resolve scriptSegmentId "${scene.scriptSegmentId}" for scene ${scene.sceneNumber}. Assigning to first segment.`
+    );
+    return { ...scene, scriptSegmentId: scriptSegments[0].id };
+  });
+}
+
 function normalizeScene(
   obj: Record<string, unknown>,
   options: StoryboardGenerationOptions
@@ -491,7 +535,7 @@ function normalizeScene(
     orderIndex: typeof obj.orderIndex === "number" ? obj.orderIndex : 0,
     description: String(obj.description || ""),
     visualPrompt,
-    duration: typeof obj.duration === "number" ? obj.duration : 5,
+    duration: typeof obj.duration === "number" ? Math.min(obj.duration, 8) : 8,
     emotionalTone: typeof obj.emotionalTone === "string" ? obj.emotionalTone : undefined,
     cameraAngle: typeof obj.cameraAngle === "string" ? obj.cameraAngle : undefined,
   };
@@ -531,10 +575,15 @@ function getDefaultScenes(
   let sceneNumber = 1;
 
   for (const segment of scriptSegments) {
-    const numScenes = segment.sceneHints?.length || 2;
+    // 8-second split: ceil(duration / 8)
+    const numScenes = Math.max(1, Math.ceil(segment.duration / 8));
+    let remainingDuration = segment.duration;
 
     for (let i = 0; i < numScenes; i++) {
       const hint = segment.sceneHints?.[i];
+      const sceneDuration = Math.min(remainingDuration, 8);
+      remainingDuration -= sceneDuration;
+
       scenes.push({
         id: crypto.randomUUID(),
         scriptSegmentId: segment.id,
@@ -546,7 +595,7 @@ function getDefaultScenes(
             : `${segment.type} segment scene ${i + 1}`),
         visualPrompt: hint?.visualPrompt ||
           `${segment.type} scene, professional video production, high quality`,
-        duration: hint?.duration || Math.ceil(segment.duration / numScenes),
+        duration: sceneDuration,
       });
     }
   }
