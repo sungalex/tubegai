@@ -5,7 +5,6 @@ import {
   Save,
   Plus,
   Trash2,
-  Clock,
   Wand2,
   RotateCcw,
   Loader2,
@@ -16,7 +15,6 @@ import {
   Lightbulb,
   AlertCircle,
   Radio,
-  Download,
   Image as ImageIcon,
   RefreshCw,
   Layers,
@@ -42,7 +40,6 @@ import {
   SelectValue,
 } from "~/common/components/ui/select";
 import { Switch } from "~/common/components/ui/switch";
-import { Slider } from "~/common/components/ui/slider";
 import {
   Collapsible,
   CollapsibleContent,
@@ -219,8 +216,8 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
 
   // AI Generation Options
   const [style, setStyle] = useState<string>("cinematic");
-  const [aspectRatio, setAspectRatio] = useState<string>("16:9");
-  const [density, setDensity] = useState<number[]>([50]);
+  const defaultAspectRatio = project?.type === "short" ? "9:16" : "16:9";
+  const [aspectRatio, setAspectRatio] = useState<string>(defaultAspectRatio);
   const [camera, setCamera] = useState<string>("none");
   const [lighting, setLighting] = useState<string>("cinematic");
   const [negativePrompt, setNegativePrompt] = useState("");
@@ -348,7 +345,6 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
           options: {
             style,
             aspectRatio,
-            density: density[0],
             camera,
             lighting,
             negativePrompt: negativePrompt || undefined,
@@ -420,55 +416,21 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                   });
                   break;
 
-                case "text_complete":
-                  setStreamingProgress(`텍스트 생성 완료 (${data.sceneCount}개 씬). 이미지 생성을 시작합니다...`);
-                  break;
-
-                case "image_progress":
-                  setStreamingProgress(`씬 ${data.sceneNumber} 이미지 생성 중...`);
-                  // Mark scene as generating image
-                  setSegments((prev) =>
-                    prev.map((seg) => ({
-                      ...seg,
-                      scenes: seg.scenes.map((s) =>
-                        s.sceneNumber === data.sceneNumber
-                          ? { ...s, isGeneratingImage: true }
-                          : s
-                      ),
-                    }))
-                  );
-                  break;
-
-                case "image_complete":
-                  setStreamingProgress(`씬 ${data.sceneNumber} 이미지 생성 완료`);
-                  // Update scene with image URL and clear generating state
-                  setSegments((prev) =>
-                    prev.map((seg) => ({
-                      ...seg,
-                      scenes: seg.scenes.map((s) =>
-                        s.sceneNumber === data.sceneNumber || s.id === data.sceneId
-                          ? { ...s, imageUrl: data.imageUrl, isGeneratingImage: false }
-                          : s
-                      ),
-                    }))
-                  );
-                  break;
-
-                case "image_error":
-                  // Clear generating state on error
-                  setSegments((prev) =>
-                    prev.map((seg) => ({
-                      ...seg,
-                      scenes: seg.scenes.map((s) =>
-                        s.sceneNumber === data.sceneNumber
-                          ? { ...s, isGeneratingImage: false }
-                          : s
-                      ),
-                    }))
-                  );
-                  break;
-
                 case "complete":
+                  // Update scene IDs with real DB UUIDs from saved data
+                  if (data.scenes?.length > 0) {
+                    setSegments((prev) =>
+                      prev.map((seg) => ({
+                        ...seg,
+                        scenes: seg.scenes.map((s) => {
+                          const saved = data.scenes.find(
+                            (ds: { sceneNumber: number }) => ds.sceneNumber === s.sceneNumber
+                          );
+                          return saved ? { ...s, id: saved.id } : s;
+                        }),
+                      }))
+                    );
+                  }
                   setIsStreaming(false);
                   setHasChanges(false);
                   toast.success("AI 스토리보드가 생성되었습니다!", {
@@ -503,7 +465,6 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
     projectId,
     style,
     aspectRatio,
-    density,
     camera,
     lighting,
     negativePrompt,
@@ -755,10 +716,6 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            PDF 내보내기
-          </Button>
           <Button size="sm" onClick={handleSave} disabled={isSaving || !hasChanges || isStreaming}>
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -854,6 +811,8 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
                         >
                           <StoryboardSceneCard
                             scene={scene}
+                            aspectRatio={aspectRatio}
+                            isGenerating={isGeneratingImage === scene.id}
                             onRegenerateImage={handleRegenerateImage}
                             className={`min-h-70 ${
                               isStreaming &&
@@ -987,27 +946,6 @@ export default function StudioStoryboardPage({ loaderData }: Route.ComponentProp
               </div>
 
               <Separator />
-
-              {/* Scene Density */}
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <Label className="text-xs">씬 밀도</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {density[0] > 70
-                      ? "높음"
-                      : density[0] < 30
-                        ? "낮음"
-                        : "균형"}
-                  </span>
-                </div>
-                <Slider
-                  value={density}
-                  onValueChange={setDensity}
-                  max={100}
-                  step={10}
-                  disabled={isStreaming}
-                />
-              </div>
 
               {/* Advanced Options */}
               <Collapsible open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>

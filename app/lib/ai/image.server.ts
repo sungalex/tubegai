@@ -54,6 +54,24 @@ function getImageDimensions(aspectRatio?: string): { width: number; height: numb
 // Prompt Enhancement
 // =============================================================================
 
+function getOrientationHint(aspectRatio?: string): string {
+  switch (aspectRatio) {
+    case "9:16":
+      return "vertical portrait orientation (9:16), taller than wide";
+    case "3:4":
+      return "vertical portrait orientation (3:4), taller than wide";
+    case "1:1":
+      return "square format (1:1)";
+    case "2.35:1":
+      return "ultra-wide cinematic format (2.35:1)";
+    case "4:3":
+      return "landscape orientation (4:3)";
+    case "16:9":
+    default:
+      return "landscape orientation (16:9), wider than tall";
+  }
+}
+
 function buildEnhancedPrompt(prompt: string, options: ImageGenerationOptions): string {
   let enhanced = prompt;
 
@@ -61,6 +79,9 @@ function buildEnhancedPrompt(prompt: string, options: ImageGenerationOptions): s
   if (options.style) {
     enhanced = `${options.style}, ${enhanced}`;
   }
+
+  // Add aspect ratio orientation hint
+  enhanced = `${enhanced}, ${getOrientationHint(options.aspectRatio)}`;
 
   // Add quality and detail enhancers
   enhanced = `${enhanced}, high quality, detailed, professional`;
