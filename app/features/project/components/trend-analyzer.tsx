@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Plus, Bookmark, BookmarkCheck, RefreshCw, ExternalLink, Lightbulb, Loader2, Eye, Target } from "lucide-react";
+import { TrendingUp, Search, Zap, PlayCircle, Filter, Sparkles, Bookmark, BookmarkCheck, RefreshCw, ExternalLink, Lightbulb, Loader2, Eye, Target } from "lucide-react";
 import { useNavigate, useFetcher } from "react-router";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { toast } from "sonner";
@@ -21,45 +21,29 @@ import {
   PopoverTrigger,
 } from "~/common/components/ui/popover";
 import { Label } from "~/common/components/ui/label";
-import type { TrendItem, AIRecommendation, Channel } from "~/common/types/project.types";
+import type { TrendItem, Channel } from "~/common/types/project.types";
 import type { Idea } from "~/common/types/ideation.types";
-import { getPrimaryTrend } from "~/common/types/ideation.types";
+import { DEFAULT_YOUTUBE_CATEGORY_KO } from "~/common/types/trend.types";
 import { IdeaGeneratorDialog } from "./idea-generator-dialog";
 import { AIProjectGeneratorDialog } from "./ai-project-generator-dialog";
 
-function ideaToAIRecommendation(idea: Idea): AIRecommendation {
-  return {
-    id: idea.id,
-    title: idea.title,
-    reason: idea.reason || "AI 추천",
-    growth: idea.growthRate || "+50%",
-    description: idea.description,
-    hooks: idea.hooks,
-    targetAudience: idea.targetAudience,
-    estimatedViews: idea.estimatedViews,
-  };
-}
-
 interface TrendAnalyzerProps {
   trends: TrendItem[];
-  savedIdeas: Idea[];
   initialAiRecommendations?: Idea[];
   channels?: Channel[];
   onSaveIdea?: (idea: Idea) => void;
-  onUpdateSavedIdeas?: (newSavedIdeas: Idea[]) => void;
   isLoading?: boolean;
 }
 
-export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, channels = [], onSaveIdea, onUpdateSavedIdeas, isLoading = false }: TrendAnalyzerProps) {
+export function TrendAnalyzer({ trends, initialAiRecommendations, channels = [], onSaveIdea, isLoading = false }: TrendAnalyzerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<TrendItem | null>(null);
   const [isIdeaDialogOpen, setIsIdeaDialogOpen] = useState(false);
   const [isAIProjectDialogOpen, setIsAIProjectDialogOpen] = useState(false);
   const [selectedTrendForAI, setSelectedTrendForAI] = useState<TrendItem | null>(null);
-  const [usingIdeaIdx, setUsingIdeaIdx] = useState<number | null>(null);
-  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>(
-    () => (initialAiRecommendations ?? []).map(ideaToAIRecommendation)
+  const [aiRecommendations, setAiRecommendations] = useState<Idea[]>(
+    () => initialAiRecommendations ?? []
   );
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
@@ -165,20 +149,10 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
       }
 
       if (data.ideas) {
-        const recommendations = data.ideas.map((idea: { id: string; title: string; reason?: string; growthRate?: string; description?: string; hooks?: string[]; targetAudience?: string; estimatedViews?: string }) => ({
-          id: idea.id,
-          title: idea.title,
-          reason: idea.reason || `${trend.title} 기반`,
-          growth: idea.growthRate || trend.growth,
-          description: idea.description,
-          hooks: idea.hooks,
-          targetAudience: idea.targetAudience,
-          estimatedViews: idea.estimatedViews,
-        }));
-        setAiRecommendations(recommendations);
+        setAiRecommendations(data.ideas as Idea[]);
         toast.success(`"${trend.title}" 기반 아이디어가 생성되었습니다!`);
       }
-    } catch (error) {
+    } catch {
       toast.error("AI 아이디어 생성 실패");
     } finally {
       setIsGeneratingAI(false);
@@ -195,13 +169,13 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
   };
 
   // Convert AI recommendation to TrendItem for idea generation
-  const handleGenerateIdeasFromRecommendation = (recommendation: AIRecommendation) => {
+  const handleGenerateIdeasFromRecommendation = (idea: Idea) => {
     const mockTrend: TrendItem = {
       id: Date.now(),
-      title: recommendation.title,
-      category: recommendation.reason,
-      views: "N/A",
-      growth: recommendation.growth,
+      title: idea.title,
+      category: idea.category || DEFAULT_YOUTUBE_CATEGORY_KO,
+      views: idea.estimatedViews || "N/A",
+      growth: idea.growthRate || "N/A",
       thumbnail: "",
       tags: [],
     };
@@ -216,89 +190,37 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
     }
   };
 
-  // Save recommendation as idea to Supabase
-  const handleSaveRecommendation = async (recommendation: AIRecommendation) => {
+  // Save (bookmark) AI recommendation
+  const handleSaveRecommendation = async (idea: Idea) => {
     try {
-      // If the recommendation has an ID, use the save intent to mark it as saved
-      if (recommendation.id) {
-        const response = await fetch("/api/ideas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intent: "save", ideaId: recommendation.id }),
-        });
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent: "save", ideaId: idea.id }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.error) {
-          toast.error("아이디어 저장 실패", { description: data.error });
-          return;
-        }
-
-        // Update local state to reflect saved status
-        setAiRecommendations((prev) =>
-          prev.filter((rec) => rec.id !== recommendation.id)
-        );
-
-        // Notify parent component of saved idea
-        if (data.idea && onSaveIdea) {
-          onSaveIdea(data.idea);
-        }
-
-        toast.success("아이디어가 저장되었습니다!", {
-          description: "저장된 아이디어 탭에서 확인하세요.",
-        });
-      } else {
-        // Fallback for recommendations without ID - create new idea
-        const idea = {
-          title: recommendation.title,
-          description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
-          hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`],
-          targetAudience: recommendation.targetAudience || "일반 시청자",
-          estimatedViews: recommendation.estimatedViews || "10K-50K",
-          difficulty: "medium" as const,
-          source: "user_created" as const,
-          // Note: trendIds not available for fallback recommendations
-        };
-
-        const response = await fetch("/api/ideas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intent: "create", idea }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          toast.error("아이디어 저장 실패", { description: data.error });
-          return;
-        }
-
-        if (data.idea && onSaveIdea) {
-          onSaveIdea(data.idea);
-        }
-
-        toast.success("아이디어가 저장되었습니다!", {
-          description: "저장된 아이디어 탭에서 확인하세요.",
-        });
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
+        return;
       }
-    } catch (error) {
+
+      // Update local state to reflect saved status
+      setAiRecommendations((prev) =>
+        prev.filter((rec) => rec.id !== idea.id)
+      );
+
+      if (data.idea && onSaveIdea) {
+        onSaveIdea(data.idea);
+      }
+
+      toast.success("아이디어가 저장되었습니다!", {
+        description: "저장된 아이디어 탭에서 확인하세요.",
+      });
+    } catch {
       toast.error("아이디어 저장 실패");
     }
-  };
-
-  // Open idea generator without a specific trend (for new idea creation)
-  const handleOpenIdeaGenerator = () => {
-    const defaultTrend: TrendItem = {
-      id: Date.now(),
-      title: "새 아이디어",
-      category: "일반",
-      views: "N/A",
-      growth: "N/A",
-      thumbnail: "",
-      tags: [],
-    };
-    setSelectedTrend(defaultTrend);
-    setIsIdeaDialogOpen(true);
   };
 
   // Generate AI recommendations (lazy loading) - passes only trend IDs
@@ -339,131 +261,47 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
       }
 
       if (data.ideas) {
-        // Convert Idea type to AIRecommendation format for compatibility
-        const recommendations = data.ideas.map((idea: { id: string; title: string; reason?: string; growthRate?: string; description?: string; hooks?: string[]; targetAudience?: string; estimatedViews?: string }) => ({
-          id: idea.id,
-          title: idea.title,
-          reason: idea.reason || "AI 추천",
-          growth: idea.growthRate || "+50%",
-          description: idea.description,
-          hooks: idea.hooks,
-          targetAudience: idea.targetAudience,
-          estimatedViews: idea.estimatedViews,
-        }));
-        setAiRecommendations(recommendations);
+        setAiRecommendations(data.ideas as Idea[]);
         toast.success("AI 추천이 생성되었습니다!");
       }
-    } catch (error) {
+    } catch {
       toast.error("AI 추천 생성 실패");
     } finally {
       setIsGeneratingAI(false);
     }
   };
 
-  // Resolve referenceUrl: use idea's own referenceUrl, or fall back to the related trend's videoUrl
-  const resolveReferenceUrl = (idea: Idea): string | undefined => {
-    if (idea.referenceUrl) return idea.referenceUrl;
-    const primaryTrend = idea.trends?.find(t => t.isPrimary) || idea.trends?.[0];
-    if (!primaryTrend) return undefined;
-    const matched = trends.find(
-      t => t.trendUuid === primaryTrend.trendId ||
-           t.title.toLowerCase() === primaryTrend.trend?.title?.toLowerCase()
-    );
-    return matched?.videoUrl;
-  };
-
-  // Use saved idea - navigate to new project page
-  const handleUseSavedIdea = async (idea: Idea, idx: number) => {
-    setUsingIdeaIdx(idx);
-    try {
-      navigate("/projects/new", {
-        state: {
-          idea,
-          topic: idea.title,
-          hooks: idea.hooks,
-          targetAudience: idea.targetAudience,
-          estimatedViews: idea.estimatedViews,
-          description: idea.description,
-          referenceUrl: resolveReferenceUrl(idea),
-        }
-      });
-    } finally {
-      setUsingIdeaIdx(null);
-    }
-  };
-
   // Use AI recommendation - save and navigate to new project page
-  const handleUseAIRecommendation = async (recommendation: AIRecommendation) => {
+  const handleUseAIRecommendation = async (idea: Idea) => {
     try {
-      let savedIdea;
+      // Save (bookmark) the AI recommendation
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent: "save", ideaId: idea.id }),
+      });
 
-      // If the recommendation has an ID, use the save intent
-      if (recommendation.id) {
-        const response = await fetch("/api/ideas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intent: "save", ideaId: recommendation.id }),
-        });
+      const data = await response.json();
 
-        const data = await response.json();
-
-        if (data.error) {
-          toast.error("아이디어 저장 실패", { description: data.error });
-          return;
-        }
-
-        savedIdea = data.idea;
-
-        // Update local state to reflect saved status
-        setAiRecommendations((prev) =>
-          prev.filter((rec) => rec.id !== recommendation.id)
-        );
-      } else {
-        // Fallback for recommendations without ID - create new idea
-        const idea = {
-          title: recommendation.title,
-          description: recommendation.description || `AI 추천 아이디어: ${recommendation.reason}`,
-          hooks: recommendation.hooks || [`${recommendation.title}에 대한 흥미로운 시작`],
-          targetAudience: recommendation.targetAudience || "일반 시청자",
-          estimatedViews: recommendation.estimatedViews || "10K-50K",
-          difficulty: "medium" as const,
-          source: "user_created" as const,
-          // Note: trendIds not available for fallback recommendations
-        };
-
-        const response = await fetch("/api/ideas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intent: "create", idea }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          toast.error("아이디어 저장 실패", { description: data.error });
-          return;
-        }
-
-        savedIdea = data.idea;
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
+        return;
       }
+
+      const savedIdea = data.idea as Idea;
+
+      // Update local state to reflect saved status
+      setAiRecommendations((prev) =>
+        prev.filter((rec) => rec.id !== idea.id)
+      );
 
       if (savedIdea && onSaveIdea) {
         onSaveIdea(savedIdea);
       }
 
       toast.success("아이디어가 저장되었습니다!");
-      navigate("/projects/new", {
-        state: {
-          idea: savedIdea,
-          topic: recommendation.title,
-          hooks: recommendation.hooks,
-          targetAudience: recommendation.targetAudience,
-          estimatedViews: recommendation.estimatedViews,
-          description: recommendation.description,
-          referenceUrl: savedIdea ? resolveReferenceUrl(savedIdea) : undefined,
-        }
-      });
-    } catch (error) {
+      navigate("/projects/new", { state: { idea: savedIdea } });
+    } catch {
       toast.error("아이디어 저장 실패");
     }
   };
@@ -684,99 +522,6 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
           <p className="text-muted-foreground text-sm">인기 있는 주제를 발견하고 바로 콘텐츠를 만들어보세요.</p>
         </div>
 
-        {/* Saved Ideas Section */}
-        <section className="bg-linear-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-200/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/20 gap-1 px-3 py-1">
-                <Bookmark className="h-3.5 w-3.5" fill="currentColor" />
-                저장된 아이디어
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                {savedIdeas.length}개
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-background/80 hover:bg-background"
-              onClick={handleOpenIdeaGenerator}
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              아이디어 생성
-            </Button>
-          </div>
-
-          {savedIdeas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Lightbulb className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">저장된 아이디어가 없습니다.</p>
-              <p className="text-xs mt-1">트렌드에서 아이디어를 생성해보세요!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {savedIdeas.map((idea, idx) => (
-                <Card key={idea.id} className="bg-background/60 border-yellow-500/10 hover:border-yellow-500/30 transition-all cursor-pointer group hover:shadow-md hover:shadow-yellow-500/5">
-                  <CardContent className="p-4 flex flex-col h-full gap-3">
-                    <div className="flex justify-between items-start">
-                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-yellow-200/10">
-                        {idea.difficulty}
-                      </Badge>
-                      {getPrimaryTrend(idea)?.trend?.title && (
-                        <span className="text-xs text-muted-foreground truncate max-w-20">
-                          {getPrimaryTrend(idea)?.trend?.title}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="font-medium group-hover:text-yellow-600 transition-colors line-clamp-2">{idea.title}</h4>
-
-                    {idea.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
-                    )}
-
-                    {idea.hooks && idea.hooks.length > 0 && (
-                      <div className="text-xs bg-yellow-500/5 rounded-md p-2 border border-yellow-500/10">
-                        <span className="font-medium text-yellow-600">Hook: </span>
-                        <span className="text-muted-foreground line-clamp-1">{idea.hooks[0]}</span>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      {idea.targetAudience && (
-                        <div className="flex items-center gap-1">
-                          <Target className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground truncate max-w-24">{idea.targetAudience}</span>
-                        </div>
-                      )}
-                      {idea.estimatedViews && (
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-green-500 font-medium">{idea.estimatedViews}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 mt-auto pt-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
-                        disabled={usingIdeaIdx === idx}
-                        onClick={() => handleUseSavedIdea(idea, idx)}
-                      >
-                        {usingIdeaIdx === idx ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : null}
-                        아이디어 사용
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-
         {/* AI Recommendations Section */}
         <section className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-200/20 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
@@ -828,10 +573,10 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                         <CardContent className="p-4 flex flex-col h-full gap-3">
                           <div className="flex justify-between items-start">
                             <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-purple-200/10">
-                              {item.reason}
+                              {item.reason || "AI 추천"}
                             </Badge>
                             <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
-                              <TrendingUp className="h-3 w-3" /> {item.growth}
+                              <TrendingUp className="h-3 w-3" /> {item.growthRate || "+50%"}
                             </span>
                           </div>
 
@@ -859,6 +604,12 @@ export function TrendAnalyzer({ trends, savedIdeas, initialAiRecommendations, ch
                               <div className="flex items-center gap-1">
                                 <Eye className="h-3 w-3 text-muted-foreground" />
                                 <span className="text-green-500 font-medium">{item.estimatedViews}</span>
+                              </div>
+                            )}
+                            {item.score != null && (
+                              <div className="flex items-center gap-1">
+                                <Sparkles className="h-3 w-3 text-purple-400" />
+                                <span className="text-purple-400 font-medium">{item.score}점</span>
                               </div>
                             )}
                           </div>

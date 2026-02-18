@@ -121,6 +121,8 @@ export interface AIProjectGenerationOutput {
   suggestedTone: string;
   /** 제작 난이도 */
   suggestedDifficulty: "easy" | "medium" | "hard";
+  /** YouTube 콘텐츠 카테고리 */
+  suggestedCategory?: string;
 }
 
 // ============================================
@@ -162,6 +164,82 @@ export const YOUTUBE_CATEGORIES_KO: Record<string, string> = {
   "28": "과학기술",
   "29": "비영리/사회운동",
 };
+
+/** YouTube 카테고리 값 배열 (AI 프롬프트, UI 드롭다운 공용) */
+export const YOUTUBE_CATEGORY_VALUES_KO: string[] = Object.values(YOUTUBE_CATEGORIES_KO);
+
+/** YouTube 카테고리 값 배열 (영어, AI 영문 프롬프트용) */
+export const YOUTUBE_CATEGORY_VALUES_EN: string[] = Object.values(YOUTUBE_CATEGORIES);
+
+/** YouTube 비활성/특수 카테고리 (YouTube API 응답 정규화 전용, UI 선택 불가) */
+export const YOUTUBE_CATEGORIES_INACTIVE_KO: Record<string, string> = {
+  "18": "단편 영화",
+  "21": "비디오 블로그",
+  "30": "영화",
+  "44": "예고편",
+};
+
+/** 기본 카테고리 (Fallback) */
+export const DEFAULT_YOUTUBE_CATEGORY_KO = "엔터테인먼트";
+
+/** 카테고리 유효성 검증 */
+export function isValidYouTubeCategory(category: string): boolean {
+  return YOUTUBE_CATEGORY_VALUES_KO.includes(category);
+}
+
+// 카테고리 정규화 매핑: "&" → "/", 축약형 → 전체
+const CATEGORY_NORMALIZATION: Record<string, string> = {
+  "영화 & 애니메이션": "영화/애니메이션",
+  "자동차 & 교통": "자동차/교통",
+  "여행 & 이벤트": "여행/이벤트",
+  "인물 & 블로그": "인물/블로그",
+  "뉴스 & 정치": "뉴스/정치",
+  "노하우 & 스타일": "노하우/스타일",
+  "과학 & 기술": "과학기술",
+  "반려동물 & 동물": "반려동물/동물",
+  "비영리 & 사회운동": "비영리/사회운동",
+  자동차: "자동차/교통",
+  동물: "반려동물/동물",
+};
+
+/**
+ * 카테고리 문자열을 표준 형식으로 정규화.
+ * "&" → "/" 변환, 축약형 복원, 영문→한글 변환 지원.
+ */
+export function normalizeYouTubeCategory(category: string): string {
+  if (YOUTUBE_CATEGORY_VALUES_KO.includes(category)) return category;
+
+  // 비활성 카테고리도 그대로 반환
+  if (Object.values(YOUTUBE_CATEGORIES_INACTIVE_KO).includes(category))
+    return category;
+
+  // "&" 형식 → "/" 형식, 축약형 → 전체
+  if (CATEGORY_NORMALIZATION[category]) return CATEGORY_NORMALIZATION[category];
+
+  // 영문 → 한글 (대소문자 무시)
+  const lower = category.toLowerCase().trim();
+  for (const [id, enName] of Object.entries(YOUTUBE_CATEGORIES)) {
+    if (enName.toLowerCase() === lower) {
+      return YOUTUBE_CATEGORIES_KO[id];
+    }
+  }
+
+  return category;
+}
+
+/** 한글 카테고리 이름 → YouTube 카테고리 ID 역조회 */
+export function getYouTubeCategoryId(
+  categoryNameKo: string,
+): string | null {
+  const normalized = normalizeYouTubeCategory(categoryNameKo);
+  for (const [id, name] of Object.entries(YOUTUBE_CATEGORIES_KO)) {
+    if (name === normalized) return id;
+  }
+  for (const [id, name] of Object.entries(YOUTUBE_CATEGORIES_INACTIVE_KO)) {
+    if (name === normalized) return id;
+  }
+  return null;
+}
 
 // ============================================
 // Region Options

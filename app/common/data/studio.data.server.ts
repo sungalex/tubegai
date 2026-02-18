@@ -930,10 +930,10 @@ export async function getStoryboardSceneForVideo(
 // =============================================================================
 
 const STATUS_DISPLAY_MAP: Record<string, string> = {
-  draft: "Draft",
-  in_progress: "In Progress",
-  completed: "Completed",
-  archived: "Archived",
+  draft: "초안",
+  in_progress: "진행중",
+  completed: "완료",
+  archived: "보관",
 };
 
 /**

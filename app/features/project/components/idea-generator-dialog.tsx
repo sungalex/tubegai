@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from "~/common/components/ui/card";
 import { ScrollArea } from "~/common/components/ui/scroll-area";
+import { Input } from "~/common/components/ui/input";
 import { Label } from "~/common/components/ui/label";
 import { Textarea } from "~/common/components/ui/textarea";
 import {
@@ -45,13 +46,8 @@ import {
 } from "~/common/components/ui/collapsible";
 import { Slider } from "~/common/components/ui/slider";
 import type { TrendItem } from "~/common/types/project.types";
-import type {
-  GeneratedIdea,
-  IdeationOptions,
-  Idea,
-} from "~/common/types/ideation.types";
+import type { IdeationOptions, Idea } from "~/common/types/ideation.types";
 import {
-  CONTENT_TONES,
   VIDEO_TYPES,
   TARGET_AUDIENCE_TYPES,
   IDEATION_LANGUAGES,
@@ -71,7 +67,7 @@ export function IdeaGeneratorDialog({
   trend,
   onSaveIdea,
 }: IdeaGeneratorDialogProps) {
-  const [ideas, setIdeas] = useState<GeneratedIdea[]>([]);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [savedIdeaIds, setSavedIdeaIds] = useState<Set<string>>(new Set());
   const [showOptions, setShowOptions] = useState(false);
@@ -84,48 +80,28 @@ export function IdeaGeneratorDialog({
     setIdeas([]);
 
     try {
-      const response = await fetch("/api/generate-ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trendTitle: trend.title,
-          trendCategory: trend.category,
-          trendTags: trend.tags,
-          trendId: trend.id,
-          options,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error("Failed to generate ideas", { description: data.error });
-        return;
-      }
-
-      setIdeas(data.ideas);
-      toast.success("Ideas generated!", {
-        description: `${data.ideas.length} content ideas ready`,
-      });
-    } catch (error) {
-      toast.error("Failed to generate ideas");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveIdea = async (idea: GeneratedIdea) => {
-    try {
       const response = await fetch("/api/ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          intent: "create",
-          idea: {
-            ...idea,
-            source: "user_created",
-            trendIds: trend.trendUuid ? [trend.trendUuid] : [],
-            referenceUrl: trend.videoUrl,
+          intent: "generate-from-trend",
+          trend: {
+            title: trend.title,
+            category: trend.category,
+            tags: trend.tags,
+            views: trend.views,
+            growth: trend.growth,
+            description: trend.description,
+            videoUrl: trend.videoUrl,
+            trendUuid: trend.trendUuid,
+          },
+          options: {
+            language: options.language,
+            contentTone: options.contentTone || undefined,
+            videoType: options.videoType,
+            targetAudienceType: options.targetAudienceType,
+            customPrompt: options.customPrompt || undefined,
+            ideaCount: options.ideaCount,
           },
         }),
       });
@@ -133,29 +109,57 @@ export function IdeaGeneratorDialog({
       const data = await response.json();
 
       if (data.error) {
-        toast.error("Failed to save idea", { description: data.error });
+        toast.error("아이디어 생성 실패", { description: data.error });
+        return;
+      }
+
+      setIdeas(data.ideas);
+      toast.success("아이디어 생성 완료!", {
+        description: `${data.ideas.length}개의 콘텐츠 아이디어 준비됨`,
+      });
+    } catch {
+      toast.error("아이디어 생성 실패");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const bookmarkIdea = async (idea: Idea) => {
+    try {
+      const response = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent: "save",
+          ideaId: idea.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error("아이디어 저장 실패", { description: data.error });
         return;
       }
 
       setSavedIdeaIds((prev) => new Set([...prev, idea.id]));
 
-      // Notify parent component of saved idea
       if (data.idea && onSaveIdea) {
         onSaveIdea(data.idea);
       }
 
-      toast.success("Idea saved!", {
-        description: "View it in your Saved Ideas tab",
+      toast.success("아이디어 저장됨!", {
+        description: "저장된 아이디어 탭에서 확인하세요",
       });
-    } catch (error) {
-      toast.error("Failed to save idea");
+    } catch {
+      toast.error("아이디어 저장 실패");
     }
   };
 
-  const saveAllIdeas = async () => {
+  const bookmarkAllIdeas = async () => {
     const unsavedIdeas = ideas.filter((idea) => !savedIdeaIds.has(idea.id));
     if (unsavedIdeas.length === 0) {
-      toast.info("All ideas already saved");
+      toast.info("모든 아이디어가 이미 저장됨");
       return;
     }
 
@@ -166,38 +170,32 @@ export function IdeaGeneratorDialog({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            intent: "create",
-            idea: {
-              ...idea,
-              source: "user_created",
-              trendIds: trend.trendUuid ? [trend.trendUuid] : [],
-              referenceUrl: trend.videoUrl,
-            },
+            intent: "save",
+            ideaId: idea.id,
           }),
         });
 
         const data = await response.json();
         if (!data.error) {
           setSavedIdeaIds((prev) => new Set([...prev, idea.id]));
-          // Notify parent component of saved idea
           if (data.idea && onSaveIdea) {
             onSaveIdea(data.idea);
           }
           savedCount++;
         }
-      } catch (error) {
+      } catch {
         // Continue with other ideas
       }
     }
 
     if (savedCount > 0) {
-      toast.success(`${savedCount} ideas saved!`, {
-        description: "View them in your Saved Ideas tab",
+      toast.success(`${savedCount}개 아이디어 저장됨!`, {
+        description: "저장된 아이디어 탭에서 확인하세요",
       });
     }
   };
 
-  const getDifficultyColor = (difficulty: GeneratedIdea["difficulty"]) => {
+  const getDifficultyColor = (difficulty: string | undefined) => {
     switch (difficulty) {
       case "easy":
         return "bg-green-500/10 text-green-500 border-green-500/20";
@@ -205,6 +203,8 @@ export function IdeaGeneratorDialog({
         return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "hard":
         return "bg-red-500/10 text-red-500 border-red-500/20";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -294,31 +294,12 @@ export function IdeaGeneratorDialog({
                   <Label htmlFor="content-tone">
                     콘텐츠 톤
                   </Label>
-                  <Select
+                  <Input
+                    id="content-tone"
+                    placeholder="비워두면 AI가 추천 (예: informative, cinematic, storytelling...)"
                     value={options.contentTone}
-                    onValueChange={(value) =>
-                      updateOption(
-                        "contentTone",
-                        value as IdeationOptions["contentTone"],
-                      )
-                    }
-                  >
-                    <SelectTrigger id="content-tone">
-                      <SelectValue placeholder="Select tone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONTENT_TONES.map((tone) => (
-                        <SelectItem key={tone.value} value={tone.value}>
-                          <div className="flex flex-col">
-                            <span>{tone.label}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {tone.description}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => updateOption("contentTone", e.target.value)}
+                  />
                 </div>
 
                 {/* Video Type */}
@@ -446,10 +427,7 @@ export function IdeaGeneratorDialog({
                     ?.label
                 }{" "}
                 •
-                {
-                  CONTENT_TONES.find((t) => t.value === options.contentTone)
-                    ?.label
-                }{" "}
+                {options.contentTone || "자동"}{" "}
                 •{VIDEO_TYPES.find((t) => t.value === options.videoType)?.label}
               </p>
             </div>
@@ -466,7 +444,7 @@ export function IdeaGeneratorDialog({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={saveAllIdeas}
+                  onClick={bookmarkAllIdeas}
                   disabled={ideas.every((idea) => savedIdeaIds.has(idea.id))}
                 >
                   <Bookmark className="h-3 w-3 mr-1" />
@@ -532,14 +510,47 @@ export function IdeaGeneratorDialog({
                               {idea.estimatedViews}
                             </span>
                           </div>
+                          {idea.category && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">카테고리:</span>
+                              <span>{idea.category}</span>
+                            </div>
+                          )}
+                          {idea.contentTones?.[0] && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">톤:</span>
+                              <span>{idea.contentTones[0]}</span>
+                            </div>
+                          )}
+                          {idea.videoTypes?.[0] && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">길이:</span>
+                              <span>{idea.videoTypes[0]}</span>
+                            </div>
+                          )}
+                          {idea.score != null && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">점수:</span>
+                              <span className="text-purple-500 font-medium">
+                                {idea.score}
+                              </span>
+                            </div>
+                          )}
                         </div>
+
+                        {/* Reason */}
+                        {idea.reason && (
+                          <p className="text-xs text-muted-foreground italic">
+                            {idea.reason}
+                          </p>
+                        )}
 
                         {/* Actions */}
                         <div className="flex gap-2 pt-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => saveIdea(idea)}
+                            onClick={() => bookmarkIdea(idea)}
                             disabled={savedIdeaIds.has(idea.id)}
                           >
                             {savedIdeaIds.has(idea.id) ? (
@@ -557,7 +568,7 @@ export function IdeaGeneratorDialog({
                           <Button size="sm" asChild>
                             <Link
                               to="/projects/new"
-                              state={{ topic: idea.title, hooks: idea.hooks }}
+                              state={{ idea }}
                             >
                               이 아이디어 사용
                             </Link>

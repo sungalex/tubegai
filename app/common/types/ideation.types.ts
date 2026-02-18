@@ -23,6 +23,10 @@ export interface IdeaTrend {
     title: string;
     category: string;
     thumbnailUrl?: string;
+    viewsCount?: string;
+    growthRate?: string;
+    externalUrl?: string;
+    tags?: string[];
   };
 }
 
@@ -214,7 +218,7 @@ export function getPrimaryTrend(idea: Idea): IdeaTrend | undefined {
  */
 export interface IdeationOptions {
   language: IdeationLanguage;
-  contentTone: ContentTone;
+  contentTone: string;
   videoType: VideoType;
   targetAudienceType: TargetAudienceType;
   ideaCount: number;
@@ -258,7 +262,7 @@ export type TargetAudienceType = (typeof TARGET_AUDIENCE_TYPES)[number]["value"]
 
 export const DEFAULT_IDEATION_OPTIONS: IdeationOptions = {
   language: "ko",
-  contentTone: "informative",
+  contentTone: "",
   videoType: "medium",
   targetAudienceType: "general",
   ideaCount: 3,
@@ -275,24 +279,3 @@ export interface GenerateIdeasRequest {
   options?: IdeationOptions;
 }
 
-/**
- * Available trend categories for filtering
- */
-export const TREND_CATEGORIES = [
-  "Entertainment",
-  "Gaming",
-  "Music",
-  "Sports",
-  "News",
-  "Education",
-  "Science & Tech",
-  "Howto & Style",
-  "Travel",
-  "Comedy",
-  "Film",
-  "Autos",
-  "Pets",
-  "People & Blogs",
-] as const;
-
-export type TrendCategory = (typeof TREND_CATEGORIES)[number];

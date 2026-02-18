@@ -8,6 +8,12 @@
 // 3. Apply to project (user confirms final values)
 
 import type { TrendSnapshot } from "~/common/types/trend.types";
+import {
+  YOUTUBE_CATEGORY_VALUES_KO,
+  YOUTUBE_CATEGORY_VALUES_EN,
+  DEFAULT_YOUTUBE_CATEGORY_KO,
+  normalizeYouTubeCategory,
+} from "~/common/types/trend.types";
 import { getTextModel } from "./client.server";
 import { withRetry } from "./retry.server";
 import { MOCK_PROJECT_CONTEXT } from "./__mocks__/fixtures";
@@ -45,6 +51,7 @@ export interface AIProjectGenerationOutput {
   suggestedTone: string;
   suggestedDifficulty: "easy" | "medium" | "hard";
   suggestedVideoLength: "short" | "medium" | "long";
+  suggestedCategory: string;
 }
 
 // =============================================================================
@@ -64,7 +71,8 @@ JSON 스키마:
   "estimatedViews": "예상 조회수 범위 (예: 50K-100K)",
   "suggestedTone": "콘텐츠에 가장 적합한 톤 (예: informative, funny, dramatic, casual, professional, cinematic, storytelling 등 자유 형식)",
   "suggestedDifficulty": "easy 또는 medium 또는 hard",
-  "suggestedVideoLength": "short (60초 이하) 또는 medium (2-10분) 또는 long (10분+)"
+  "suggestedVideoLength": "short (60초 이하) 또는 medium (2-10분) 또는 long (10분+)",
+  "suggestedCategory": "YouTube 콘텐츠 카테고리 (다음 중 하나: ${YOUTUBE_CATEGORY_VALUES_KO.join(", ")})"
 }
 
 사용자가 선택하지 않은 항목(자동 선택)은 트렌드 분석을 기반으로 최적의 값을 추천하세요.`;
@@ -82,7 +90,8 @@ JSON schema:
   "estimatedViews": "Expected view range (e.g., 50K-100K)",
   "suggestedTone": "Best fitting content tone (e.g., informative, funny, dramatic, casual, professional, cinematic, storytelling — free-form)",
   "suggestedDifficulty": "easy or medium or hard",
-  "suggestedVideoLength": "short (under 60s) or medium (2-10min) or long (10min+)"
+  "suggestedVideoLength": "short (under 60s) or medium (2-10min) or long (10min+)",
+  "suggestedCategory": "YouTube content category (one of: ${YOUTUBE_CATEGORY_VALUES_EN.join(", ")})"
 }
 
 For any user preference set to "Auto select", recommend the optimal value based on trend analysis.`;
@@ -203,6 +212,11 @@ export async function generateProjectContext(
       throw new Error("Missing required fields in AI response");
     }
 
+    // Normalize AI-suggested category to standard format
+    if (parsed.suggestedCategory) {
+      parsed.suggestedCategory = normalizeYouTubeCategory(parsed.suggestedCategory);
+    }
+
     console.log("[AI Project Generator] Successfully generated context with Gemini");
     return parsed;
   } catch (error) {
@@ -234,6 +248,7 @@ function generateMockOutput(input: AIProjectGenerationInput): AIProjectGeneratio
     suggestedTone: options.preferredTone || "informative",
     suggestedDifficulty: "medium",
     suggestedVideoLength: (options.videoLength as "short" | "medium" | "long") || "medium",
+    suggestedCategory: normalizeYouTubeCategory(trend.category || DEFAULT_YOUTUBE_CATEGORY_KO),
   };
 }
 
@@ -248,7 +263,7 @@ export function createTrendSnapshot(
     capturedAt: new Date().toISOString(),
     title: trend.title,
     description: trend.description,
-    category: trend.category,
+    category: normalizeYouTubeCategory(trend.category),
     tags: trend.tags ?? [],
     viewsCount: trend.views,
     growthRate: trend.growthRate,

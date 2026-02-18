@@ -44,6 +44,11 @@ import {
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import type { TrendItem, Channel } from "~/common/types/project.types";
+import {
+  YOUTUBE_CATEGORY_VALUES_KO,
+  DEFAULT_YOUTUBE_CATEGORY_KO,
+} from "~/common/types/trend.types";
+
 import type {
   GenerateProjectContextLoaderData,
   GenerateProjectContextActionData,
@@ -101,6 +106,7 @@ export function AIProjectGeneratorDialog({
     description: string;
     targetAudience: string;
     contentTone: string;
+    category: string;
     difficulty: string;
     videoLength: string;
     estimatedViews: string;
@@ -161,6 +167,7 @@ export function AIProjectGeneratorDialog({
           description: result.description,
           targetAudience: result.targetAudience,
           contentTone: options.preferredTone || aiTone,
+          category: result.suggestedCategory || trend?.category || DEFAULT_YOUTUBE_CATEGORY_KO,
           difficulty: aiDiff,
           videoLength: options.videoLength || aiLength,
           estimatedViews: result.estimatedViews || "10K-50K",
@@ -281,6 +288,7 @@ export function AIProjectGeneratorDialog({
     formData.set("contentTone", editedResult.contentTone);
     formData.set("difficulty", editedResult.difficulty);
     formData.set("estimatedViews", editedResult.estimatedViews);
+    formData.set("category", editedResult.category);
     formData.set("labels", "[]");
     // Add channel if selected
     if (selectedChannelId) {
@@ -293,6 +301,10 @@ export function AIProjectGeneratorDialog({
     // Reference URL (YouTube video URL)
     if (trend.videoUrl) {
       formData.set("referenceUrl", trend.videoUrl);
+    }
+    // Trend snapshot from AI generation response
+    if (generatedResult.trendSnapshot) {
+      formData.set("trendSnapshot", JSON.stringify(generatedResult.trendSnapshot));
     }
 
     console.log("[AI Dialog] Submitting project creation to /projects/new");
@@ -320,66 +332,60 @@ export function AIProjectGeneratorDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-dvh sm:max-h-[85vh] flex flex-col overflow-hidden">
-        {/* Fixed header */}
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+        {/* Compact header with inline step indicator */}
+        <DialogHeader className="shrink-0 pb-0">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-purple-500" />
             AI 프로젝트 생성
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="sr-only">
             트렌드 정보를 기반으로 AI가 프로젝트 컨텍스트를 생성합니다.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fixed progress indicator */}
-        <div className="shrink-0 flex items-center justify-center gap-2 py-2">
-          <StepIndicator
-            step={1}
-            label="옵션"
-            active={step === "options"}
-            completed={step !== "options"}
-          />
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <StepIndicator
-            step={2}
-            label="프롬프트"
-            active={step === "prompt"}
-            completed={step === "result"}
-          />
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <StepIndicator
-            step={3}
-            label="결과"
-            active={step === "result"}
-            completed={false}
-          />
+        {/* Compact progress + trend info in one row */}
+        <div className="shrink-0 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <StepIndicator
+              step={1}
+              label="옵션"
+              active={step === "options"}
+              completed={step !== "options"}
+            />
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            <StepIndicator
+              step={2}
+              label="프롬프트"
+              active={step === "prompt"}
+              completed={step === "result"}
+            />
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            <StepIndicator
+              step={3}
+              label="결과"
+              active={step === "result"}
+              completed={false}
+            />
+          </div>
+
+          {trend && (
+            <div className="flex items-center gap-2 min-w-0">
+              {trend.thumbnail && (
+                <img
+                  src={trend.thumbnail}
+                  alt={trend.title}
+                  className="w-14 h-8 object-cover rounded shrink-0"
+                />
+              )}
+              <div className="min-w-0 hidden sm:block">
+                <p className="text-xs font-medium truncate max-w-48">{trend.title}</p>
+                <span className="text-xs text-muted-foreground">{trend.views} 조회</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <Separator className="shrink-0" />
-
-        {/* Fixed trend info summary */}
-        {trend && (
-          <div className="shrink-0 flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            {trend.thumbnail && (
-              <img
-                src={trend.thumbnail}
-                alt={trend.title}
-                className="w-20 h-12 object-cover rounded"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{trend.title}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">
-                  {trend.category}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {trend.views} 조회
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Scrollable step content */}
         <ScrollArea className="flex-1 min-h-0">
@@ -497,20 +503,20 @@ function StepIndicator({
   completed: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <div
         className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+          "w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium",
           active && "bg-primary text-primary-foreground",
           completed && "bg-green-500 text-white",
           !active && !completed && "bg-muted text-muted-foreground"
         )}
       >
-        {completed ? <CheckCircle2 className="h-4 w-4" /> : step}
+        {completed ? <CheckCircle2 className="h-3 w-3" /> : step}
       </div>
       <span
         className={cn(
-          "text-sm",
+          "text-xs",
           active && "font-medium",
           !active && "text-muted-foreground"
         )}
@@ -785,6 +791,7 @@ function ResultStep({
     description: string;
     targetAudience: string;
     contentTone: string;
+    category: string;
     difficulty: string;
     videoLength: string;
     estimatedViews: string;
@@ -792,67 +799,90 @@ function ResultStep({
   onEditedResultChange: (result: typeof editedResult) => void;
 }) {
   return (
-    <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label>프로젝트 제목</Label>
+    <div className="space-y-3 py-3">
+      {/* Title */}
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">프로젝트 제목</Label>
         <Input
           value={editedResult.title}
           onChange={(e) =>
             onEditedResultChange({ ...editedResult, title: e.target.value })
           }
+          className="h-9"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>설명</Label>
+      {/* Description */}
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">설명</Label>
         <Textarea
           value={editedResult.description}
           onChange={(e) =>
             onEditedResultChange({ ...editedResult, description: e.target.value })
           }
           rows={2}
+          className="min-h-0 resize-none"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>타겟 시청자</Label>
+      {/* All metadata in 3-col grid */}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2.5">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">카테고리</Label>
+          <Select
+            value={editedResult.category}
+            onValueChange={(v) => onEditedResultChange({ ...editedResult, category: v })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="카테고리 선택..." />
+            </SelectTrigger>
+            <SelectContent>
+              {YOUTUBE_CATEGORY_VALUES_KO.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">타겟 시청자</Label>
           <Input
             value={editedResult.targetAudience}
             onChange={(e) =>
               onEditedResultChange({ ...editedResult, targetAudience: e.target.value })
             }
+            className="h-8 text-xs"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>예상 조회수</Label>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">예상 조회수</Label>
           <Input
             value={editedResult.estimatedViews}
             onChange={(e) =>
               onEditedResultChange({ ...editedResult, estimatedViews: e.target.value })
             }
+            className="h-8 text-xs"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>콘텐츠 톤</Label>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">콘텐츠 톤</Label>
           <Input
             value={editedResult.contentTone}
             onChange={(e) => onEditedResultChange({ ...editedResult, contentTone: e.target.value })}
-            placeholder="예: informative, cinematic..."
+            placeholder="informative, cinematic..."
+            className="h-8 text-xs"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>난이도</Label>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">난이도</Label>
           <Select
             value={editedResult.difficulty}
             onValueChange={(v) => onEditedResultChange({ ...editedResult, difficulty: v })}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -863,13 +893,13 @@ function ResultStep({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>영상 길이</Label>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">영상 길이</Label>
           <Select
             value={editedResult.videoLength}
             onValueChange={(v) => onEditedResultChange({ ...editedResult, videoLength: v })}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -881,12 +911,10 @@ function ResultStep({
         </div>
       </div>
 
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-        <p className="text-sm text-green-600 dark:text-green-400">
-          AI 추천값을 검토하고 수정한 후, "프로젝트 생성" 버튼을 클릭하세요.
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+        AI 추천값을 검토 후 "프로젝트 생성"을 클릭하세요.
+      </p>
     </div>
   );
 }

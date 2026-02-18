@@ -178,19 +178,11 @@ export function buildProjectContext(
     if (project.aiContext) {
       const ctx = project.aiContext;
       const hasContent =
-        ctx.keywords?.length ||
-        ctx.styleNotes ||
-        ctx.callToAction ||
         ctx.competitors?.length ||
         ctx.references?.length ||
         ctx.additionalNotes;
       if (hasContent) {
         lines.push(`\n## 추가 컨텍스트`);
-        if (ctx.keywords && ctx.keywords.length > 0) {
-          lines.push(`키워드: ${ctx.keywords.join(", ")}`);
-        }
-        if (ctx.styleNotes) lines.push(`스타일 노트: ${ctx.styleNotes}`);
-        if (ctx.callToAction) lines.push(`CTA: ${ctx.callToAction}`);
         if (ctx.competitors && ctx.competitors.length > 0) {
           lines.push(
             `경쟁 채널/영상: ${ctx.competitors.join(", ")} (차별화 필요)`,
@@ -352,19 +344,11 @@ export function buildProjectContext(
     if (project.aiContext) {
       const ctx = project.aiContext;
       const hasContent =
-        ctx.keywords?.length ||
-        ctx.styleNotes ||
-        ctx.callToAction ||
         ctx.competitors?.length ||
         ctx.references?.length ||
         ctx.additionalNotes;
       if (hasContent) {
         lines.push(`\n## Additional Context`);
-        if (ctx.keywords && ctx.keywords.length > 0) {
-          lines.push(`Keywords: ${ctx.keywords.join(", ")}`);
-        }
-        if (ctx.styleNotes) lines.push(`Style Notes: ${ctx.styleNotes}`);
-        if (ctx.callToAction) lines.push(`CTA: ${ctx.callToAction}`);
         if (ctx.competitors && ctx.competitors.length > 0) {
           lines.push(
             `Competitors: ${ctx.competitors.join(", ")} (Differentiation needed)`,

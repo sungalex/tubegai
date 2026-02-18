@@ -4,12 +4,29 @@
 // Combines AI recommendation and saved idea functionality into a single layer.
 // Uses the unified 'idea' table with source discrimination.
 
-import { desc, eq, and, or, gt, lt, isNull, count, sql, ilike } from "drizzle-orm";
+import {
+  desc,
+  eq,
+  and,
+  or,
+  gt,
+  lt,
+  isNull,
+  count,
+  sql,
+  ilike,
+} from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import {
   generateAIRecommendations,
+  generateIdeasFromTrendAI,
   type AIGeneratedRecommendation,
 } from "~/lib/ai/recommendations.server";
+import {
+  YOUTUBE_CATEGORY_VALUES_KO,
+  DEFAULT_YOUTUBE_CATEGORY_KO,
+  normalizeYouTubeCategory,
+} from "~/common/types/trend.types";
 import type {
   Idea,
   IdeaSource,
@@ -17,12 +34,9 @@ import type {
   IdeaFilter,
   CreateIdeaInput,
   UpdateIdeaInput,
-  GeneratedIdea,
-  GenerateIdeasRequest,
   IdeationOptions,
   IdeaTrend,
 } from "../types/ideation.types";
-import { DEFAULT_IDEATION_OPTIONS } from "../types/ideation.types";
 import type { TrendItem } from "../types/project.types";
 
 // Type for idea with relations from Drizzle query
@@ -35,6 +49,10 @@ type IdeaWithRelations = typeof schema.ideas.$inferSelect & {
       title: string;
       category: string;
       thumbnailUrl: string | null;
+      viewsCount: string | null;
+      growthRate: string | null;
+      externalUrl: string | null;
+      tags: string[] | null;
     };
   }>;
 };
@@ -65,6 +83,10 @@ function dbRowToIdea(row: IdeaWithRelations): Idea {
           title: it.trend.title,
           category: it.trend.category,
           thumbnailUrl: it.trend.thumbnailUrl ?? undefined,
+          viewsCount: it.trend.viewsCount ?? undefined,
+          growthRate: it.trend.growthRate ?? undefined,
+          externalUrl: it.trend.externalUrl ?? undefined,
+          tags: it.trend.tags ?? undefined,
         }
       : undefined,
   }));
@@ -105,7 +127,7 @@ function dbRowToIdea(row: IdeaWithRelations): Idea {
  */
 export async function getIdeas(
   userId: string,
-  filter?: IdeaFilter
+  filter?: IdeaFilter,
 ): Promise<Idea[]> {
   const conditions = [eq(schema.ideas.userId, userId)];
 
@@ -122,8 +144,8 @@ export async function getIdeas(
     conditions.push(
       or(
         isNull(schema.ideas.expiresAt),
-        gt(schema.ideas.expiresAt, new Date())
-      )!
+        gt(schema.ideas.expiresAt, new Date()),
+      )!,
     );
   }
 
@@ -162,7 +184,7 @@ export async function getAIRecommendations(userId: string): Promise<Idea[]> {
  */
 export async function getIdeaById(
   userId: string,
-  ideaId: string
+  ideaId: string,
 ): Promise<Idea | null> {
   const idea = await db.query.ideas.findFirst({
     where: and(eq(schema.ideas.id, ideaId), eq(schema.ideas.userId, userId)),
@@ -183,7 +205,7 @@ export async function getIdeaById(
  */
 export async function getIdeasCount(
   userId: string,
-  filter?: IdeaFilter
+  filter?: IdeaFilter,
 ): Promise<number> {
   const conditions = [eq(schema.ideas.userId, userId)];
 
@@ -199,8 +221,8 @@ export async function getIdeasCount(
     conditions.push(
       or(
         isNull(schema.ideas.expiresAt),
-        gt(schema.ideas.expiresAt, new Date())
-      )!
+        gt(schema.ideas.expiresAt, new Date()),
+      )!,
     );
   }
 
@@ -219,7 +241,7 @@ export async function getIdeasCount(
 export async function searchIdeas(
   userId: string,
   query: string,
-  filter?: IdeaFilter
+  filter?: IdeaFilter,
 ): Promise<Idea[]> {
   if (!query.trim()) {
     return getIdeas(userId, filter);
@@ -242,8 +264,8 @@ export async function searchIdeas(
     conditions.push(
       or(
         isNull(schema.ideas.expiresAt),
-        gt(schema.ideas.expiresAt, new Date())
-      )!
+        gt(schema.ideas.expiresAt, new Date()),
+      )!,
     );
   }
 
@@ -259,7 +281,7 @@ export async function searchIdeas(
       JOIN public.trend t ON t.id = it.trend_id
       WHERE it.idea_id = ${schema.ideas.id}
       AND t.title ILIKE ${searchPattern}
-    )`
+    )`,
   );
 
   conditions.push(searchCondition!);
@@ -289,7 +311,7 @@ export async function searchIdeas(
  */
 export async function createIdea(
   userId: string,
-  input: CreateIdeaInput
+  input: CreateIdeaInput,
 ): Promise<Idea> {
   const [idea] = await db
     .insert(schema.ideas)
@@ -321,7 +343,7 @@ export async function createIdea(
         ideaId: idea.id,
         trendId,
         isPrimary: idx === 0,
-      }))
+      })),
     );
   }
 
@@ -335,7 +357,7 @@ export async function createIdea(
 export async function updateIdea(
   userId: string,
   ideaId: string,
-  updates: UpdateIdeaInput
+  updates: UpdateIdeaInput,
 ): Promise<Idea | null> {
   const result = await db
     .update(schema.ideas)
@@ -356,7 +378,10 @@ export async function updateIdea(
  * Save an AI recommendation (bookmark it)
  * This marks the idea as saved and removes expiration
  */
-export async function saveIdea(userId: string, ideaId: string): Promise<Idea | null> {
+export async function saveIdea(
+  userId: string,
+  ideaId: string,
+): Promise<Idea | null> {
   const result = await db
     .update(schema.ideas)
     .set({
@@ -379,7 +404,7 @@ export async function saveIdea(userId: string, ideaId: string): Promise<Idea | n
 export async function markIdeaAsUsed(
   userId: string,
   ideaId: string,
-  projectId: string
+  projectId: string,
 ): Promise<boolean> {
   const result = await db
     .update(schema.ideas)
@@ -399,7 +424,7 @@ export async function markIdeaAsUsed(
  */
 export async function deleteIdea(
   userId: string,
-  ideaId: string
+  ideaId: string,
 ): Promise<boolean> {
   const result = await db
     .delete(schema.ideas)
@@ -423,14 +448,21 @@ export async function getAIRecommendationsForUser(
     forceRefresh?: boolean;
     count?: number;
     language?: "ko" | "en";
-  }
+  },
 ): Promise<Idea[]> {
-  const { forceRefresh = false, count: requestedCount = 3, language = "ko" } = options ?? {};
+  const {
+    forceRefresh = false,
+    count: requestedCount = 3,
+    language = "ko",
+  } = options ?? {};
 
   // Check for valid cached recommendations
   if (!forceRefresh) {
     try {
-      const cached = await getIdeas(userId, { source: "ai_generated", isSaved: false });
+      const cached = await getIdeas(userId, {
+        source: "ai_generated",
+        isSaved: false,
+      });
       if (cached.length >= requestedCount) {
         return cached.slice(0, requestedCount);
       }
@@ -469,7 +501,13 @@ export async function getAIRecommendationsForUser(
 }
 
 // Valid values for content tones and video types
-const VALID_CONTENT_TONES = ["informative", "funny", "dramatic", "casual", "professional"];
+const VALID_CONTENT_TONES = [
+  "informative",
+  "funny",
+  "dramatic",
+  "casual",
+  "professional",
+];
 const VALID_VIDEO_TYPES = ["short", "medium", "long"];
 
 /**
@@ -497,7 +535,7 @@ function parseVideoTypes(value?: string): string[] {
 async function saveGeneratedRecommendations(
   userId: string,
   recommendations: AIGeneratedRecommendation[],
-  inputTrends: TrendItem[]
+  inputTrends: TrendItem[],
 ): Promise<void> {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + RECOMMENDATION_EXPIRE_HOURS);
@@ -506,14 +544,14 @@ async function saveGeneratedRecommendations(
   const trendTitleToUuid = new Map(
     inputTrends
       .filter((t) => t.trendUuid)
-      .map((t) => [t.title.toLowerCase(), t.trendUuid!])
+      .map((t) => [t.title.toLowerCase(), t.trendUuid!]),
   );
 
   // Build a map of trend titles to videoUrls
   const trendTitleToVideoUrl = new Map(
     inputTrends
       .filter((t) => t.videoUrl)
-      .map((t) => [t.title.toLowerCase(), t.videoUrl!])
+      .map((t) => [t.title.toLowerCase(), t.videoUrl!]),
   );
 
   // Insert new recommendations
@@ -544,7 +582,7 @@ async function saveGeneratedRecommendations(
         score: rec.score,
         contentTones,
         videoTypes,
-        category: contentTones[0], // Use first contentTone as category
+        category: normalizeYouTubeCategory(rec.category || DEFAULT_YOUTUBE_CATEGORY_KO),
         referenceUrl,
         isSaved: false,
         isUsed: false,
@@ -559,8 +597,9 @@ async function saveGeneratedRecommendations(
         isPrimary: idx === 0,
         trendId: trendTitleToUuid.get(title.toLowerCase()),
       }))
-      .filter((t): t is { title: string; isPrimary: boolean; trendId: string } =>
-        t.trendId !== undefined
+      .filter(
+        (t): t is { title: string; isPrimary: boolean; trendId: string } =>
+          t.trendId !== undefined,
       );
 
     if (matchedTrends.length > 0) {
@@ -569,7 +608,7 @@ async function saveGeneratedRecommendations(
           ideaId: idea.id,
           trendId: t.trendId,
           isPrimary: t.isPrimary,
-        }))
+        })),
       );
     }
   }
@@ -581,7 +620,7 @@ async function saveGeneratedRecommendations(
 export async function refreshAIRecommendations(
   userId: string,
   trends: TrendItem[],
-  language: "ko" | "en" = "ko"
+  language: "ko" | "en" = "ko",
 ): Promise<Idea[]> {
   return getAIRecommendationsForUser(userId, trends, {
     forceRefresh: true,
@@ -606,8 +645,8 @@ export async function cleanupExpiredIdeas(): Promise<number> {
       and(
         eq(schema.ideas.source, "ai_generated"),
         eq(schema.ideas.isSaved, false),
-        lt(schema.ideas.expiresAt, now)
-      )
+        lt(schema.ideas.expiresAt, now),
+      ),
     )
     .returning({ id: schema.ideas.id });
 
@@ -615,134 +654,52 @@ export async function cleanupExpiredIdeas(): Promise<number> {
 }
 
 // =============================================================================
-// Legacy Compatibility - Idea Generation from Trend
+// AI Idea Generation from Single Trend
 // =============================================================================
-// These functions maintain compatibility with the old ideation workflow
-
-// Template type definition
-type IdeaTemplate = {
-  titleTemplate: string;
-  descTemplate: string;
-  hooksTemplate: string[];
-  difficulty: IdeaDifficulty;
-};
-
-// Idea templates - Korean
-const IDEA_TEMPLATES_KO: Record<string, IdeaTemplate[]> = {
-  informative: [
-    {
-      titleTemplate: "{trend} 완벽 가이드 & 분석",
-      descTemplate: "{trend}에 대해 알아야 할 모든 것을 팩트, 데이터, 전문가 인사이트와 함께 종합적으로 분석합니다.",
-      hooksTemplate: [
-        "{trend}에 대해 알아야 할 모든 것, 이 영상 하나로 정리",
-        "전문가들이 추천하는 {trend} 완벽 가이드",
-        "{trend}를 20시간 동안 연구한 결과를 공개합니다",
-      ],
-      difficulty: "medium",
-    },
-  ],
-  funny: [
-    {
-      titleTemplate: "{trend} 웃기게 만들어봤습니다",
-      descTemplate: "{trend}에 대한 코믹한 해석. 웃긴 코멘터리, 밈, 예상치 못한 반전으로 시청자들을 웃게 만듭니다.",
-      hooksTemplate: [
-        "{trend} 해봤는데 대참사였습니다...",
-        "POV: {trend}를 방금 발견한 당신",
-      ],
-      difficulty: "easy",
-    },
-  ],
-  dramatic: [
-    {
-      titleTemplate: "{trend}의 숨겨진 진실",
-      descTemplate: "{trend}에 대한 드라마틱한 조사. 주류 언론이 놓친 숨겨진 이야기와 충격적인 폭로를 다룹니다.",
-      hooksTemplate: [
-        "그들이 당신에게 알려주지 않는 {trend}의 진실",
-        "{trend} 뒤에 숨겨진 이야기",
-      ],
-      difficulty: "hard",
-    },
-  ],
-  casual: [
-    {
-      titleTemplate: "{trend}에 대해 이야기해봐요",
-      descTemplate: "{trend}에 대한 편안하고 대화하듯한 영상. 생각을 공유하고, 실시간으로 반응하며, 시청자들과 진정성 있게 소통합니다.",
-      hooksTemplate: [
-        "{trend} 생겼는데 할 말이 있어요",
-        "쉬면서 {trend}에 대해 수다 떨기",
-      ],
-      difficulty: "easy",
-    },
-  ],
-  professional: [
-    {
-      titleTemplate: "{trend}: 전문가 분석",
-      descTemplate: "프로페셔널한 제작 퀄리티와 전문가 수준의 인사이트로 {trend}를 권위 있게 분석합니다.",
-      hooksTemplate: [
-        "{trend} 전문가 분석",
-        "{category} 전문가들이 {trend}에 대해 생각하는 것",
-      ],
-      difficulty: "hard",
-    },
-  ],
-};
-
-// View estimates based on video type
-const VIEW_ESTIMATES: Record<string, Record<string, string>> = {
-  short: { easy: "100K-500K", medium: "50K-200K", hard: "30K-100K" },
-  medium: { easy: "30K-80K", medium: "50K-150K", hard: "80K-200K" },
-  long: { easy: "20K-50K", medium: "40K-120K", hard: "100K-300K" },
-};
 
 /**
- * Generate content ideas from a trend (legacy compatibility)
+ * Generate AI-powered ideas from a single trend with user options.
+ * Replaces the old template-based generateIdeasFromTrend().
+ *
+ * Flow: generateIdeasFromTrendAI() → saveGeneratedRecommendations() → getIdeas()
  */
-export async function generateIdeasFromTrend(
-  request: GenerateIdeasRequest
-): Promise<GeneratedIdea[]> {
-  const options: IdeationOptions = {
-    ...DEFAULT_IDEATION_OPTIONS,
-    ...request.options,
-  };
+export async function generateIdeasFromTrendWithAI(
+  userId: string,
+  trend: TrendItem,
+  options: IdeationOptions,
+): Promise<Idea[]> {
+  // Call AI service
+  const generated = await generateIdeasFromTrendAI({
+    trend: {
+      title: trend.title,
+      category: trend.category,
+      tags: trend.tags,
+      views: trend.views || "N/A",
+      growth: trend.growth || "N/A",
+      description: trend.description,
+      videoUrl: trend.videoUrl,
+    },
+    options: {
+      language: options.language,
+      contentTone: options.contentTone || undefined,
+      videoType: options.videoType,
+      targetAudienceHint: options.targetAudienceType,
+      customPrompt: options.customPrompt || undefined,
+      count: options.ideaCount,
+    },
+  });
 
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const templates = IDEA_TEMPLATES_KO[options.contentTone] || IDEA_TEMPLATES_KO.informative;
-  const viewEstimates = VIEW_ESTIMATES[options.videoType] || VIEW_ESTIMATES.medium;
-
-  const ideas: GeneratedIdea[] = [];
-  const numIdeas = Math.min(options.ideaCount, templates.length * 2);
-
-  for (let i = 0; i < numIdeas; i++) {
-    const template = templates[i % templates.length];
-
-    const title = template.titleTemplate
-      .replace("{trend}", request.trendTitle)
-      .replace("{category}", request.trendCategory);
-
-    const description = template.descTemplate
-      .replace(/{trend}/g, request.trendTitle)
-      .replace(/{category}/g, request.trendCategory);
-
-    const hooks = template.hooksTemplate.map((hook) =>
-      hook.replace(/{trend}/g, request.trendTitle).replace(/{category}/g, request.trendCategory)
-    );
-
-    ideas.push({
-      id: crypto.randomUUID(),
-      title,
-      description,
-      hooks,
-      targetAudience: `${request.trendCategory}에 관심 있는 일반 시청자`,
-      estimatedViews: viewEstimates[template.difficulty],
-      difficulty: template.difficulty,
-      basedOnTrend: request.trendTitle,
-      trendId: request.trendId,
-    });
+  if (generated.length === 0) {
+    return [];
   }
 
-  return ideas;
+  // Save to DB via existing saveGeneratedRecommendations()
+  // Wrap single trend as array for compatibility
+  const trendAsArray: TrendItem[] = [trend];
+  await saveGeneratedRecommendations(userId, generated, trendAsArray);
+
+  // Return freshly saved ideas (includes DB IDs, relations, etc.)
+  return getIdeas(userId, { source: "ai_generated", isSaved: false });
 }
 
 // =============================================================================

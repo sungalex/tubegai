@@ -10,6 +10,12 @@ import type {
   YouTubeVideoItem,
 } from "../types/youtube.types";
 import type { TrendFilterOptions } from "../types/trend.types";
+import {
+  YOUTUBE_CATEGORIES_KO,
+  YOUTUBE_CATEGORIES_INACTIVE_KO,
+  normalizeYouTubeCategory,
+  getYouTubeCategoryId,
+} from "../types/trend.types";
 
 // =============================================================================
 // Configuration
@@ -18,107 +24,11 @@ import type { TrendFilterOptions } from "../types/trend.types";
 const YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3";
 const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-// YouTube category ID to display name mapping (Korean)
-// Reference: https://developers.google.com/youtube/v3/docs/videoCategories/list
-const CATEGORY_MAP: Record<string, string> = {
-  "1": "영화/애니메이션",
-  "2": "자동차/교통",
-  "10": "음악",
-  "15": "반려동물/동물",
-  "17": "스포츠",
-  "18": "단편 영화", // 비활성 카테고리
-  "19": "여행/이벤트",
-  "20": "게임",
-  "21": "비디오 블로그", // 비활성 카테고리
-  "22": "인물/블로그",
-  "23": "코미디",
-  "24": "엔터테인먼트",
-  "25": "뉴스/정치",
-  "26": "노하우/스타일",
-  "27": "교육",
-  "28": "과학기술",
-  "29": "비영리/사회운동",
-  "30": "영화", // YouTube 전용
-  "44": "예고편",
+// Active + inactive categories combined (for YouTube API response mapping)
+const ALL_CATEGORIES_KO: Record<string, string> = {
+  ...YOUTUBE_CATEGORIES_KO,
+  ...YOUTUBE_CATEGORIES_INACTIVE_KO,
 };
-
-// Reverse mapping: category name to YouTube category ID
-const CATEGORY_NAME_TO_ID: Record<string, string> = Object.fromEntries(
-  Object.entries(CATEGORY_MAP).map(([id, name]) => [name.toLowerCase(), id]),
-);
-
-// Category aliases for backward compatibility with cached data
-const CATEGORY_ALIASES: Record<string, string> = {
-  // Old names → new category ID
-  동물: "15",
-  자동차: "2",
-  "영화 & 애니메이션": "1",
-  "여행 & 이벤트": "19",
-  "인물 & 블로그": "22",
-  "뉴스 & 정치": "25",
-  "노하우 & 스타일": "26",
-  "과학 & 기술": "28",
-  비디오블로그: "21",
-  // English names
-  "film & animation": "1",
-  "autos & vehicles": "2",
-  music: "10",
-  "pets & animals": "15",
-  sports: "17",
-  "travel & events": "19",
-  gaming: "20",
-  "people & blogs": "22",
-  comedy: "23",
-  entertainment: "24",
-  "news & politics": "25",
-  "howto & style": "26",
-  education: "27",
-  "science & technology": "28",
-  "nonprofits & activism": "29",
-  movies: "30",
-  trailers: "44",
-};
-
-// Category normalization map: old/variant format → standard format
-const CATEGORY_NORMALIZATION: Record<string, string> = {
-  // "&" 형식 → "/" 형식
-  "영화 & 애니메이션": "영화/애니메이션",
-  "자동차 & 교통": "자동차/교통",
-  "여행 & 이벤트": "여행/이벤트",
-  "인물 & 블로그": "인물/블로그",
-  "뉴스 & 정치": "뉴스/정치",
-  "노하우 & 스타일": "노하우/스타일",
-  "과학 & 기술": "과학기술",
-  "반려동물 & 동물": "반려동물/동물",
-  "비영리 & 사회운동": "비영리/사회운동",
-  // 축약형 → 전체 형식
-  자동차: "자동차/교통",
-  동물: "반려동물/동물",
-};
-
-/**
- * Normalize category name to standard format
- * Converts "&" separator to "/" and handles abbreviated names
- */
-function normalizeCategory(category: string): string {
-  return CATEGORY_NORMALIZATION[category] ?? category;
-}
-
-/**
- * Get YouTube category ID from category name
- */
-function getCategoryId(categoryName: string): string | null {
-  const normalized = categoryName.toLowerCase().trim();
-  // Try exact match first
-  if (CATEGORY_NAME_TO_ID[normalized]) {
-    return CATEGORY_NAME_TO_ID[normalized];
-  }
-  // Try alias match
-  if (CATEGORY_ALIASES[normalized]) {
-    return CATEGORY_ALIASES[normalized];
-  }
-  return null;
-}
 
 // =============================================================================
 // Supabase Cache Functions
@@ -151,7 +61,7 @@ async function getCachedTrends(
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -184,7 +94,7 @@ async function saveTrendsToCache(
 
   // Prepare trends data
   const trendsToInsert = videos.map((video) => {
-    const categoryName = CATEGORY_MAP[video.snippet.categoryId] ?? "Other";
+    const categoryName = ALL_CATEGORIES_KO[video.snippet.categoryId] ?? "Other";
     const tags = video.snippet.tags?.slice(0, 5) ?? [categoryName];
 
     // Parse video duration from contentDetails (e.g., "PT15M33S" → "15:33")
@@ -316,7 +226,7 @@ function mapVideoToTrendItem(
   video: YouTubeVideoItem,
   index: number,
 ): TrendItem {
-  const categoryName = CATEGORY_MAP[video.snippet.categoryId] ?? "Other";
+  const categoryName = ALL_CATEGORIES_KO[video.snippet.categoryId] ?? "Other";
   const tags = video.snippet.tags?.slice(0, 5) ?? [];
 
   return {
@@ -569,7 +479,7 @@ export async function getYouTubeTrendsWithFilters(
   // Convert category name to YouTube category ID for API-level filtering
   let videoCategoryId: string | undefined;
   if (filters.category) {
-    const categoryId = getCategoryId(filters.category);
+    const categoryId = getYouTubeCategoryId(filters.category);
     if (categoryId) {
       videoCategoryId = categoryId;
       console.log(
@@ -634,7 +544,7 @@ export async function getStoredTrends(
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -684,7 +594,7 @@ export async function getStoredTrendsWithFilters(
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -724,7 +634,7 @@ export async function getSavedTrends(userId: string): Promise<TrendItem[]> {
     id: index + 1,
     trendUuid: trend.id,
     title: trend.title,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",
@@ -801,7 +711,7 @@ export async function getTrendByExternalId(externalId: string): Promise<{
   return {
     id: trend.id,
     title: trend.title,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     tags: trend.tags ?? [],
     viewsCount: trend.viewsCount,
     growthRate: trend.growthRate,
@@ -820,7 +730,7 @@ export async function getTrendCategories(): Promise<string[]> {
   });
 
   // Normalize and deduplicate categories
-  const normalizedCategories = trends.map((t) => normalizeCategory(t.category));
+  const normalizedCategories = trends.map((t) => normalizeYouTubeCategory(t.category));
   const categories = [...new Set(normalizedCategories)];
   return categories.sort();
 }
@@ -845,7 +755,7 @@ export async function getTrendsByIds(trendIds: string[]): Promise<TrendItem[]> {
     trendUuid: trend.id,
     title: trend.title,
     description: trend.description ?? undefined,
-    category: normalizeCategory(trend.category),
+    category: normalizeYouTubeCategory(trend.category),
     views: trend.viewsCount ?? "0",
     growth: trend.growthRate ?? "+NEW",
     thumbnail: trend.thumbnailUrl ?? "",

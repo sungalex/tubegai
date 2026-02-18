@@ -150,9 +150,9 @@ export function StudioProjectSelector({
 
       // 2. Status Filter
       const matchesStatus = statusFilter === "all" ||
-        (statusFilter === "in-progress" && project.status === "In Progress") ||
-        (statusFilter === "completed" && project.status === "Completed") ||
-        (statusFilter === "draft" && project.status === "Draft");
+        (statusFilter === "in-progress" && project.status === "진행중") ||
+        (statusFilter === "completed" && project.status === "완료") ||
+        (statusFilter === "draft" && project.status === "초안");
 
       // 3. Channel Filter
       const matchesChannel = channelFilter === "all" || project.channel === channelFilter;
@@ -390,7 +390,7 @@ function ProjectCard({ project, primaryLabel, primarySegment }: { project: Studi
       <CardHeader className="pb-4">
         <CardTitle className="flex justify-between items-start text-xl gap-2 w-full min-w-0">
           <span className="truncate flex-1 block" title={project.title}>{project.title}</span>
-          <Badge variant={project.status === "Completed" ? "default" : "secondary"} className="shrink-0">
+          <Badge variant={project.status === "완료" ? "default" : "secondary"} className="shrink-0">
             {project.status}
           </Badge>
         </CardTitle>

@@ -19,15 +19,25 @@ export interface RecentProject {
   basedOnTrend?: string;
   thumbnailUrl?: string;
   referenceUrl?: string;
+  category?: string;
 }
 
 export interface Project {
   id: string;
   title: string;
+  description?: string;
   thumbnail?: string;
-  status: "Draft" | "In Progress" | "Completed" | "Processing";
+  status: "초안" | "진행중" | "완료" | "보관";
   lastModified: string;
   progress: number;
+  type?: "short" | "long";
+  contentTone?: string;
+  videoLength?: string;
+  difficulty?: string;
+  targetAudience?: string;
+  estimatedViews?: string;
+  basedOnTrend?: string;
+  category?: string;
 }
 
 export interface WorkflowStep {
@@ -93,20 +103,6 @@ export interface ProjectDetail {
 export interface LabelColor {
   name: string;
   value: string;
-}
-
-/**
- * @deprecated Use Idea from ideation.types.ts with source='ai_generated' instead
- */
-export interface AIRecommendation {
-  id?: string; // Added for save functionality
-  title: string;
-  reason: string;
-  growth: string;
-  description?: string;
-  hooks?: string[];
-  targetAudience?: string;
-  estimatedViews?: string;
 }
 
 // Re-export Idea type for convenience

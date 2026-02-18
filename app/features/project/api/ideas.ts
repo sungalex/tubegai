@@ -19,6 +19,7 @@ import {
   markIdeaAsUsed,
   getAIRecommendationsForUser,
   refreshAIRecommendations,
+  generateIdeasFromTrendWithAI,
   searchIdeas,
 } from "~/common/data/idea.data.server";
 import {
@@ -29,7 +30,10 @@ import type {
   IdeaSource,
   CreateIdeaInput,
   UpdateIdeaInput,
+  IdeationOptions,
 } from "~/common/types/ideation.types";
+import { DEFAULT_IDEATION_OPTIONS } from "~/common/types/ideation.types";
+import type { TrendItem } from "~/common/types/project.types";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireAuth(request);
@@ -91,6 +95,22 @@ export async function action({ request }: Route.ActionArgs) {
           }
 
           const ideas = await refreshAIRecommendations(userId, trends, language);
+          return { success: true, ideas };
+        }
+
+        // Generate AI ideas from a single trend
+        case "generate-from-trend": {
+          const trend = body.trend as TrendItem;
+          if (!trend?.title) {
+            return { error: "Trend data required" };
+          }
+
+          const options: IdeationOptions = {
+            ...DEFAULT_IDEATION_OPTIONS,
+            ...body.options,
+          };
+
+          const ideas = await generateIdeasFromTrendWithAI(userId, trend, options);
           return { success: true, ideas };
         }
 

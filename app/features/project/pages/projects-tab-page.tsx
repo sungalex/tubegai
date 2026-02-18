@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/projects-tab-page";
-import { Card, CardContent, CardHeader, CardTitle } from "~/common/components/ui/card";
+import { Card, CardContent } from "~/common/components/ui/card";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
 import { Input } from "~/common/components/ui/input";
@@ -98,7 +98,7 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
   return (
     <>
       {/* Status Summary - Clickable filters */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         <Card
           className={cn(
             "cursor-pointer transition-all hover:border-primary",
@@ -106,13 +106,9 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
           )}
           onClick={() => handleStatusFilter("in_progress")}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              진행 중
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats.inProgress}</div>
+          <CardContent className="flex items-center justify-between p-3">
+            <span className="text-sm font-medium text-muted-foreground">진행 중</span>
+            <span className="text-xl font-bold">{projectStats.inProgress}</span>
           </CardContent>
         </Card>
         <Card
@@ -122,13 +118,9 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
           )}
           onClick={() => handleStatusFilter("completed")}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              완료됨
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats.completed}</div>
+          <CardContent className="flex items-center justify-between p-3">
+            <span className="text-sm font-medium text-muted-foreground">완료됨</span>
+            <span className="text-xl font-bold">{projectStats.completed}</span>
           </CardContent>
         </Card>
         <Card
@@ -138,13 +130,9 @@ export default function ProjectsTabPage({ loaderData }: Route.ComponentProps) {
           )}
           onClick={() => handleStatusFilter("draft")}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              초안
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats.drafts}</div>
+          <CardContent className="flex items-center justify-between p-3">
+            <span className="text-sm font-medium text-muted-foreground">초안</span>
+            <span className="text-xl font-bold">{projectStats.drafts}</span>
           </CardContent>
         </Card>
       </div>

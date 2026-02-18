@@ -5,7 +5,7 @@
 
 import type { Route } from "./+types/generate-script-stream";
 import { requireAuth } from "~/lib/auth.server";
-import { getProjectById } from "~/common/data/project.data.server";
+import { getProjectById, activateProject } from "~/common/data/project.data.server";
 import { generateScriptStream, type ScriptGenerationOptions } from "~/lib/ai/script.server";
 import { saveScript, getOrCreateActiveSession, getPreProductionData } from "~/common/data/studio.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
@@ -107,6 +107,9 @@ export async function action({ request }: Route.ActionArgs) {
                 sceneHints: seg.sceneHints,
               })),
             });
+
+            // Promote project status: draft → in_progress
+            await activateProject(projectId);
           }
 
           // Send completion event

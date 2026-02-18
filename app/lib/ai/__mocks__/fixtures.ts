@@ -35,6 +35,7 @@ export const MOCK_RECOMMENDATIONS: AIGeneratedRecommendation[] = [
     growthRate: "+120%",
     score: 85,
     basedOnTrends: ["AI 도구", "생산성"],
+    category: "과학기술",
   },
   {
     title: "직장인 퇴근 후 부업으로 월 200만원 버는 법",
@@ -54,6 +55,7 @@ export const MOCK_RECOMMENDATIONS: AIGeneratedRecommendation[] = [
     growthRate: "+85%",
     score: 90,
     basedOnTrends: ["부업", "재테크"],
+    category: "노하우/스타일",
   },
   {
     title: "요즘 MZ세대가 열광하는 취미 TOP 5",
@@ -73,6 +75,7 @@ export const MOCK_RECOMMENDATIONS: AIGeneratedRecommendation[] = [
     growthRate: "+65%",
     score: 78,
     basedOnTrends: ["MZ세대", "취미"],
+    category: "엔터테인먼트",
   },
 ];
 
@@ -293,6 +296,7 @@ export const MOCK_PROJECT_CONTEXT: AIProjectGenerationOutput = {
   suggestedTone: "informative",
   suggestedDifficulty: "medium",
   suggestedVideoLength: "medium",
+  suggestedCategory: "과학기술",
 };
 
 // =============================================================================

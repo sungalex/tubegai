@@ -55,7 +55,6 @@ export default [
   // API Routes (Ideation Hub)
   ...prefix("api", [
     route("ideas", "features/project/api/ideas.ts"),
-    route("generate-ideas", "features/project/api/generate-ideas.ts"),
     route("trend-bookmark", "features/project/api/trend-bookmark.ts"),
     route(
       "generate-project-context",

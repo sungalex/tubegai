@@ -22,10 +22,12 @@ import {
   Save,
   Loader2,
   MessageSquarePlus,
-  Hash,
+  ExternalLink,
+  Link2,
 } from "lucide-react";
 
 import { cn } from "~/lib/utils";
+import { YOUTUBE_CATEGORY_VALUES_KO } from "~/common/types/trend.types";
 import { Button } from "~/common/components/ui/button";
 import {
   Card,
@@ -187,14 +189,6 @@ const DIFFICULTY_MAP: Record<string, { label: string; color: string }> = {
   hard: { label: "어려움", color: "text-red-500" },
 };
 
-const CONTENT_TONE_MAP: Record<string, string> = {
-  informative: "정보 전달형",
-  funny: "재미/유머",
-  dramatic: "드라마틱",
-  casual: "캐주얼",
-  professional: "전문적",
-};
-
 const VIDEO_LENGTH_MAP: Record<string, string> = {
   short: "쇼츠 (60초 이하)",
   medium: "중간 (2-10분)",
@@ -221,10 +215,12 @@ interface ProjectFormData {
   targetAudience: string;
   estimatedViews: string;
   contentTone: string;
+  category: string;
   videoLength: string;
   difficulty: string;
   additionalNotes: string;
   channelId: string;
+  referenceUrl: string;
 }
 
 // Status values that prevent channel change (already uploaded/published)
@@ -276,10 +272,12 @@ export default function ProjectDetailPage({
     targetAudience: project.targetAudience ?? "",
     estimatedViews: project.estimatedViews ?? "",
     contentTone: project.contentTone ?? "",
+    category: project.category ?? "",
     videoLength: project.videoLength ?? "",
     difficulty: project.difficulty ?? "",
     additionalNotes: project.aiContext?.additionalNotes ?? "",
     channelId: project.channel?.id ?? "",
+    referenceUrl: project.referenceUrl ?? "",
   });
 
   const isSubmitting = fetcher.state !== "idle";
@@ -314,7 +312,18 @@ export default function ProjectDetailPage({
   }, [fetcher.data, navigate]);
 
   const handleFieldChange = (field: keyof ProjectFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      // 영상 타입 ↔ 영상 길이 연동
+      if (field === "type") {
+        if (value === "short") {
+          next.videoLength = "short";
+        } else if (prev.videoLength === "short") {
+          next.videoLength = "medium";
+        }
+      }
+      return next;
+    });
   };
 
   const handleSave = () => {
@@ -327,8 +336,10 @@ export default function ProjectDetailPage({
       targetAudience: formData.targetAudience || undefined,
       estimatedViews: formData.estimatedViews || undefined,
       contentTone: formData.contentTone || undefined,
+      category: formData.category || undefined,
       videoLength: formData.videoLength || undefined,
       difficulty: formData.difficulty || undefined,
+      referenceUrl: formData.referenceUrl || undefined,
       aiContext: {
         ...project.aiContext,
         additionalNotes: formData.additionalNotes || undefined,
@@ -357,10 +368,12 @@ export default function ProjectDetailPage({
       targetAudience: project.targetAudience ?? "",
       estimatedViews: project.estimatedViews ?? "",
       contentTone: project.contentTone ?? "",
+      category: project.category ?? "",
       videoLength: project.videoLength ?? "",
       difficulty: project.difficulty ?? "",
       additionalNotes: project.aiContext?.additionalNotes ?? "",
       channelId: project.channel?.id ?? "",
+      referenceUrl: project.referenceUrl ?? "",
     });
     setIsEditMode(false);
   };
@@ -639,23 +652,32 @@ export default function ProjectDetailPage({
                       <label className="text-xs text-muted-foreground">
                         콘텐츠 톤
                       </label>
-                      <Select
+                      <Input
                         value={formData.contentTone}
+                        onChange={(e) =>
+                          handleFieldChange("contentTone", e.target.value)
+                        }
+                        placeholder="예: informative, cinematic..."
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">
+                        카테고리
+                      </label>
+                      <Select
+                        value={formData.category}
                         onValueChange={(v) =>
-                          handleFieldChange("contentTone", v)
+                          handleFieldChange("category", v)
                         }
                       >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="선택..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(CONTENT_TONE_MAP).map(
-                            ([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ),
-                          )}
+                          {YOUTUBE_CATEGORY_VALUES_KO.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -668,17 +690,24 @@ export default function ProjectDetailPage({
                         onValueChange={(v) =>
                           handleFieldChange("videoLength", v)
                         }
+                        disabled={formData.type === "short"}
                       >
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue placeholder="선택..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(VIDEO_LENGTH_MAP).map(
-                            ([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ),
+                          {formData.type === "short" ? (
+                            <SelectItem value="short">
+                              {VIDEO_LENGTH_MAP["short"]}
+                            </SelectItem>
+                          ) : (
+                            Object.entries(VIDEO_LENGTH_MAP)
+                              .filter(([v]) => v !== "short")
+                              .map(([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ))
                           )}
                         </SelectContent>
                       </Select>
@@ -722,11 +751,11 @@ export default function ProjectDetailPage({
                     />
                     <ReadOnlyField
                       label="콘텐츠 톤"
-                      value={
-                        project.contentTone
-                          ? CONTENT_TONE_MAP[project.contentTone]
-                          : undefined
-                      }
+                      value={project.contentTone ?? undefined}
+                    />
+                    <ReadOnlyField
+                      label="카테고리"
+                      value={project.category ?? undefined}
                     />
                     <ReadOnlyField
                       label="영상 길이"
@@ -760,35 +789,94 @@ export default function ProjectDetailPage({
                     </div>
                   </div>
                 )}
+                {/* Reference URL */}
+                {isEditMode ? (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> 참조 영상 URL
+                    </label>
+                    <Input
+                      value={formData.referenceUrl}
+                      onChange={(e) =>
+                        handleFieldChange("referenceUrl", e.target.value)
+                      }
+                      placeholder="https://youtube.com/watch?v=..."
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ) : project.referenceUrl ? (
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                      <Link2 className="h-3 w-3" />
+                      참조 영상
+                    </div>
+                    <a
+                      href={project.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1 truncate max-w-full"
+                      title={project.referenceUrl}
+                    >
+                      {project.referenceUrl.replace(/^https?:\/\/(www\.)?/, "").slice(0, 40)}...
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  </div>
+                ) : null}
               </div>
 
-              {/* Keywords */}
-              <div className="pt-4 border-t">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                  <Hash className="h-3 w-3 text-blue-500" />
-                  키워드
-                </div>
-                {project.aiContext?.keywords &&
-                project.aiContext.keywords.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {project.aiContext.keywords.map(
-                      (keyword: string, index: number) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {keyword}
-                        </Badge>
-                      ),
-                    )}
+              {/* Trend Snapshot */}
+              {project.trendSnapshot && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                    <TrendingUp className="h-3 w-3 text-purple-500" />
+                    트렌드 스냅샷
+                    <span className="ml-auto text-muted-foreground/60">
+                      {(() => {
+                        const snap = project.trendSnapshot as { capturedAt?: string; category?: string; viewsCount?: string; growthRate?: string; tags?: string[] };
+                        return snap.capturedAt
+                          ? format(new Date(snap.capturedAt), "yyyy.M.d", { locale: ko })
+                          : "";
+                      })()}
+                    </span>
                   </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground italic">
-                    미설정
-                  </span>
-                )}
-              </div>
+                  {(() => {
+                    const snap = project.trendSnapshot as { category?: string; viewsCount?: string; growthRate?: string; tags?: string[] };
+                    return (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          {snap.category && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">카테고리</span>
+                              <div className="font-medium">{snap.category}</div>
+                            </div>
+                          )}
+                          {snap.viewsCount && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">조회수</span>
+                              <div className="font-medium">{snap.viewsCount}</div>
+                            </div>
+                          )}
+                          {snap.growthRate && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">성장률</span>
+                              <div className="font-medium text-green-600">{snap.growthRate}</div>
+                            </div>
+                          )}
+                        </div>
+                        {snap.tags && snap.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {snap.tags.map((tag: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* User Prompt */}
               <div className="pt-4 border-t">

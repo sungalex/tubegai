@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useFetcher } from "react-router";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/trends-tab-page";
 import { TrendAnalyzer } from "../components/trend-analyzer";
 import { TrendFilter } from "../components/trend-filter";
@@ -10,10 +10,9 @@ import {
   getStoredTrendsWithFilters,
   getSavedTrends,
 } from "~/common/data/youtube.data.server";
-import { getIdeas, getAIRecommendations } from "~/common/data/idea.data.server";
+import { getAIRecommendations } from "~/common/data/idea.data.server";
 import { getChannelsForSelect } from "~/common/data/project.data.server";
 import { requireAuth } from "~/lib/auth.server";
-import type { Idea } from "~/common/types/ideation.types";
 import type { TrendFilterOptions } from "~/common/types/trend.types";
 import type { TrendItem } from "~/common/types/project.types";
 
@@ -57,16 +56,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const categories = await getTrendCategories();
   const channels = await getChannelsForSelect(userId);
 
-  // Supabase에서 저장된 아이디어 가져오기 (최대 6개)
-  const allIdeas = await getIdeas(userId, { isSaved: true });
-  const savedIdeas = allIdeas.slice(0, 6);
-
   // Supabase에서 AI 추천 아이디어 가져오기 (만료되지 않은 unsaved)
   const aiRecommendations = await getAIRecommendations(userId);
 
   return {
     trends,
-    savedIdeas,
     aiRecommendations,
     categories,
     channels,
@@ -77,16 +71,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
   const {
     trends,
-    savedIdeas: initialSavedIdeas,
     aiRecommendations: initialAiRecommendations,
     categories,
     channels,
     initialFilters,
   } = loaderData;
-  const [savedIdeas, setSavedIdeas] = useState(initialSavedIdeas);
   const [filters, setFilters] = useState<TrendFilterOptions>(initialFilters);
   const [loadingSource, setLoadingSource] = useState<"youtube" | "saved" | "bookmarked" | null>(null);
-  const navigate = useNavigate();
   const fetcher = useFetcher<typeof loader>();
 
   // Use fetcher data if available, otherwise use loader data
@@ -100,13 +91,6 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
       setLoadingSource(null);
     }
   }, [fetcher.state]);
-
-  // Update savedIdeas when fetcher data changes
-  useEffect(() => {
-    if (fetcher.data?.savedIdeas) {
-      setSavedIdeas(fetcher.data.savedIdeas);
-    }
-  }, [fetcher.data]);
 
   // Parse view count string to number (e.g., "1.2M" -> 1200000)
   const parseViewCount = (views: string): number => {
@@ -186,15 +170,6 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     fetcher.load(`/projects/trends?${params.toString()}`);
   };
 
-  const handleSaveIdea = (idea: Idea) => {
-    // 새 아이디어를 savedIdeas 목록에 추가
-    setSavedIdeas((prev) => [idea, ...prev].slice(0, 6));
-  };
-
-  const handleUpdateSavedIdeas = (newSavedIdeas: typeof savedIdeas) => {
-    setSavedIdeas(newSavedIdeas);
-  };
-
   return (
     <div className="space-y-4">
       <TrendFilter
@@ -216,11 +191,8 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
 
       <TrendAnalyzer
         trends={filteredTrends}
-        savedIdeas={savedIdeas}
         initialAiRecommendations={initialAiRecommendations}
         channels={channels}
-        onSaveIdea={handleSaveIdea}
-        onUpdateSavedIdeas={handleUpdateSavedIdeas}
         isLoading={isLoading}
       />
     </div>

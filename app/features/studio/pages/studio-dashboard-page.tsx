@@ -96,13 +96,6 @@ function buildUserIdeaFromProject(project: NonNullable<Awaited<ReturnType<typeof
   if (project.topic) lines.push(`[주제] ${project.topic}`);
   if (project.targetAudience) lines.push(`[타겟] ${project.targetAudience}`);
 
-  const ctx = project.aiContext;
-  if (ctx) {
-    if (ctx.keywords?.length) lines.push(`[키워드] ${ctx.keywords.join(", ")}`);
-    if (ctx.styleNotes) lines.push(`[스타일] ${ctx.styleNotes}`);
-    if (ctx.callToAction) lines.push(`[CTA] ${ctx.callToAction}`);
-  }
-
   return lines.join("\n");
 }
 

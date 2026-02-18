@@ -6,6 +6,7 @@
 import { desc, eq, ilike, asc, and, count, sql } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import { formatDistanceToNow } from "date-fns";
+import { normalizeYouTubeCategory } from "~/common/types/trend.types";
 
 // Sort options type
 export type ProjectSortOption = "newest" | "oldest" | "name" | "progress";
@@ -39,10 +40,10 @@ import { getYouTubeTrends } from "./youtube.data.server";
 
 // Status mapping: DB enum -> UI display
 const STATUS_DISPLAY_MAP: Record<string, string> = {
-  draft: "Draft",
-  in_progress: "In Progress",
-  completed: "Completed",
-  archived: "Archived",
+  draft: "초안",
+  in_progress: "진행중",
+  completed: "완료",
+  archived: "보관",
 };
 
 // =============================================================================
@@ -63,16 +64,14 @@ export interface CreateProjectInput {
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
   contentTone?: string;
+  category?: string;
   videoLength?: "short" | "medium" | "long";
   basedOnTrend?: string;
   sourceIdeaId?: string;
   aiContext?: {
-    keywords?: string[];
     competitors?: string[];
     references?: string[];
-    styleNotes?: string;
     targetLength?: string;
-    callToAction?: string;
     additionalNotes?: string;
   };
   // Phase 1 Enhancement: Trend integration
@@ -117,6 +116,7 @@ export async function createProject(
       estimatedViews: emptyToNull(input.estimatedViews),
       difficulty: emptyToNull(input.difficulty),
       contentTone: emptyToNull(input.contentTone),
+      category: input.category ? normalizeYouTubeCategory(input.category) : null,
       videoLength: emptyToNull(input.videoLength),
       basedOnTrend: emptyToNull(input.basedOnTrend),
       sourceIdeaId: emptyToNull(input.sourceIdeaId),
@@ -286,10 +286,19 @@ export async function getProjects(
   const projects = projectList.map((project) => ({
     id: project.id,
     title: project.title,
+    description: project.description ?? undefined,
     thumbnail: project.thumbnailUrl ?? undefined,
     status: STATUS_DISPLAY_MAP[project.status] as Project["status"],
     lastModified: formatDistanceToNow(project.updatedAt, { addSuffix: true }),
     progress: project.progress,
+    type: (project.type ?? undefined) as "short" | "long" | undefined,
+    contentTone: project.contentTone ?? undefined,
+    category: project.category ?? undefined,
+    videoLength: project.videoLength ?? undefined,
+    difficulty: project.difficulty ?? undefined,
+    targetAudience: project.targetAudience ?? undefined,
+    estimatedViews: project.estimatedViews ?? undefined,
+    basedOnTrend: project.basedOnTrend ?? undefined,
   }));
 
   return {
@@ -321,16 +330,14 @@ export interface ProjectFullDetail {
   estimatedViews: string | null;
   difficulty: string | null;
   contentTone: string | null;
+  category: string | null;
   videoLength: string | null;
   basedOnTrend: string | null;
   sourceIdeaId: string | null;
   aiContext: {
-    keywords?: string[];
     competitors?: string[];
     references?: string[];
-    styleNotes?: string;
     targetLength?: string;
-    callToAction?: string;
     additionalNotes?: string;
   } | null;
   // Phase 1 Enhancement: Trend integration
@@ -412,6 +419,7 @@ export async function getProjectById(
     estimatedViews: project.estimatedViews,
     difficulty: project.difficulty,
     contentTone: project.contentTone,
+    category: project.category,
     videoLength: project.videoLength,
     basedOnTrend: project.basedOnTrend,
     sourceIdeaId: project.sourceIdeaId,
@@ -441,14 +449,13 @@ export interface UpdateProjectInput {
   estimatedViews?: string;
   difficulty?: "easy" | "medium" | "hard";
   contentTone?: string;
+  category?: string;
   videoLength?: "short" | "medium" | "long";
+  referenceUrl?: string;
   aiContext?: {
-    keywords?: string[];
     competitors?: string[];
     references?: string[];
-    styleNotes?: string;
     targetLength?: string;
-    callToAction?: string;
     additionalNotes?: string;
   };
 }
@@ -474,11 +481,23 @@ export async function updateProject(
   if (input.estimatedViews !== undefined) updateData.estimatedViews = input.estimatedViews || null;
   if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
   if (input.contentTone !== undefined) updateData.contentTone = input.contentTone || null;
+  if (input.category !== undefined) updateData.category = input.category ? normalizeYouTubeCategory(input.category) : null;
   if (input.videoLength !== undefined) updateData.videoLength = input.videoLength || null;
+  if (input.referenceUrl !== undefined) updateData.referenceUrl = input.referenceUrl || null;
   if (input.aiContext !== undefined) updateData.aiContext = input.aiContext;
 
   await db.update(schema.projects).set(updateData).where(eq(schema.projects.id, projectId));
   return { success: true };
+}
+
+/**
+ * Promote project status from draft → in_progress (no-op if already in_progress or beyond)
+ */
+export async function activateProject(projectId: string): Promise<void> {
+  await db
+    .update(schema.projects)
+    .set({ status: "in_progress", updatedAt: new Date() })
+    .where(and(eq(schema.projects.id, projectId), eq(schema.projects.status, "draft")));
 }
 
 export async function archiveProject(projectId: string, userId: string): Promise<{ success: boolean }> {

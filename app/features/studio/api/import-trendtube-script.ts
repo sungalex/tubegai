@@ -5,7 +5,7 @@
 
 import type { Route } from "./+types/import-trendtube-script";
 import { requireAuth } from "~/lib/auth.server";
-import { getProjectById } from "~/common/data/project.data.server";
+import { getProjectById, activateProject } from "~/common/data/project.data.server";
 import { getTrendTubeSessionForUser } from "~/common/data/trendtube.data.server";
 import { saveScript, getOrCreateActiveSession } from "~/common/data/studio.data.server";
 
@@ -69,6 +69,9 @@ export async function action({ request }: Route.ActionArgs) {
       sourceTrendtubeSessionId: trendtubeSessionId,
       segments,
     });
+
+    // Promote project status: draft → in_progress
+    await activateProject(projectId);
 
     return Response.json({
       success: true,

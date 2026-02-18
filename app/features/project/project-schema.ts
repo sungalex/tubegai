@@ -85,6 +85,8 @@ export const projects = tubegaiSchema.table("project", {
   difficulty: ideaDifficultyEnum("difficulty"),
   // Content tone (free-form text, AI-recommended or user-input)
   contentTone: text("content_tone"),
+  // YouTube content category (e.g., "엔터테인먼트", "교육")
+  category: text("category"),
   // Video length type
   videoLength: videoLengthEnum("video_length"),
   // Source trend title (if based on trend)
@@ -95,12 +97,9 @@ export const projects = tubegaiSchema.table("project", {
   sourceIdeaId: uuid("source_idea_id"),
   // Additional AI context data (flexible JSON for studio use)
   aiContext: jsonb("ai_context").$type<{
-    keywords?: string[];
     competitors?: string[];
     references?: string[];
-    styleNotes?: string;
     targetLength?: string;
-    callToAction?: string;
     additionalNotes?: string;
   }>(),
 

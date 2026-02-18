@@ -141,12 +141,7 @@ export function IdeasSection({
   // Handle use an idea
   const handleUse = (idea: Idea) => {
     navigate("/projects/new", {
-      state: {
-        topic: idea.title,
-        hooks: idea.hooks,
-        ideaId: idea.id,
-        referenceUrl: idea.referenceUrl,
-      },
+      state: { idea },
     });
   };
 
@@ -498,7 +493,7 @@ export function IdeasSection({
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedIdeas.map((idea) => (
             <IdeaCard
               key={idea.id}
