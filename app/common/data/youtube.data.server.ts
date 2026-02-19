@@ -306,11 +306,11 @@ export async function getYouTubeTrends(
   }
 
   // Check for API key
-  const apiKey = process.env.GEMINI_API_KEY; // Using GEMINI_API_KEY for both Gemini and YouTube API
+  const apiKey = process.env.GEMINI_YOUTUBE_DATA_API_KEY;
 
   if (!apiKey) {
     console.warn(
-      "[YouTube API] GEMINI_API_KEY not configured, returning empty",
+      "[YouTube API] GEMINI_YOUTUBE_DATA_API_KEY not configured, returning empty",
     );
     return [];
   }
@@ -463,11 +463,11 @@ function applyFilters(
 }
 
 /**
- * Fetch trending videos with filters
- * Category filter is applied at the API level for better results
- * Other filters (minViews, keywords) are applied client-side
+ * Fetch trending videos from YouTube API
+ * Category filter is applied at the API level (YouTube API parameter)
+ * Other filters (minViews, keywords) are applied client-side in the browser
  *
- * @param filters - Filter options including regionCode, category, minViews, keywords
+ * @param filters - Filter options including regionCode, category
  * @param forceRefresh - Skip cache and fetch fresh data from YouTube API
  */
 export async function getYouTubeTrendsWithFilters(
@@ -485,31 +485,19 @@ export async function getYouTubeTrendsWithFilters(
       console.log(
         `[YouTube API] Category "${filters.category}" mapped to ID ${categoryId}`,
       );
-    } else {
-      console.warn(
-        `[YouTube API] Unknown category: "${filters.category}", will filter client-side`,
-      );
     }
   }
 
-  // Fetch trends from API with category filter if available
+  // Fetch trends from API — return ALL results without server-side filtering
+  // Client-side filtering (keywords, minViews) is handled in the browser
   const trends = await getYouTubeTrends({
     regionCode,
     videoCategoryId,
-    maxResults: 50, // Fetch more results when filtering
+    maxResults: 50,
     forceRefresh,
   });
 
-  // Apply remaining client-side filters (minViews, keywords, excludeKeywords)
-  // Skip category filter if already applied at API level
-  const clientSideFilters: TrendFilterOptions = {
-    ...filters,
-    category: videoCategoryId ? undefined : filters.category, // Skip if already filtered by API
-  };
-
-  const filteredTrends = applyFilters(trends, clientSideFilters);
-
-  return filteredTrends;
+  return trends;
 }
 
 /**

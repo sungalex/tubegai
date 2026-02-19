@@ -12,7 +12,7 @@ TubeGAI는 YouTube API를 **2가지 방식**으로 사용합니다:
 
 | 용도                          | 인증 방식 | 환경 변수                                  | Google Cloud 프로젝트 |
 | ----------------------------- | --------- | ------------------------------------------ | --------------------- |
-| **트렌드 조회** (공개 데이터) | API Key   | `GEMINI_API_KEY`                           | AI Studio 프로젝트    |
+| **트렌드 조회** (공개 데이터) | API Key   | `GEMINI_YOUTUBE_DATA_API_KEY`              | AI Studio 프로젝트    |
 | **채널 관리** (비공개 데이터) | OAuth 2.0 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | 별도 GCP 프로젝트     |
 
 ### 왜 2가지로 나뉘는가?
@@ -26,16 +26,16 @@ TubeGAI는 YouTube API를 **2가지 방식**으로 사용합니다:
 
 TubeGAI는 **2개의 Google Cloud 프로젝트**를 사용합니다:
 
-| 프로젝트               | 용도                                  | 인증      | 환경 변수                                  |
-| ---------------------- | ------------------------------------- | --------- | ------------------------------------------ |
-| **AI Studio 프로젝트** | Gemini AI + YouTube Data API (트렌드) | API Key   | `GEMINI_API_KEY`                           |
-| **별도 GCP 프로젝트**  | YouTube OAuth (채널 관리)             | OAuth 2.0 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| 프로젝트               | 용도                                  | 인증      | 환경 변수                                                |
+| ---------------------- | ------------------------------------- | --------- | -------------------------------------------------------- |
+| **AI Studio 프로젝트** | Gemini AI + YouTube Data API (트렌드) | API Key   | `GEMINI_API_KEY`, `GEMINI_YOUTUBE_DATA_API_KEY`          |
+| **별도 GCP 프로젝트**  | YouTube OAuth (채널 관리)             | OAuth 2.0 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`               |
 
 > **왜 프로젝트를 분리하는가?**
 >
 > - AI Studio에서 생성한 프로젝트에는 프로젝트 소유자를 OAuth 인증 대상(개발단계 테스터)으로 등록할 수 없음
 > - YouTube OAuth용으로 Google Cloud Console에서 프로젝트를 별도 생성해야 함
-> - Gemini API Key와 YouTube Data API Key는 AI Studio 프로젝트에서 하나의 API Key로 공유 가능
+> - Gemini API Key(`GEMINI_API_KEY`)와 YouTube Data API Key(`GEMINI_YOUTUBE_DATA_API_KEY`)는 동일한 AI Studio 프로젝트에서 발급 가능
 
 ---
 
@@ -79,7 +79,7 @@ Gemini API Key가 이미 있다면 별도 설정이 필요 없습니다. **동�
 4. `.env`에 설정:
 
 ```env
-GEMINI_API_KEY=your-api-key
+GEMINI_YOUTUBE_DATA_API_KEY=your-youtube-data-api-key
 ```
 
 #### 방법 B: Google Cloud Console에서 직접 설정
@@ -95,11 +95,11 @@ AI Studio를 사용하지 않는 경우:
 ### 1.3 환경 변수 설정
 
 ```env
-# Gemini AI와 YouTube Data API 공용
-GEMINI_API_KEY=your-api-key
+# YouTube Data API (트렌드 조회)
+GEMINI_YOUTUBE_DATA_API_KEY=your-youtube-data-api-key
 ```
 
-> **참고**: `YOUTUBE_API_KEY` 같은 별도 변수는 사용하지 않습니다. `GEMINI_API_KEY` 하나로 통합되어 있습니다.
+> **참고**: YouTube 트렌드 조회에는 `GEMINI_YOUTUBE_DATA_API_KEY`를 사용합니다. Gemini AI용 `GEMINI_API_KEY`와 별도로 관리됩니다.
 
 ### 1.4 동작 확인
 
@@ -117,7 +117,7 @@ getYouTubeTrends(options)
   ├─ getCachedTrends()     → Supabase에서 15분 이내 캐시 조회
   ├─ (캐시 있음) → 캐시 데이터 반환
   └─ (캐시 없음)
-     ├─ YouTube API 호출   → GET /youtube/v3/videos?chart=mostPopular&key=GEMINI_API_KEY
+     ├─ YouTube API 호출   → GET /youtube/v3/videos?chart=mostPopular&key=GEMINI_YOUTUBE_DATA_API_KEY
      ├─ saveTrendsToCache() → Supabase에 결과 저장
      └─ 결과 반환
 
@@ -330,15 +330,19 @@ npm run dev
 
 ## 환경 변수 종합 요약
 
-| 변수                   | 용도                                  | 설정 위치 | Google Cloud 프로젝트 |
-| ---------------------- | ------------------------------------- | --------- | --------------------- |
-| `GEMINI_API_KEY`       | Gemini AI + YouTube Data API (트렌드) | `.env`    | AI Studio 프로젝트    |
-| `GOOGLE_CLIENT_ID`     | YouTube OAuth (채널 관리)             | `.env`    | 별도 GCP 프로젝트     |
-| `GOOGLE_CLIENT_SECRET` | YouTube OAuth (채널 관리)             | `.env`    | 별도 GCP 프로젝트     |
+| 변수                            | 용도                          | 설정 위치 | Google Cloud 프로젝트 |
+| ------------------------------- | ----------------------------- | --------- | --------------------- |
+| `GEMINI_API_KEY`                | Gemini AI                     | `.env`    | AI Studio 프로젝트    |
+| `GEMINI_YOUTUBE_DATA_API_KEY`   | YouTube Data API (트렌드)     | `.env`    | AI Studio 프로젝트    |
+| `GOOGLE_CLIENT_ID`              | YouTube OAuth (채널 관리)     | `.env`    | 별도 GCP 프로젝트     |
+| `GOOGLE_CLIENT_SECRET`          | YouTube OAuth (채널 관리)     | `.env`    | 별도 GCP 프로젝트     |
 
 ```env
-# Gemini AI + YouTube Data API (트렌드 조회)
-GEMINI_API_KEY=your-api-key
+# Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# YouTube Data API (트렌드 조회)
+GEMINI_YOUTUBE_DATA_API_KEY=your-youtube-data-api-key
 
 # YouTube OAuth (채널 관리)
 GOOGLE_CLIENT_ID=your-youtube-oauth-client-id
@@ -353,9 +357,9 @@ GOOGLE_CLIENT_SECRET=your-youtube-oauth-client-secret
 
 #### API Key가 없다는 경고
 
-콘솔에 `GEMINI_API_KEY not configured` 메시지가 출력되는 경우:
+콘솔에 `GEMINI_YOUTUBE_DATA_API_KEY not configured` 메시지가 출력되는 경우:
 
-- `.env`에 `GEMINI_API_KEY`가 설정되어 있는지 확인
+- `.env`에 `GEMINI_YOUTUBE_DATA_API_KEY`가 설정되어 있는지 확인
 - 개발 서버 재시작: `npm run dev`
 
 #### API 쿼터 초과
@@ -440,6 +444,7 @@ YouTube Data API 기본 쿼터: 10,000 units/day
 ### 환경 변수
 
 - [ ] 프로덕션 환경에 `GEMINI_API_KEY` 설정
+- [ ] 프로덕션 환경에 `GEMINI_YOUTUBE_DATA_API_KEY` 설정
 - [ ] 프로덕션 환경에 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` 설정
 - [ ] 비밀 키가 노출되지 않도록 확인
 

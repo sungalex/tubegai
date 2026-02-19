@@ -107,9 +107,16 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     }
   };
 
-  // Apply client-side filters (keywords and minViews) for instant filtering
+  // Apply client-side filters for instant filtering without API re-fetch
   const filteredTrends = useMemo(() => {
     let result = currentTrends;
+
+    // Filter by category
+    if (filters.category) {
+      result = result.filter((trend: TrendItem) =>
+        trend.category.toLowerCase() === filters.category!.toLowerCase()
+      );
+    }
 
     // Filter by minimum views
     if (filters.minViews) {
@@ -131,7 +138,7 @@ export default function TrendsTabPage({ loaderData }: Route.ComponentProps) {
     }
 
     return result;
-  }, [currentTrends, filters.minViews, filters.keywords]);
+  }, [currentTrends, filters.category, filters.minViews, filters.keywords]);
 
   const handleFiltersChange = (newFilters: TrendFilterOptions) => {
     setFilters(newFilters);
