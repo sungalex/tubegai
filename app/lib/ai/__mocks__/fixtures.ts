@@ -10,6 +10,7 @@ import type { AIProjectGenerationOutput } from "../project-generator.server";
 import type { VideoGenerationResult } from "../video.server";
 import type { MusicGenerationResult } from "../music.server";
 import type { StoryboardScene } from "../storyboard.server";
+import type { GeneratedSubtitle } from "../subtitle.server";
 
 // =============================================================================
 // ai.server.ts - generateAIRecommendations
@@ -390,5 +391,84 @@ export const MOCK_STORYBOARD_SCENES: StoryboardScene[] = [
     visualPrompt:
       "Split screen comparison of two video thumbnails - left side with high views, right side with low views, analytical style",
     duration: 8,
+  },
+];
+
+// =============================================================================
+// subtitle.server.ts - generateSubtitles
+// =============================================================================
+
+export const MOCK_SUBTITLES: GeneratedSubtitle[] = [
+  {
+    scriptSegmentId: "seg-mock-1",
+    startTime: 0,
+    endTime: 3.5,
+    text: "여러분, 오늘 이 영상 하나로",
+  },
+  {
+    scriptSegmentId: "seg-mock-1",
+    startTime: 3.6,
+    endTime: 7.0,
+    text: "유튜브 채널이 완전히 달라질 수 있습니다",
+  },
+  {
+    scriptSegmentId: "seg-mock-1",
+    startTime: 7.1,
+    endTime: 10.0,
+    text: "믿기 어려우시죠? 3분만 투자해주세요",
+  },
+  {
+    scriptSegmentId: "seg-mock-2",
+    startTime: 10.1,
+    endTime: 14.0,
+    text: "안녕하세요, 오늘은 AI를 활용한",
+  },
+  {
+    scriptSegmentId: "seg-mock-2",
+    startTime: 14.1,
+    endTime: 18.0,
+    text: "유튜브 영상 제작 비법을 공개합니다",
+  },
+  {
+    scriptSegmentId: "seg-mock-3",
+    startTime: 18.1,
+    endTime: 22.0,
+    text: "첫 번째로 가장 중요한 것은",
+  },
+  {
+    scriptSegmentId: "seg-mock-3",
+    startTime: 22.1,
+    endTime: 26.0,
+    text: "시청자의 관심을 사로잡는 오프닝입니다",
+  },
+  {
+    scriptSegmentId: "seg-mock-3",
+    startTime: 26.1,
+    endTime: 30.0,
+    text: "데이터에 따르면 처음 5초가 핵심입니다",
+  },
+  {
+    scriptSegmentId: "seg-mock-4",
+    startTime: 30.1,
+    endTime: 34.0,
+    text: "이 영상이 도움이 되셨다면",
+  },
+  {
+    scriptSegmentId: "seg-mock-4",
+    startTime: 34.1,
+    endTime: 37.0,
+    text: "구독과 좋아요 부탁드립니다",
+  },
+  {
+    scriptSegmentId: "seg-mock-5",
+    startTime: 37.1,
+    endTime: 40.0,
+    text: "다음 영상에서 더 깊이 있는 내용으로",
+  },
+  {
+    scriptSegmentId: "seg-mock-5",
+    startTime: 40.1,
+    endTime: 43.0,
+    text: "찾아뵙겠습니다, 감사합니다!",
   },
 ];

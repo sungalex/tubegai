@@ -115,6 +115,10 @@ export interface SubtitleSegment {
   startTime: number; // seconds
   endTime: number; // seconds
   text: string;
+  orderIndex: number;
+  scriptSegmentId?: string;
+  scriptSegmentType?: string; // "hook"|"intro"|"body"|"cta"|"outro"
+  scriptSegmentContent?: string; // 80자 truncate 미리보기
 }
 
 // ---------------------------

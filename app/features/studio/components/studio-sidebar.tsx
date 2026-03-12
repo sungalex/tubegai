@@ -77,9 +77,9 @@ export function StudioSidebar({
     { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
     {
       title: "자막",
-      href: "#",
+      href: getPath("subtitles"),
       icon: Captions,
-      disabled: true,
+      disabled: false,
     },
     {
       title: "썸네일",

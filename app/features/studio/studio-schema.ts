@@ -319,6 +319,14 @@ export const subtitles = tubegaiSchema.table("studio_subtitle", {
   projectId: uuid("project_id")
     .references(() => projects.id, { onDelete: "cascade" })
     .notNull(),
+  sessionId: uuid("session_id").references(() => studioSessions.id, {
+    onDelete: "cascade",
+  }),
+  scriptSegmentId: uuid("script_segment_id").references(
+    () => scriptSegments.id,
+    { onDelete: "set null" },
+  ),
+  orderIndex: integer("order_index").default(0).notNull(),
   startTime: doublePrecision("start_time").notNull(),
   endTime: doublePrecision("end_time").notNull(),
   text: text("text").notNull(),
@@ -345,6 +353,14 @@ export const subtitlesRelations = relations(subtitles, ({ one }) => ({
   project: one(projects, {
     fields: [subtitles.projectId],
     references: [projects.id],
+  }),
+  session: one(studioSessions, {
+    fields: [subtitles.sessionId],
+    references: [studioSessions.id],
+  }),
+  scriptSegment: one(scriptSegments, {
+    fields: [subtitles.scriptSegmentId],
+    references: [scriptSegments.id],
   }),
 }));
 

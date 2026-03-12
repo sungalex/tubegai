@@ -881,21 +881,119 @@ export async function getStudioProjects(userId: string): Promise<StudioProject[]
 // =============================================================================
 
 /**
- * Fetch subtitles for a project
+ * Fetch subtitles for a project (with script segment context)
  */
 export async function getSubtitles(
   projectId: string
 ): Promise<SubtitleSegment[]> {
   const subs = await db.query.subtitles.findMany({
     where: eq(schema.subtitles.projectId, projectId),
-    orderBy: [asc(schema.subtitles.startTime)],
+    orderBy: [
+      asc(schema.subtitles.orderIndex),
+      asc(schema.subtitles.startTime),
+    ],
+    with: {
+      scriptSegment: {
+        columns: { id: true, type: true, content: true },
+      },
+    },
   });
   return subs.map((s) => ({
     id: s.id,
     startTime: s.startTime,
     endTime: s.endTime,
     text: s.text,
+    orderIndex: s.orderIndex,
+    scriptSegmentId: s.scriptSegmentId ?? undefined,
+    scriptSegmentType: s.scriptSegment?.type ?? undefined,
+    scriptSegmentContent: s.scriptSegment?.content?.slice(0, 80) ?? undefined,
   }));
+}
+
+/**
+ * Bulk save subtitles (replaces all for a project)
+ */
+export async function saveSubtitles(input: {
+  projectId: string;
+  sessionId?: string;
+  subtitles: Array<{
+    scriptSegmentId?: string;
+    orderIndex: number;
+    startTime: number;
+    endTime: number;
+    text: string;
+  }>;
+}): Promise<void> {
+  const { projectId, sessionId, subtitles: subs } = input;
+
+  // Delete existing subtitles for this project
+  await db
+    .delete(schema.subtitles)
+    .where(eq(schema.subtitles.projectId, projectId));
+
+  // Insert new subtitles
+  if (subs.length > 0) {
+    await db.insert(schema.subtitles).values(
+      subs.map((sub) => ({
+        projectId,
+        sessionId: sessionId ?? null,
+        scriptSegmentId: sub.scriptSegmentId ?? null,
+        orderIndex: sub.orderIndex,
+        startTime: sub.startTime,
+        endTime: sub.endTime,
+        text: sub.text,
+      }))
+    );
+  }
+}
+
+/**
+ * Update a single subtitle
+ */
+export async function updateSubtitle(
+  subtitleId: string,
+  data: { startTime?: number; endTime?: number; text?: string }
+): Promise<void> {
+  await db
+    .update(schema.subtitles)
+    .set(data)
+    .where(eq(schema.subtitles.id, subtitleId));
+}
+
+/**
+ * Delete a single subtitle
+ */
+export async function deleteSubtitle(subtitleId: string): Promise<void> {
+  await db
+    .delete(schema.subtitles)
+    .where(eq(schema.subtitles.id, subtitleId));
+}
+
+/**
+ * Add a single subtitle
+ */
+export async function addSubtitle(input: {
+  projectId: string;
+  sessionId?: string;
+  scriptSegmentId?: string;
+  orderIndex: number;
+  startTime: number;
+  endTime: number;
+  text: string;
+}): Promise<string> {
+  const [sub] = await db
+    .insert(schema.subtitles)
+    .values({
+      projectId: input.projectId,
+      sessionId: input.sessionId ?? null,
+      scriptSegmentId: input.scriptSegmentId ?? null,
+      orderIndex: input.orderIndex,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      text: input.text,
+    })
+    .returning({ id: schema.subtitles.id });
+  return sub.id;
 }
 
 /**
