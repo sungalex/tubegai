@@ -50,4 +50,12 @@
 
 - 데이터베이스 테이블 audit_log 활용 방안 검토
 
-- api 별 요금 분석을 위해 AI 모델별 api key 세분화 방안
+### SDK 통합 및 API Key 세분화
+
+- SDK 통합: @google/generative-ai, @google/genai => @google/genai로 통합 (Google AI Studio에서 API Key 관리)
+
+- api 별 요금 분석을 위해 AI 모델별 api key 세분화 (Cloud Console에서 일부 키를 분리하여 생성했으나, API Key를 AI Studio에서 생성 및 관리하는 방안 검토. 비용은 Cloud Console에서 관리)
+
+### 롱폼과 숏폼 제작용 프로젝트 컨텍스트, 스크립트 생성 분리
+
+- 숏폼 제작용 별도 작성
