@@ -71,8 +71,6 @@ const SYSTEM_PROMPT_KO = `당신은 전문 스토리보드 작가입니다. 영�
 4. 카메라 앵글, 조명, 분위기를 포함
 5. 씬 간 자연스러운 전환 고려
 
-응답은 반드시 유효한 JSON 배열 형식이어야 합니다.
-
 각 씬은 다음 필드를 포함합니다:
 - scriptSegmentId: 해당 스크립트 세그먼트 ID
 - sceneNumber: 전체 씬 번호 (1부터 시작)
@@ -96,8 +94,6 @@ const SYSTEM_PROMPT_EN = `You are a professional storyboard artist. You analyze 
 3. Write concrete and descriptive visual prompts
 4. Include camera angles, lighting, and mood
 5. Consider smooth transitions between scenes
-
-Your response must be a valid JSON array only.
 
 Each scene includes:
 - scriptSegmentId: The corresponding script segment ID
@@ -379,9 +375,7 @@ ${segmentsList}
 4. **각 씬의 duration은 최대 8초** (Veo 3 영상 생성 제약)
 5. 씬 duration 합계가 해당 세그먼트의 duration과 유사하도록 설정
 6. 각 씬에 emotionalTone (감정 톤)과 cameraAngle (카메라 앵글) 반드시 포함
-7. Scene Hints가 제공된 경우, 이를 참고하여 씬을 생성하되 cameraAngle도 반영
-
-JSON 배열만 반환하세요.`;
+7. Scene Hints가 제공된 경우, 이를 참고하여 씬을 생성하되 cameraAngle도 반영`;
   }
 
   return `Generate storyboard scenes based on the following script segments.
@@ -407,9 +401,7 @@ ${segmentsList}
 4. **Each scene duration must be max 8 seconds** (Veo 3 video generation constraint)
 5. Scene duration sum should roughly match the segment's duration
 6. Include emotionalTone and cameraAngle for every scene
-7. If Scene Hints are provided, use them as reference and reflect their cameraAngle
-
-Return only a JSON array.`;
+7. If Scene Hints are provided, use them as reference and reflect their cameraAngle`;
 }
 
 function extractCompleteScenes(

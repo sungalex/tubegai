@@ -61,8 +61,6 @@ export interface AIProjectGenerationOutput {
 const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략가입니다.
 주어진 트렌드 정보를 분석하여 프로젝트 컨텍스트를 생성합니다.
 
-응답은 반드시 유효한 JSON 형식이어야 합니다. 마크다운 코드 블록 없이 순수 JSON만 반환하세요.
-
 JSON 스키마:
 {
   "title": "최적화된 영상 제목 (검색 친화적, 50자 이내)",
@@ -79,8 +77,6 @@ JSON 스키마:
 
 const SYSTEM_PROMPT_EN = `You are a YouTube content strategist.
 Analyze the given trend information and generate project context.
-
-Response must be valid JSON format. Return pure JSON without markdown code blocks.
 
 JSON schema:
 {
@@ -195,6 +191,7 @@ export async function generateProjectContext(
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           systemInstruction: systemPrompt,
+          maxOutputTokens: 512,
           responseMimeType: "application/json",
         },
       }),

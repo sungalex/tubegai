@@ -52,51 +52,37 @@ export interface GenerateRecommendationsInput {
 
 const SYSTEM_PROMPT_KO = `당신은 유튜브 콘텐츠 전략 전문가입니다. 현재 트렌드를 분석하고 유튜버에게 매력적인 콘텐츠 아이디어를 추천합니다.
 
-각 추천은 다음 필드를 포함해야 합니다:
-- title: 매력적인 영상 제목 (클릭을 유도하는 제목)
-- reason: 추천 이유 (왜 이 주제가 좋은지, 10-20자)
+각 추천은 다음 JSON 필드를 포함해야 합니다:
+- title: 매력적인 영상 제목
+- reason: 추천 이유 (10-20자)
 - description: 영상 컨셉 설명 (50-100자)
 - hooks: 오프닝 훅 아이디어 3개 (배열)
-- targetAudience: 타겟 시청자 (예: "IT 취준생", "20대 직장인")
-- estimatedViews: 예상 조회수 범위 (예: "50K-100K", "100K-300K")
-- difficulty: 제작 난이도 ("easy", "medium", "hard")
-- videoType: 영상 길이 타입 ("short": 60초 이하, "medium": 2-10분, "long": 10분+)
-- contentTone: 콘텐츠에 적합한 톤 (예: informative, funny, dramatic, casual, professional, cinematic, storytelling 등 자유 형식)
-- growthRate: 예상 성장률 (예: "+85%", "+120%")
+- targetAudience: 타겟 시청자
+- estimatedViews: 예상 조회수 범위 (예: "50K-100K")
+- difficulty: "easy" | "medium" | "hard"
+- videoType: "short" | "medium" | "long"
+- contentTone: 콘텐츠 톤 (자유 형식)
+- growthRate: 예상 성장률 (예: "+85%")
 - score: 추천 점수 0-100
 - basedOnTrends: 참고한 트렌드 제목들 (배열)
-- category: YouTube 콘텐츠 카테고리 (다음 중 하나: ${YOUTUBE_CATEGORY_VALUES_KO.join(", ")})
-
-**중요: JSON 응답 규칙**
-1. 응답은 반드시 순수 JSON 배열만 반환하세요
-2. 코드블록(\`\`\`)을 절대 사용하지 마세요
-3. 배열의 마지막 항목 뒤에 쉼표를 넣지 마세요
-4. 문자열 내 따옴표는 반드시 이스케이프하세요 (예: \\"텍스트\\")
-5. 줄바꿈 없이 한 줄로 작성하세요`;
+- category: YouTube 카테고리 (${YOUTUBE_CATEGORY_VALUES_KO.join(", ")} 중 하나)`;
 
 const SYSTEM_PROMPT_EN = `You are a YouTube content strategy expert. Analyze current trends and recommend engaging content ideas for YouTubers.
 
-Each recommendation must include these fields:
-- title: Engaging video title (click-worthy)
-- reason: Recommendation reason (why this topic is good, 10-20 chars)
+Each recommendation must include these JSON fields:
+- title: Engaging video title
+- reason: Recommendation reason (10-20 chars)
 - description: Video concept description (50-100 chars)
 - hooks: 3 opening hook ideas (array)
-- targetAudience: Target audience (e.g., "Tech enthusiasts", "College students")
-- estimatedViews: Expected view range (e.g., "50K-100K", "100K-300K")
-- difficulty: Production difficulty ("easy", "medium", "hard")
-- videoType: Video length type ("short": under 60s, "medium": 2-10min, "long": 10min+)
-- contentTone: Best fitting content tone (e.g., informative, funny, dramatic, casual, professional, cinematic, storytelling — free-form)
-- growthRate: Expected growth rate (e.g., "+85%", "+120%")
+- targetAudience: Target audience
+- estimatedViews: Expected view range (e.g., "50K-100K")
+- difficulty: "easy" | "medium" | "hard"
+- videoType: "short" | "medium" | "long"
+- contentTone: Content tone (free-form)
+- growthRate: Expected growth rate (e.g., "+85%")
 - score: Recommendation score 0-100
 - basedOnTrends: Referenced trend titles (array)
-- category: YouTube content category (one of: ${YOUTUBE_CATEGORY_VALUES_EN.join(", ")})
-
-**CRITICAL: JSON Response Rules**
-1. Return ONLY a pure JSON array - no other text
-2. NEVER use code blocks (\`\`\`)
-3. NO trailing comma after the last array item
-4. Escape quotes inside strings (use \\")
-5. Write in a single line without line breaks`;
+- category: YouTube category (one of: ${YOUTUBE_CATEGORY_VALUES_EN.join(", ")})`;
 
 // =============================================================================
 // Helpers
@@ -158,14 +144,12 @@ export async function generateAIRecommendations(
     .map((t, i) => {
       const tags = t.tags?.length ? `태그: ${t.tags.slice(0, 5).join(", ")}` : "";
       const desc = t.description ? `설명: ${t.description.slice(0, 150)}` : "";
-      const url = t.videoUrl ? `영상URL: ${t.videoUrl}` : "";
       const details = [
         `카테고리: ${t.category}`,
         `조회수: ${t.views}`,
         `성장률: ${t.growth}`,
         tags,
         desc,
-        url,
       ].filter(Boolean).join(" | ");
       return `${i + 1}. "${t.title}" (${details})`;
     })
@@ -197,11 +181,9 @@ ${userContext}
 
 중요:
 1. 각 아이디어는 반드시 위 트렌드의 주제, 카테고리, 태그와 직접 연관되어야 합니다
-2. 트렌드의 제목, 설명, 영상 URL을 참고하여 구체적인 아이디어를 만드세요
-3. 영상 URL이 제공된 경우, 해당 영상의 주제와 콘텐츠를 기반으로 아이디어를 구체화하세요
-4. basedOnTrends 필드에 참고한 트렌드 제목을 정확히 기재하세요
-5. 예상 조회수와 성장률은 현실적으로 산정해주세요
-6. JSON 배열만 반환하세요`
+2. 트렌드의 제목과 설명을 참고하여 구체적인 아이디어를 만드세요
+3. basedOnTrends 필드에 참고한 트렌드 제목을 정확히 기재하세요
+4. 예상 조회수와 성장률은 현실적으로 산정해주세요`
       : `Analyze the following trends and recommend ${count} content ideas directly related to these trends.
 
 Current Trends:
@@ -210,11 +192,9 @@ ${userContext}
 
 Important:
 1. Each idea MUST be directly related to the topics, categories, and tags of the trends above
-2. Reference the trend titles, descriptions, and video URLs to create specific ideas
-3. When video URLs are provided, base your ideas on the actual content and topic of those videos
-4. Accurately list referenced trend titles in basedOnTrends field
-5. Estimate views and growth rates realistically
-6. Return only a JSON array`;
+2. Reference the trend titles and descriptions to create specific ideas
+3. Accurately list referenced trend titles in basedOnTrends field
+4. Estimate views and growth rates realistically`;
 
   try {
     const response = await withRetry(() =>
@@ -229,7 +209,7 @@ Important:
         config: {
           systemInstruction: systemPrompt,
           temperature: 0.8,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 4096,
           responseMimeType: "application/json",
         },
       }),
@@ -245,17 +225,13 @@ Important:
     // Parse JSON response with cleanup
     let recommendations: AIGeneratedRecommendation[];
     try {
-      // Try direct parse first
       recommendations = JSON.parse(text.trim());
-    } catch (parseError) {
-      // Apply cleanup and try again
+    } catch {
       const cleanedJson = cleanJsonResponse(text);
       try {
         recommendations = JSON.parse(cleanedJson);
-      } catch (cleanupError) {
+      } catch {
         console.error("Failed to parse Gemini response as JSON");
-        console.error("Original text:", text.substring(0, 500));
-        console.error("Cleaned JSON:", cleanedJson.substring(0, 500));
         return [];
       }
     }
@@ -328,14 +304,12 @@ export async function generateIdeasFromTrendAI(
   // Build single trend context
   const tags = trend.tags?.length ? `태그: ${trend.tags.slice(0, 5).join(", ")}` : "";
   const desc = trend.description ? `설명: ${trend.description.slice(0, 150)}` : "";
-  const url = trend.videoUrl ? `영상URL: ${trend.videoUrl}` : "";
   const details = [
     `카테고리: ${trend.category}`,
     `조회수: ${trend.views}`,
     `성장률: ${trend.growth}`,
     tags,
     desc,
-    url,
   ].filter(Boolean).join(" | ");
   const trendContext = `1. "${trend.title}" (${details})`;
 
@@ -374,11 +348,9 @@ ${userContext}
 
 중요:
 1. 각 아이디어는 반드시 위 트렌드의 주제, 카테고리, 태그와 직접 연관되어야 합니다
-2. 트렌드의 제목, 설명, 영상 URL을 참고하여 구체적인 아이디어를 만드세요
-3. 영상 URL이 제공된 경우, 해당 영상의 주제와 콘텐츠를 기반으로 아이디어를 구체화하세요
-4. basedOnTrends 필드에 참고한 트렌드 제목을 정확히 기재하세요
-5. 예상 조회수와 성장률은 현실적으로 산정해주세요
-6. JSON 배열만 반환하세요`
+2. 트렌드의 제목과 설명을 참고하여 구체적인 아이디어를 만드세요
+3. basedOnTrends 필드에 참고한 트렌드 제목을 정확히 기재하세요
+4. 예상 조회수와 성장률은 현실적으로 산정해주세요`
     : `Analyze the following trend and recommend ${count} content ideas directly related to it.
 
 Current Trend:
@@ -387,11 +359,9 @@ ${userContext}
 
 Important:
 1. Each idea MUST be directly related to the topic, category, and tags of the trend above
-2. Reference the trend title, description, and video URL to create specific ideas
-3. When a video URL is provided, base your ideas on the actual content and topic
-4. Accurately list the trend title in basedOnTrends field
-5. Estimate views and growth rates realistically
-6. Return only a JSON array`;
+2. Reference the trend title and description to create specific ideas
+3. Accurately list the trend title in basedOnTrends field
+4. Estimate views and growth rates realistically`;
 
   try {
     const response = await withRetry(() =>
@@ -401,7 +371,7 @@ Important:
         config: {
           systemInstruction: systemPrompt,
           temperature: 0.8,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 4096,
           responseMimeType: "application/json",
         },
       }),

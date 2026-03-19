@@ -54,6 +54,8 @@
 
 - SDK 통합: @google/generative-ai, @google/genai => @google/genai로 통합 (Google AI Studio에서 API Key 관리)
 
+- 한번 요청 시 불필요하게 여러개의 안을 작성하도록 요청하는 API 호출을 조사해서 사용자가 실제 사용할 최소한의 결과만 생성하도록 개선. 모든 API 요청/응답 내용을 분석해서 불필요한 토큰 사용 최소화
+
 - api 별 요금 분석을 위해 AI 모델별 api key 세분화 (Cloud Console에서 일부 키를 분리하여 생성했으나, API Key를 AI Studio에서 생성 및 관리하는 방안 검토. 비용은 Cloud Console에서 관리)
 
 ### 롱폼과 숏폼 제작용 프로젝트 컨텍스트, 스크립트 생성 분리

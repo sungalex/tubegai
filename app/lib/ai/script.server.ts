@@ -76,8 +76,6 @@ const SYSTEM_PROMPT_KO = `당신은 전문 유튜브 영상 대본 작가입니�
 - 마지막 문장에 간결한 액션 유도 포함
 - 빠른 템포, 군더더기 없는 문장
 
-응답은 반드시 유효한 JSON 배열 형식이어야 합니다.
-
 각 세그먼트는 다음 필드를 포함합니다:
 - type: "hook", "intro", "body", "cta", "outro" 중 하나
 - content: 실제 대본 내용 (완전한 스크립트)
@@ -118,8 +116,6 @@ Before writing the script, internally analyze:
 - Start with an attention-grabbing expression naturally within the Body
 - End with a brief call-to-action in the last sentence
 - Fast pace, no filler
-
-Your response must be a valid JSON array only.
 
 Each segment includes:
 - type: "hook", "intro", "body", "cta", "outro"
@@ -270,7 +266,7 @@ export async function generateScriptStream(
         temperature: options.temperature ?? 0.7,
         topP: options.topP ?? 0.9,
         topK: options.topK ?? 40,
-        maxOutputTokens: 16384,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
       },
     });
@@ -594,9 +590,7 @@ ${options.customPrompt ? `\n## 추가 요청사항\n${options.customPrompt}` : "
 ${options.videoType === "short" ? `3. 하나의 Body 세그먼트 안에 핵심 메시지를 압축적으로 전달하세요
 4. 짧고 임팩트 있는 문장으로 빠른 호흡을 유지하세요` : `3. Body 세그먼트는 각각 구체적인 소주제를 다루며, 예시와 설명을 포함하세요
 4. 전체 스토리가 자연스럽게 흐르도록 세그먼트 간 연결을 고려하세요
-5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요`}
-
-JSON 배열만 반환하세요.`;
+5. 시청자가 끝까지 보고 싶어지는 내러티브를 구축하세요`}`;
   }
 
   return `Create a **complete YouTube video script** based on the following project information.
@@ -622,9 +616,7 @@ ${options.customPrompt ? `\n## Additional Requirements\n${options.customPrompt}`
 ${options.videoType === "short" ? `3. Deliver the core message in a single compressed Body segment
 4. Maintain fast rhythm with short, impactful sentences` : `3. Each Body segment should cover a specific subtopic with examples and explanations
 4. Ensure natural flow and transitions between segments
-5. Build a narrative that makes viewers want to watch until the end`}
-
-Return only a JSON array.`;
+5. Build a narrative that makes viewers want to watch until the end`}`;
 }
 
 // =============================================================================

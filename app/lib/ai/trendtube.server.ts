@@ -9,7 +9,6 @@ import { withRetry } from "./retry.server";
 import {
   MOCK_EXTRACTED_TRENDS,
   MOCK_VIDEO_IDEAS,
-  MOCK_NARRATION_SCRIPT,
   MOCK_FULL_NARRATION_RESULT,
   MOCK_VIDEO_CLIP_PROMPTS,
 } from "./__mocks__/fixtures";
@@ -71,7 +70,7 @@ ${userIdea ? `특히 "${userIdea}"와 관련된 트렌드에 집중하여 분석
     ai.models.generateContent({
       model: AI_MODELS.text.primary,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { systemInstruction, temperature: 0.7, maxOutputTokens: 4096 },
+      config: { systemInstruction, temperature: 0.7, maxOutputTokens: 2048 },
     }),
   );
 
@@ -104,25 +103,22 @@ ${extractedTrends}
 
 ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDescription}` : ""}
 
-위 트렌드 분석을 바탕으로 **3개의 바이럴 영상 아이디어**를 생성해주세요.
+위 트렌드 분석을 바탕으로 **가장 바이럴될 가능성이 높은 1개의 영상 아이디어**를 생성해주세요.
 
-각 아이디어에 다음을 포함해주세요:
+아이디어에 다음을 포함해주세요:
 1. **영상 제목**: 클릭을 유도하는 매력적인 제목
 2. **영상 컨셉**: 영상의 전체 컨셉과 스토리라인 (3-5문장)
 3. **오프닝 훅**: 시청자를 끌어들이는 첫 5초 대사/장면
-4. **핵심 장면 구성**: 3-5개의 주요 장면 설명
-5. **비주얼 스타일**: 영상의 시각적 톤과 분위기
-6. **타겟 시청자**: 주요 타겟 층
-7. **예상 영상 길이**: 추천 길이
+4. **비주얼 스타일**: 영상의 시각적 톤과 분위기
+5. **타겟 시청자**: 주요 타겟 층
 
-가장 바이럴될 가능성이 높은 순서로 정렬해주세요.
 결과를 구조화된 한국어 텍스트로 작성해주세요.`;
 
   const response = await withRetry(() =>
     ai.models.generateContent({
       model: AI_MODELS.text.primary,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { systemInstruction, temperature: 0.9, maxOutputTokens: 6144 },
+      config: { systemInstruction, temperature: 0.9, maxOutputTokens: 2048 },
     }),
   );
 
@@ -132,56 +128,7 @@ ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDesc
 }
 
 // =============================================================================
-// Step 5: Generate Narration Script (8-second format)
-// =============================================================================
-
-export async function generateNarrationScript(
-  videoIdeas: string
-): Promise<string> {
-  if (process.env.GEMINI_MOCK === "true") {
-    return MOCK_NARRATION_SCRIPT;
-  }
-
-  const ai = getClient();
-  if (!ai) {
-    throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
-  }
-
-  const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 오프닝 나레이션을 작성합니다.";
-
-  const prompt = `## 영상 아이디어:
-${videoIdeas}
-
-위 아이디어 중 첫 번째 아이디어를 기반으로 **8초 분량의 오프닝 나레이션**을 작성해주세요.
-
-### 스크립트 요구사항:
-- **총 길이**: 정확히 8초 분량 (한국어 약 40자, 영어 약 20단어)
-- **목적**: 영상 첫 8초의 강력한 오프닝 훅
-- **스타일**: 시청자를 즉시 끌어들이는 질문이나 놀라운 사실
-- 자연스러운 구어체 사용
-- 보이스오버에 최적화된 짧은 문장
-- 감정 표현 지시 포함 (예: [열정적으로], [차분하게])
-
-### 예시:
-[열정적으로] "AI가 당신의 월급을 대체할 수 있다면, 어떻게 하시겠습니까?"
-
-한국어로 작성해주세요. 스크립트 텍스트만 반환하세요.`;
-
-  const response = await withRetry(() =>
-    ai.models.generateContent({
-      model: AI_MODELS.text.lite,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { systemInstruction, temperature: 0.7, maxOutputTokens: 512 },
-    }),
-  );
-
-  const text = response.text;
-  if (!text) throw new Error("나레이션 스크립트 생성 응답이 비어있습니다");
-  return text;
-}
-
-// =============================================================================
-// Step 5b: Generate Full Narration Script (variable length)
+// Step 3: Generate Full Narration Script (variable length)
 // =============================================================================
 
 const KOREAN_CHARS_PER_SECOND = 5;
@@ -201,19 +148,17 @@ export async function generateFullNarrationScript(
 
   const targetDuration = options?.targetDuration ?? 30;
 
-  const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 나레이션 스크립트를 작성합니다. 응답은 반드시 유효한 JSON 형식이어야 합니다. 마크다운 코드 블록 없이 순수 JSON만 반환하세요.";
+  const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 나레이션 스크립트를 작성합니다.";
 
   const prompt = `## 영상 아이디어:
 ${videoIdeas}
 
-위 아이디어 중 첫 번째 아이디어를 기반으로 약 ${targetDuration}초 분량의 전체 나레이션 스크립트를 작성해주세요.
+위 아이디어를 기반으로 약 ${targetDuration}초 분량의 전체 나레이션 스크립트를 작성해주세요.
 
 ### 스크립트 요구사항:
 - **총 길이**: 약 ${targetDuration}초 분량 (한국어 약 ${targetDuration * KOREAN_CHARS_PER_SECOND}자)
-- **목적**: 영상 전체 나레이션 (오프닝 훅 → 본문 → 마무리)
-- **스타일**: 시청자를 끌어들이는 매력적인 구성
-- 자연스러운 구어체 사용
-- 보이스오버에 최적화된 짧은 문장
+- **구성**: 오프닝 훅 → 본문 → 마무리
+- 자연스러운 구어체, 보이스오버에 최적화된 짧은 문장
 - 감정 표현 지시 포함 (예: [열정적으로], [차분하게])
 - 문장이 자연스럽게 끊기는 지점마다 줄바꿈
 
@@ -223,10 +168,6 @@ ${videoIdeas}
   "estimatedDurationSeconds": 30,
   "suggestedClipCount": 4
 }
-
-- script: 전체 나레이션 텍스트
-- estimatedDurationSeconds: 추정 재생 시간 (초)
-- suggestedClipCount: 추천 영상 클립 수 (8초 단위, 올림)
 
 한국어로 작성해주세요.`;
 
@@ -281,7 +222,7 @@ export async function generateVideoClipPrompts(
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
-  const systemInstruction = "You are a visual director for YouTube videos. Create concise English video prompts for AI video generation (Veo 3). Response must be valid JSON without markdown code blocks.";
+  const systemInstruction = "You are a visual director for YouTube videos. Create concise English video prompts for AI video generation (Veo 3).";
 
   const prompt = `## Video Ideas:
 ${videoIdeas.substring(0, 2000)}

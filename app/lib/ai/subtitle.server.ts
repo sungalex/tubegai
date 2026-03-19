@@ -134,7 +134,7 @@ export async function generateSubtitles(
           temperature: 0.3,
           topP: 0.9,
           topK: 40,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 4096,
           responseMimeType: "application/json",
         },
       })
