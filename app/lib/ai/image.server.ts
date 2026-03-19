@@ -3,7 +3,7 @@
 // =============================================================================
 // Server-side AI service for generating images from visual prompts
 
-import { getGeminiClient } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { AI_MODELS } from "./models.server";
 
@@ -109,7 +109,7 @@ export async function generateImage(
     return generatePlaceholderImage(options);
   }
 
-  if (!getGeminiClient()) {
+  if (!getClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
@@ -117,10 +117,7 @@ export async function generateImage(
   const enhancedPrompt = buildEnhancedPrompt(prompt, options);
 
   try {
-    const genAI = getGeminiClient()!;
-    const model = genAI.getGenerativeModel({
-      model: AI_MODELS.image.primary,
-    });
+    const ai = getClient()!;
 
     // Build content parts: text prompt + optional reference image
     const inputParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
@@ -143,22 +140,21 @@ export async function generateImage(
     }
 
     // Generate image using Gemini's image generation capability
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.image.primary,
         contents: [
           {
             role: "user",
             parts: inputParts,
           },
         ],
-        generationConfig: {
-          // @ts-expect-error - Gemini image generation config
-          responseModalities: ["image", "text"],
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
         },
       }),
     );
 
-    const response = result.response;
     const candidates = response.candidates;
 
     if (!candidates || candidates.length === 0) {
@@ -177,6 +173,9 @@ export async function generateImage(
     }
 
     const imageData = imagePart.inlineData;
+    if (!imageData.data) {
+      return await generateImageWithImagen(enhancedPrompt, options);
+    }
     const buffer = Buffer.from(imageData.data, "base64");
 
     return {
@@ -199,20 +198,18 @@ async function generateImageWithImagen(
   prompt: string,
   options: ImageGenerationOptions
 ): Promise<GeneratedImage> {
-  if (!getGeminiClient()) {
+  if (!getClient()) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const dimensions = getImageDimensions(options.aspectRatio);
 
   try {
-    const genAI = getGeminiClient()!;
-    const model = genAI.getGenerativeModel({
-      model: AI_MODELS.image.fallback,
-    });
+    const ai = getClient()!;
 
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.image.fallback,
         contents: [
           {
             role: "user",
@@ -223,14 +220,12 @@ async function generateImageWithImagen(
             ],
           },
         ],
-        generationConfig: {
-          // @ts-expect-error - Gemini image generation config
-          responseModalities: ["image", "text"],
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
         },
       }),
     );
 
-    const response = result.response;
     const candidates = response.candidates;
 
     if (!candidates || candidates.length === 0) {
@@ -247,6 +242,9 @@ async function generateImageWithImagen(
     }
 
     const imageData = imagePart.inlineData;
+    if (!imageData.data) {
+      throw new Error("이미지 데이터가 비어있습니다");
+    }
     const buffer = Buffer.from(imageData.data, "base64");
 
     return {

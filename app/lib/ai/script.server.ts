@@ -5,7 +5,7 @@
 
 import type { ProjectFullDetail } from "~/common/data/project.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
-import { getGeminiClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { buildProjectContext } from "./context-builder.server";
 import { MOCK_SCRIPT_SEGMENTS } from "./__mocks__/fixtures";
@@ -170,7 +170,8 @@ export async function generateScript(
     return MOCK_SCRIPT_SEGMENTS;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, returning empty script");
     return getDefaultSegments(language);
   }
@@ -181,17 +182,17 @@ export async function generateScript(
   const userPrompt = buildScriptUserPrompt(projectContext, options, language);
 
   try {
-    const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.primary,
         contents: [
           {
             role: "user",
             parts: [{ text: userPrompt }],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           temperature: options.temperature ?? 0.8,
           topP: options.topP ?? 0.9,
           topK: options.topK ?? 40,
@@ -201,8 +202,7 @@ export async function generateScript(
       }),
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       console.error("No text content in Gemini response");
@@ -240,7 +240,8 @@ export async function generateScriptStream(
     return;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, using default segments");
     const defaults = getDefaultSegments(language);
     for (const seg of defaults) {
@@ -256,16 +257,16 @@ export async function generateScriptStream(
   const userPrompt = buildScriptUserPrompt(projectContext, options, language);
 
   try {
-    const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;
-
-    const result = await model.generateContentStream({
+    const stream = await ai.models.generateContentStream({
+      model: AI_MODELS.text.primary,
       contents: [
         {
           role: "user",
           parts: [{ text: userPrompt }],
         },
       ],
-      generationConfig: {
+      config: {
+        systemInstruction: systemPrompt,
         temperature: options.temperature ?? 0.7,
         topP: options.topP ?? 0.9,
         topK: options.topK ?? 40,
@@ -279,8 +280,8 @@ export async function generateScriptStream(
     let emittedSegmentCount = 0;
     const emittedSegmentIds = new Set<number>();
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
+    for await (const chunk of stream) {
+      const text = chunk.text;
       if (!text) continue;
 
       fullText += text;
@@ -451,7 +452,8 @@ export async function refineScriptSegment(
     return segment.content;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, returning original content");
     return segment.content;
   }
@@ -487,25 +489,24 @@ Original script:
 Return only the refined script. No JSON or additional explanation, just the text.`;
 
   try {
-    const model = getTextModel(AI_MODELS.text.lite, refineSystemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [
           {
             role: "user",
             parts: [{ text: userPrompt }],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: refineSystemPrompt,
           temperature: 0.5,
           maxOutputTokens: 1024,
         },
       }),
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       return segment.content;

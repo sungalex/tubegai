@@ -5,7 +5,7 @@
 // Uses Gemini API with lyria-realtime-exp model (WebSocket streaming)
 
 import type { GoogleGenAI, LiveMusicServerMessage } from "@google/genai";
-import { getGeminiClient, getTextModel, getGenAIAlphaClient } from "./client.server";
+import { getClient, getAlphaClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { MOCK_MUSIC_RESULT } from "./__mocks__/fixtures";
 import { AI_MODELS } from "./models.server";
@@ -88,7 +88,7 @@ export async function generateMusic(
   const { prompt: musicPrompt, genre } = await generateMusicPrompt(videoIdeas);
 
   // Step 2: Generate music via Lyria RealTime
-  const client = getGenAIAlphaClient();
+  const client = getAlphaClient();
   if (!client) {
     console.warn("GEMINI_API_KEY not set, returning placeholder music");
     return createPlaceholderMusic(musicPrompt, genre, targetDuration);
@@ -251,7 +251,7 @@ function genreToBpm(genre: string): number {
 async function generateMusicPrompt(
   videoIdeas: string,
 ): Promise<{ prompt: string; genre: string }> {
-  if (!getGeminiClient()) {
+  if (!getClient()) {
     return {
       prompt: "Upbeat electronic background music for technology content",
       genre: "electronic",
@@ -261,10 +261,11 @@ async function generateMusicPrompt(
   try {
     const systemInstruction =
       "You are a music director. Suggest background music for videos. Return ONLY valid JSON with 'prompt' and 'genre' fields.";
-    const model = getTextModel(AI_MODELS.text.lite, systemInstruction)!;
+    const ai = getClient()!;
 
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [
           {
             role: "user",
@@ -279,7 +280,8 @@ ${videoIdeas.substring(0, 1000)}`,
             ],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction,
           temperature: 0.5,
           maxOutputTokens: 256,
           responseMimeType: "application/json",
@@ -287,7 +289,7 @@ ${videoIdeas.substring(0, 1000)}`,
       }),
     );
 
-    const text = result.response.text().trim();
+    const text = (response.text?.trim() ?? "");
     const parsed = JSON.parse(text) as { prompt: string; genre: string };
     return {
       prompt: parsed.prompt || "Upbeat electronic background music",

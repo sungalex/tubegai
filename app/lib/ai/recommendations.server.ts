@@ -10,7 +10,7 @@ import {
   DEFAULT_YOUTUBE_CATEGORY_KO,
   normalizeYouTubeCategory,
 } from "~/common/types/trend.types";
-import { getGeminiClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { MOCK_RECOMMENDATIONS } from "./__mocks__/fixtures";
 import { AI_MODELS } from "./models.server";
@@ -146,7 +146,8 @@ export async function generateAIRecommendations(
     return MOCK_RECOMMENDATIONS.slice(0, count);
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, returning empty recommendations");
     return [];
   }
@@ -216,17 +217,17 @@ Important:
 6. Return only a JSON array`;
 
   try {
-    const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.primary,
         contents: [
           {
             role: "user",
             parts: [{ text: userPrompt }],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           temperature: 0.8,
           maxOutputTokens: 8192,
           responseMimeType: "application/json",
@@ -234,8 +235,7 @@ Important:
       }),
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       console.error("No text content in Gemini response");
@@ -319,7 +319,8 @@ export async function generateIdeasFromTrendAI(
     return MOCK_RECOMMENDATIONS.slice(0, count);
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, returning empty ideas");
     return [];
   }
@@ -393,12 +394,12 @@ Important:
 6. Return only a JSON array`;
 
   try {
-    const model = getTextModel(AI_MODELS.text.lite, systemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           temperature: 0.8,
           maxOutputTokens: 8192,
           responseMimeType: "application/json",
@@ -406,8 +407,7 @@ Important:
       }),
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       console.error("[generateIdeasFromTrendAI] No text content in Gemini response");

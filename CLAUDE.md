@@ -26,25 +26,27 @@ npm run db:migrate   # 마이그레이션 적용
 ### AI 모델 레지스트리
 
 ```typescript
-// 목표: app/lib/ai/models.server.ts (중앙 관리)
+// app/lib/ai/models.server.ts (중앙 관리)
 const AI_MODELS = {
   text: { primary: "gemini-2.5-flash", lite: "gemini-2.5-flash-lite" },
-  image: { primary: "gemini-3-pro-image-preview" },
+  image: { primary: "gemini-3-pro-image-preview", fallback: "nano-banana-pro-preview" },
   video: { primary: "veo-3.1-generate-preview" }, // 1회 최대 8초
-  music: { primary: "lyria-realtime-exp" },
+  music: { primary: "models/lyria-realtime-exp" },
+  tts: { primary: "gemini-2.5-flash-preview-tts" },
 };
 ```
 
-| 용도                       | 모델                         | SDK                       | 서비스 파일                                      |
-| -------------------------- | ---------------------------- | ------------------------- | ------------------------------------------------ |
-| Script / Storyboard 텍스트 | `gemini-2.5-flash`           | `@google/generative-ai`   | `ai-script.server.ts`, `ai-storyboard.server.ts` |
-| Project AI Generator       | `gemini-2.5-flash-lite`      | `@google/generative-ai`   | `ai-project-generator.server.ts`                 |
-| Scene 이미지 생성          | `gemini-3-pro-image-preview` | `@google/generative-ai`   | `ai-image.server.ts`                             |
-| Scene 비디오 생성          | `veo-3.1-generate-preview`   | `@google/genai`           | `ai-video.server.ts`                             |
-| 배경음악 생성              | `lyria-realtime-exp`         | `@google/genai` (v1alpha) | `ai-music.server.ts`                             |
-| TTS 내레이션               | Google Cloud TTS             | HTTP REST                 | `tts.server.ts`                                  |
-| TrendTube 텍스트           | `gemini-2.5-flash` / `-lite` | `@google/generative-ai`   | `ai-trendtube.server.ts`                         |
-| Idea 추천                  | `gemini-2.5-flash`           | `@google/generative-ai`   | `ai.server.ts`                                   |
+| 용도                       | 모델                              | SDK                       | 서비스 파일                  |
+| -------------------------- | --------------------------------- | ------------------------- | ---------------------------- |
+| Script / Storyboard 텍스트 | `gemini-2.5-flash`                | `@google/genai`           | `script.server.ts`, `storyboard.server.ts` |
+| Project AI Generator       | `gemini-2.5-flash-lite`           | `@google/genai`           | `project-generator.server.ts` |
+| Scene 이미지 생성          | `gemini-3-pro-image-preview`      | `@google/genai`           | `image.server.ts`            |
+| Scene 비디오 생성          | `veo-3.1-generate-preview`        | `@google/genai`           | `video.server.ts`            |
+| 배경음악 생성              | `lyria-realtime-exp`              | `@google/genai` (v1alpha) | `music.server.ts`            |
+| TTS 내레이션               | `gemini-2.5-flash-preview-tts`    | `@google/genai`           | `tts.server.ts`              |
+| TrendTube 텍스트           | `gemini-2.5-flash` / `-lite`      | `@google/genai`           | `trendtube.server.ts`        |
+| Idea 추천                  | `gemini-2.5-flash`                | `@google/genai`           | `recommendations.server.ts`  |
+| 자막 생성                  | `gemini-2.5-flash-lite`           | `@google/genai`           | `subtitle.server.ts`         |
 
 ## 프로젝트 구조
 
@@ -261,11 +263,11 @@ import {
 ### AI 서비스
 
 ```typescript
-// Gemini 클라이언트 (app/lib/gemini-client.server.ts)
-import { getGeminiClient, getTextModel } from "~/lib/gemini-client.server";
+// AI 클라이언트 (app/lib/ai/client.server.ts) — @google/genai 단일 SDK
+import { getClient, getAlphaClient } from "~/lib/ai/client.server";
 
-// retry 래퍼 (app/lib/gemini-retry.server.ts)
-import { withRetry } from "~/lib/gemini-retry.server";
+// retry 래퍼 (app/lib/ai/retry.server.ts)
+import { withRetry } from "~/lib/ai/retry.server";
 
 // 개발 시 Mock 패턴
 if (process.env.GEMINI_MOCK === "true") {

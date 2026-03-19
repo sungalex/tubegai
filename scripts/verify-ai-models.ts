@@ -4,7 +4,7 @@
 // Lists available models and tests specific ones from CLAUDE.md
 
 import * as dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -15,7 +15,7 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const _genAI = new GoogleGenAI({ apiKey });
 
 /**
  * List all available models

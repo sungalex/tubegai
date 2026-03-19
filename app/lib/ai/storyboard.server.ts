@@ -5,7 +5,7 @@
 
 import type { ProjectFullDetail } from "~/common/data/project.data.server";
 import type { ScriptSegment } from "~/common/types/studio.types";
-import { getGeminiClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { buildProjectContext } from "./context-builder.server";
 import { MOCK_STORYBOARD_SCENES } from "./__mocks__/fixtures";
@@ -158,7 +158,8 @@ export async function generateStoryboardStream(
     return;
   }
 
-  if (!getGeminiClient() || scriptSegments.length === 0) {
+  const ai = getClient();
+  if (!ai || scriptSegments.length === 0) {
     console.warn("GEMINI_API_KEY not set or no segments, using default scenes");
     const defaults = getDefaultScenes(scriptSegments, language);
     for (const scene of defaults) {
@@ -173,16 +174,16 @@ export async function generateStoryboardStream(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;
-
-    const result = await model.generateContentStream({
+    const stream = await ai.models.generateContentStream({
+      model: AI_MODELS.text.primary,
       contents: [
         {
           role: "user",
           parts: [{ text: userPrompt }],
         },
       ],
-      generationConfig: {
+      config: {
+        systemInstruction: systemPrompt,
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
@@ -195,8 +196,8 @@ export async function generateStoryboardStream(
     let lastProgressUpdate = 0;
     const emittedSceneIds = new Set<number>();
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
+    for await (const chunk of stream) {
+      const text = chunk.text;
       if (!text) continue;
 
       fullText += text;
@@ -268,7 +269,8 @@ export async function generateStoryboard(
     return MOCK_STORYBOARD_SCENES;
   }
 
-  if (!getGeminiClient() || scriptSegments.length === 0) {
+  const ai = getClient();
+  if (!ai || scriptSegments.length === 0) {
     return getDefaultScenes(scriptSegments, language);
   }
 
@@ -276,17 +278,17 @@ export async function generateStoryboard(
   const userPrompt = buildStoryboardPrompt(project, scriptSegments, options, language);
 
   try {
-    const model = getTextModel(AI_MODELS.text.primary, systemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.primary,
         contents: [
           {
             role: "user",
             parts: [{ text: userPrompt }],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           temperature: 0.7,
           topP: 0.9,
           topK: 40,
@@ -296,8 +298,7 @@ export async function generateStoryboard(
       }),
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       return getDefaultScenes(scriptSegments, language);

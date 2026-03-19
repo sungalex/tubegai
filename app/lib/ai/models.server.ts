@@ -17,4 +17,7 @@ export const AI_MODELS = {
   music: {
     primary: "models/lyria-realtime-exp",
   },
+  tts: {
+    primary: "gemini-2.5-flash-preview-tts",
+  },
 } as const;

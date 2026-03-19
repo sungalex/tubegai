@@ -14,7 +14,7 @@ import {
   DEFAULT_YOUTUBE_CATEGORY_KO,
   normalizeYouTubeCategory,
 } from "~/common/types/trend.types";
-import { getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { MOCK_PROJECT_CONTEXT } from "./__mocks__/fixtures";
 import { AI_MODELS } from "./models.server";
@@ -177,29 +177,29 @@ export async function generateProjectContext(
     return MOCK_PROJECT_CONTEXT;
   }
 
-  const systemPrompt = input.options.language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
-  const model = getTextModel(AI_MODELS.text.lite, systemPrompt);
-
-  if (!model) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("[AI Project Generator] Gemini API key not configured, using mock data");
     return generateMockOutput(input);
   }
 
+  const systemPrompt = input.options.language === "ko" ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
   const prompt = buildProjectGenerationPrompt(input);
 
   try {
     console.log("[AI Project Generator] Calling Gemini API...");
 
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           responseMimeType: "application/json",
         },
       }),
     );
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       throw new Error("Empty response from Gemini");

@@ -4,7 +4,7 @@
 // Server-side AI service for generating 8-second videos from video ideas
 // Uses @google/genai SDK with veo-3.1-generate-preview model
 
-import { getGenAIClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { MOCK_VIDEO_RESULT } from "./__mocks__/fixtures";
 import { AI_MODELS } from "./models.server";
@@ -111,7 +111,7 @@ async function callVeo3({
   aspectRatio?: string;
   referenceImageBuffer?: Buffer;
 }): Promise<VideoBufferResult | null> {
-  const genaiClient = getGenAIClient();
+  const genaiClient = getClient();
   if (!genaiClient) {
     console.warn("Veo3: API key not set");
     return null;
@@ -247,15 +247,16 @@ export async function generateTrendTubeClip(
 async function generateVideoPrompt(videoIdeas: string): Promise<string> {
   const systemInstruction =
     "You are a visual director. Create concise English video prompts for AI video generation. Return ONLY the prompt text.";
-  const model = getTextModel(AI_MODELS.text.lite, systemInstruction);
 
-  if (!model) {
+  const ai = getClient();
+  if (!ai) {
     return "A dynamic, cinematic scene showcasing modern technology and AI tools with professional lighting";
   }
 
   try {
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [
           {
             role: "user",
@@ -269,11 +270,15 @@ ${videoIdeas.substring(0, 2000)}`,
             ],
           },
         ],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 256 },
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+          maxOutputTokens: 256,
+        },
       }),
     );
 
-    const text = result.response.text().trim();
+    const text = response.text?.trim() ?? "";
     return (
       text ||
       "A dynamic, cinematic scene showcasing modern technology and AI tools"

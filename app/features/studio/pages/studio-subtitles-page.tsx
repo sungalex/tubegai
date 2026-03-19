@@ -37,19 +37,6 @@ import {
 import { StudioProjectSelector } from "../components/studio-project-selector";
 import { cn } from "~/lib/utils";
 import type { SubtitleSegment } from "~/common/types/studio.types";
-import {
-  getSubtitles,
-  getScriptWithSegments,
-  getStoryboardWithScenes,
-  getActiveSession,
-  saveSubtitles,
-  updateSubtitle,
-  deleteSubtitle as deleteSubtitleFromDB,
-  addSubtitle,
-} from "~/common/data/studio.data.server";
-import { getProjectById } from "~/common/data/project.data.server";
-import { requireAuth } from "~/lib/auth.server";
-import { generateSubtitles } from "~/lib/ai/subtitle.server";
 import type { Route } from "./+types/studio-subtitles-page";
 
 // =============================================================================
@@ -77,6 +64,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       totalDuration: 0,
     };
   }
+
+  const { requireAuth } = await import("~/lib/auth.server");
+  const { getProjectById } = await import("~/common/data/project.data.server");
+  const { getSubtitles, getScriptWithSegments } = await import(
+    "~/common/data/studio.data.server"
+  );
 
   const userId = await requireAuth(request);
   const [project, subtitles, scriptData] = await Promise.all([
@@ -110,6 +103,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 // =============================================================================
 
 export async function action({ request, params }: Route.ActionArgs) {
+  const { requireAuth } = await import("~/lib/auth.server");
+  const { getProjectById } = await import("~/common/data/project.data.server");
+  const {
+    getScriptWithSegments,
+    getStoryboardWithScenes,
+    getActiveSession,
+    saveSubtitles,
+    deleteSubtitle: deleteSubtitleFromDB,
+    addSubtitle,
+  } = await import("~/common/data/studio.data.server");
+  const { generateSubtitles } = await import("~/lib/ai/subtitle.server");
+
   const userId = await requireAuth(request);
   const formData = await request.formData();
   const intent = formData.get("intent") as string;

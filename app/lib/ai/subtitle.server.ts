@@ -3,7 +3,7 @@
 // =============================================================================
 // Generates timed subtitle segments from script content and storyboard scenes
 
-import { getGeminiClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import { AI_MODELS } from "./models.server";
 import { MOCK_SUBTITLES } from "./__mocks__/fixtures";
@@ -109,7 +109,8 @@ export async function generateSubtitles(
     return MOCK_SUBTITLES;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     console.warn("GEMINI_API_KEY not set, returning mock subtitles");
     return buildMockSubtitles(segments);
   }
@@ -119,17 +120,17 @@ export async function generateSubtitles(
   const userPrompt = buildUserPrompt(segments, scenes, language);
 
   try {
-    const model = getTextModel(AI_MODELS.text.lite, systemPrompt)!;
-
-    const result = await withRetry(() =>
-      model.generateContent({
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: AI_MODELS.text.lite,
         contents: [
           {
             role: "user",
             parts: [{ text: userPrompt }],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: systemPrompt,
           temperature: 0.3,
           topP: 0.9,
           topK: 40,
@@ -139,8 +140,7 @@ export async function generateSubtitles(
       })
     );
 
-    const response = result.response;
-    const text = response.text();
+    const text = response.text;
 
     if (!text) {
       console.error("No text content in Gemini subtitle response");

@@ -4,7 +4,7 @@
 // Server-side AI pipeline for TrendTube: trend extraction, idea generation,
 // and narration script writing (8-second format).
 
-import { getGeminiClient, getTextModel } from "./client.server";
+import { getClient } from "./client.server";
 import { withRetry } from "./retry.server";
 import {
   MOCK_EXTRACTED_TRENDS,
@@ -43,12 +43,12 @@ export async function extractYouTubeTrends(
     return MOCK_EXTRACTED_TRENDS;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const systemInstruction = "당신은 YouTube 트렌드 분석 전문가입니다. 트렌드를 분석하고 구조화된 한국어 텍스트로 결과를 작성합니다.";
-  const model = getTextModel(AI_MODELS.text.primary, systemInstruction)!;
 
   const prompt = `사용자가 제공한 YouTube 트렌드 URL: ${url}
 
@@ -67,14 +67,15 @@ ${userIdea ? `특히 "${userIdea}"와 관련된 트렌드에 집중하여 분석
 
 결과를 구조화된 한국어 텍스트로 작성해주세요.`;
 
-  const result = await withRetry(() =>
-    model.generateContent({
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: AI_MODELS.text.primary,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+      config: { systemInstruction, temperature: 0.7, maxOutputTokens: 4096 },
     }),
   );
 
-  const text = result.response.text();
+  const text = response.text;
   if (!text) throw new Error("트렌드 추출 응답이 비어있습니다");
   return text;
 }
@@ -91,12 +92,12 @@ export async function generateVideoIdeas(
     return MOCK_VIDEO_IDEAS;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const systemInstruction = "당신은 바이럴 YouTube 콘텐츠 기획 전문가입니다. 트렌드를 바탕으로 바이럴 영상 아이디어를 생성합니다.";
-  const model = getTextModel(AI_MODELS.text.primary, systemInstruction)!;
 
   const prompt = `## 분석된 트렌드:
 ${extractedTrends}
@@ -117,14 +118,15 @@ ${referenceImageDescription ? `## 참고 이미지 설명:\n${referenceImageDesc
 가장 바이럴될 가능성이 높은 순서로 정렬해주세요.
 결과를 구조화된 한국어 텍스트로 작성해주세요.`;
 
-  const result = await withRetry(() =>
-    model.generateContent({
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: AI_MODELS.text.primary,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.9, maxOutputTokens: 6144 },
+      config: { systemInstruction, temperature: 0.9, maxOutputTokens: 6144 },
     }),
   );
 
-  const text = result.response.text();
+  const text = response.text;
   if (!text) throw new Error("영상 아이디어 생성 응답이 비어있습니다");
   return text;
 }
@@ -140,12 +142,12 @@ export async function generateNarrationScript(
     return MOCK_NARRATION_SCRIPT;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 오프닝 나레이션을 작성합니다.";
-  const model = getTextModel(AI_MODELS.text.lite, systemInstruction)!;
 
   const prompt = `## 영상 아이디어:
 ${videoIdeas}
@@ -165,14 +167,15 @@ ${videoIdeas}
 
 한국어로 작성해주세요. 스크립트 텍스트만 반환하세요.`;
 
-  const result = await withRetry(() =>
-    model.generateContent({
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: AI_MODELS.text.lite,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+      config: { systemInstruction, temperature: 0.7, maxOutputTokens: 512 },
     }),
   );
 
-  const text = result.response.text();
+  const text = response.text;
   if (!text) throw new Error("나레이션 스크립트 생성 응답이 비어있습니다");
   return text;
 }
@@ -191,14 +194,14 @@ export async function generateFullNarrationScript(
     return MOCK_FULL_NARRATION_RESULT;
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const targetDuration = options?.targetDuration ?? 30;
 
   const systemInstruction = "당신은 프로페셔널 YouTube 나레이션 작가입니다. 영상 나레이션 스크립트를 작성합니다. 응답은 반드시 유효한 JSON 형식이어야 합니다. 마크다운 코드 블록 없이 순수 JSON만 반환하세요.";
-  const model = getTextModel(AI_MODELS.text.primary, systemInstruction)!;
 
   const prompt = `## 영상 아이디어:
 ${videoIdeas}
@@ -227,10 +230,12 @@ ${videoIdeas}
 
 한국어로 작성해주세요.`;
 
-  const result = await withRetry(() =>
-    model.generateContent({
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: AI_MODELS.text.primary,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
+      config: {
+        systemInstruction,
         temperature: 0.7,
         maxOutputTokens: 2048,
         responseMimeType: "application/json",
@@ -238,7 +243,7 @@ ${videoIdeas}
     }),
   );
 
-  const text = result.response.text();
+  const text = response.text;
   if (!text) throw new Error("전체 나레이션 스크립트 생성 응답이 비어있습니다");
 
   const parsed = JSON.parse(text.trim()) as FullNarrationResult;
@@ -271,12 +276,12 @@ export async function generateVideoClipPrompts(
     return MOCK_VIDEO_CLIP_PROMPTS.slice(0, clipCount);
   }
 
-  if (!getGeminiClient()) {
+  const ai = getClient();
+  if (!ai) {
     throw new Error("GEMINI_API_KEY가 설정되지 않았습니다");
   }
 
   const systemInstruction = "You are a visual director for YouTube videos. Create concise English video prompts for AI video generation (Veo 3). Response must be valid JSON without markdown code blocks.";
-  const model = getTextModel(AI_MODELS.text.lite, systemInstruction)!;
 
   const prompt = `## Video Ideas:
 ${videoIdeas.substring(0, 2000)}
@@ -304,10 +309,12 @@ Requirements:
 - narrativeContext should summarize what the narrator says during that clip
 - Maintain visual coherence across all ${clipCount} clips`;
 
-  const result = await withRetry(() =>
-    model.generateContent({
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: AI_MODELS.text.lite,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
+      config: {
+        systemInstruction,
         temperature: 0.7,
         maxOutputTokens: 2048,
         responseMimeType: "application/json",
@@ -315,7 +322,7 @@ Requirements:
     }),
   );
 
-  const text = result.response.text();
+  const text = response.text;
   if (!text) throw new Error("클립 프롬프트 생성 응답이 비어있습니다");
 
   const parsed = JSON.parse(text.trim()) as { clips: VideoClipPrompt[] };
