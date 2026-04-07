@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Play, RefreshCw, Download, AlertCircle, Sparkles, Loader2, History, Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
@@ -56,6 +56,8 @@ export function SceneVideoCard({
   className,
 }: SceneVideoCardProps) {
   const aspectClass = getAspectClass(aspectRatio);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<VideoHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -201,22 +203,30 @@ export function SceneVideoCard({
           {scene.status === "completed" && scene.videoUrl ? (
             <div className="relative w-full h-full">
               <video
+                ref={videoRef}
                 src={scene.videoUrl}
                 poster={scene.thumbnailUrl}
                 className="w-full h-full object-cover"
                 controls={false}
                 preload="metadata"
-                onClick={(e) => {
-                  const video = e.currentTarget;
-                  if (video.paused) video.play();
-                  else video.pause();
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (video && !video.paused) video.pause();
                 }}
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover/video:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-[1px]">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/50 group-hover/video:scale-110 transition-transform shadow-xl">
-                  <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+              {!isPlaying && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 transition-all duration-300 cursor-pointer backdrop-blur-[1px]"
+                  onClick={() => videoRef.current?.play()}
+                >
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/50 hover:scale-110 transition-transform shadow-xl">
+                    <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Download Button */}
               <div className="absolute bottom-2 right-2 opacity-0 group-hover/video:opacity-100 transition-opacity flex gap-1">
