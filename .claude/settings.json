@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run db\\:generate:*)",
+      "Bash(npm run db\\:migrate:*)",
+      "Bash(npm run db\\:enable-rls:*)",
+      "Bash(npm run db\\:typegen:*)",
+      "Bash(npx react-router typegen:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "WebFetch(domain:ai.google.dev)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)"
+    ]
+  }
+}
