@@ -150,11 +150,23 @@ export interface StoryboardSceneWithImage extends StoryboardScene {
 export interface StudioProject {
   id: string;
   title: string;
+  description?: string;
+  thumbnail?: string;
   status: string;
   lastEdited: string;
   progress: number;
   channel: string;
-  labels: string[];
+  labels: Array<{ name: string; color: string }>;
+  // Metadata
+  type?: "short" | "long";
+  contentTone?: string;
+  videoLength?: string;
+  difficulty?: string;
+  category?: string;
+  // Stats
+  targetAudience?: string;
+  estimatedViews?: string;
+  basedOnTrend?: string;
 }
 
 export interface QuickAccessStep {

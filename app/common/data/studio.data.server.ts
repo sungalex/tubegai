@@ -861,18 +861,28 @@ export async function getStudioProjects(userId: string): Promise<StudioProject[]
     orderBy: [desc(schema.projects.updatedAt)],
     with: {
       channel: { columns: { name: true } },
-      labels: { with: { label: { columns: { name: true } } } },
+      labels: { with: { label: { columns: { name: true, color: true } } } },
     },
   });
 
   return projectList.map((p) => ({
     id: p.id,
     title: p.title,
+    description: p.description ?? undefined,
+    thumbnail: p.thumbnailUrl ?? undefined,
     status: STATUS_DISPLAY_MAP[p.status] ?? p.status,
     lastEdited: formatDistanceToNow(p.updatedAt, { addSuffix: true }),
     progress: p.progress,
     channel: p.channel?.name ?? "",
-    labels: p.labels.map((pl) => pl.label.name),
+    labels: p.labels.map((pl) => ({ name: pl.label.name, color: pl.label.color })),
+    type: p.type as "short" | "long" | undefined,
+    contentTone: p.contentTone ?? undefined,
+    videoLength: p.videoLength ?? undefined,
+    difficulty: p.difficulty ?? undefined,
+    category: p.category ?? undefined,
+    targetAudience: p.targetAudience ?? undefined,
+    estimatedViews: p.estimatedViews ?? undefined,
+    basedOnTrend: p.basedOnTrend ?? undefined,
   }));
 }
 

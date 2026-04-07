@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useFetcher } from "react-router";
 import {
-  Plus,
   ArrowRight,
   Clapperboard,
   LayoutDashboard,
@@ -15,14 +14,19 @@ import {
   LineChart,
   Download,
   Search,
-  Filter,
   Scissors,
   Loader2,
+  Play,
+  Clock,
+  Video,
+  Gauge,
+  Eye,
+  TrendingUp,
+  Target,
 } from "lucide-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { Button } from "~/common/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "~/common/components/ui/card";
-import { Progress } from "~/common/components/ui/progress";
 import { Badge } from "~/common/components/ui/badge";
 import { Input } from "~/common/components/ui/input";
 import {
@@ -53,6 +57,7 @@ import {
   PaginationPrevious,
 } from "~/common/components/ui/pagination";
 import type { StudioProject } from "~/common/types/studio.types";
+import { cn } from "~/lib/utils";
 
 const QUICK_ACCESS_STEPS = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -140,7 +145,7 @@ export function StudioProjectSelector({
 
       switch (searchScope) {
         case "labels":
-          matchesSearch = project.labels.some(label => label.toLowerCase().includes(term));
+          matchesSearch = project.labels.some(label => label.name.toLowerCase().includes(term));
           break;
         case "title":
         default:
@@ -383,45 +388,149 @@ export function StudioProjectSelector({
   );
 }
 
-// Extracted Project Card Component for Reusability
+// =============================================================================
+// Studio Project Card (Enhanced)
+// =============================================================================
+
+const STATUS_STYLES: Record<string, string> = {
+  초안: "bg-muted text-muted-foreground",
+  진행중: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  완료: "bg-green-500/10 text-green-600 border-green-500/20",
+  보관: "bg-muted text-muted-foreground",
+};
+
+const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
+  easy: { label: "쉬움", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  medium: { label: "보통", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
+  hard: { label: "어려움", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+};
+
+const LENGTH_LABELS: Record<string, string> = {
+  short: "숏폼",
+  medium: "중간",
+  long: "롱폼",
+};
+
 function ProjectCard({ project, primaryLabel, primarySegment }: { project: StudioProject, primaryLabel: string, primarySegment: string }) {
+  const difficultyInfo = project.difficulty ? DIFFICULTY_LABELS[project.difficulty] : undefined;
+  const toneLabel = project.contentTone || undefined;
+  const lengthLabel = project.videoLength ? LENGTH_LABELS[project.videoLength] || project.videoLength : undefined;
+  const typeLabel = project.type === "short" ? "Shorts" : project.type === "long" ? "일반 영상" : undefined;
+
   return (
-    <Card className="hover:border-primary/50 transition-colors flex flex-col group h-full">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex justify-between items-start text-xl gap-2 w-full min-w-0">
-          <span className="truncate flex-1 block" title={project.title}>{project.title}</span>
-          <Badge variant={project.status === "완료" ? "default" : "secondary"} className="shrink-0">
-            {project.status}
-          </Badge>
-        </CardTitle>
-        <CardDescription className="flex flex-col gap-1 mt-1">
-          <span>{project.channel}</span>
-          <span>Last edited {project.lastEdited}</span>
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-4 flex-1 flex flex-col gap-6">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Progress</span>
-            <span>{project.progress}%</span>
+    <Card className="relative overflow-hidden hover:border-primary/50 transition-all duration-200 group flex flex-col h-full">
+      {/* Top: Thumbnail + Title + Status */}
+      <div className="flex gap-2.5 p-3 pb-0">
+        <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
+          {project.thumbnail ? (
+            <img
+              src={project.thumbnail}
+              alt={project.title}
+              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="flex items-center justify-center w-full h-full bg-secondary/30">
+              <Play className="w-6 h-6 text-muted-foreground/30" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="text-sm font-semibold line-clamp-2 leading-tight" title={project.title}>
+              {project.title}
+            </h3>
+            <Badge
+              variant="outline"
+              className={cn("text-xs h-5 px-1.5 shrink-0", STATUS_STYLES[project.status] || "bg-background/80")}
+            >
+              {project.status}
+            </Badge>
           </div>
-          <Progress value={project.progress} className="h-2.5" />
+          {project.description && (
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{project.description}</p>
+          )}
+          {project.channel && (
+            <p className="text-xs text-muted-foreground mt-0.5">{project.channel}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <CardContent className="px-3 pt-2 pb-3 flex flex-col gap-2 flex-1">
+        {/* Metadata Badges */}
+        <div className="flex flex-wrap gap-1">
+          {project.category && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5">{project.category}</Badge>
+          )}
+          {(typeLabel || lengthLabel) && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5 gap-0.5">
+              <Video className="h-3 w-3" />
+              {typeLabel}{typeLabel && lengthLabel ? " · " : ""}{lengthLabel}
+            </Badge>
+          )}
+          {toneLabel && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5">{toneLabel}</Badge>
+          )}
+          {difficultyInfo && (
+            <Badge variant="outline" className={cn("text-xs h-5 px-1.5", difficultyInfo.color)}>
+              <Gauge className="h-3 w-3 mr-0.5" />{difficultyInfo.label}
+            </Badge>
+          )}
         </div>
 
-        {/* Labels Display */}
-        {project.labels && project.labels.length > 0 && (
+        {/* Stats */}
+        <div className="space-y-0.5 text-xs">
+          {project.estimatedViews && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Eye className="h-3 w-3 shrink-0" />
+              <span className="text-green-600 font-medium">{project.estimatedViews}</span>
+            </div>
+          )}
+          {project.basedOnTrend && (
+            <div className="flex items-start gap-1 text-muted-foreground">
+              <TrendingUp className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="line-clamp-1">{project.basedOnTrend}</span>
+            </div>
+          )}
+          {project.targetAudience && (
+            <div className="flex items-start gap-1 text-muted-foreground">
+              <Target className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="line-clamp-1">{project.targetAudience}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Labels */}
+        {project.labels.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {project.labels.map((label: string, index: number) => (
-              <Badge key={index} variant="outline" className="text-xs px-1.5 py-0 font-normal text-muted-foreground">
-                {label}
+            {project.labels.map((label, index) => (
+              <Badge key={index} variant="outline" className={cn("text-xs h-5 px-1.5 font-normal", label.color)}>
+                {label.name}
               </Badge>
             ))}
           </div>
         )}
 
-        <div className="space-y-3 mt-auto">
-          <p className="text-sm text-muted-foreground font-medium">Quick Access</p>
-          <div className="flex flex-wrap gap-2">
+        {/* Progress + Timestamp */}
+        <div className="mt-auto pt-1">
+          <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-primary h-full rounded-full transition-all duration-500"
+              style={{ width: `${project.progress}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-xs text-muted-foreground">{project.progress}%</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+              <Clock className="w-3 h-3" />{project.lastEdited}
+            </span>
+          </div>
+        </div>
+
+        {/* Quick Access */}
+        <div className="space-y-1.5 pt-1 border-t border-border">
+          <p className="text-xs text-muted-foreground font-medium">Quick Access</p>
+          <div className="flex flex-wrap gap-1.5">
             <TooltipProvider>
               {QUICK_ACCESS_STEPS.map((step) => (
                 <Tooltip key={step.id}>
@@ -429,11 +538,11 @@ function ProjectCard({ project, primaryLabel, primarySegment }: { project: Studi
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       asChild
                     >
                       <Link to={`/studio/${step.id}/${project.id}`}>
-                        <step.icon className="h-5 w-5" />
+                        <step.icon className="h-4 w-4" />
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -446,8 +555,10 @@ function ProjectCard({ project, primaryLabel, primarySegment }: { project: Studi
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-2 mt-auto">
-        <Button className="w-full" asChild>
+
+      {/* Primary Action */}
+      <CardFooter className="px-3 pb-3 pt-0">
+        <Button className="w-full h-9 text-sm" asChild>
           <Link to={`/studio/${primarySegment}/${project.id}`}>
             {primaryLabel} <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
