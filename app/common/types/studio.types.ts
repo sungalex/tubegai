@@ -173,3 +173,42 @@ export interface QuickAccessStep {
   id: string;
   label: string;
 }
+
+// ---------------------------
+// Rough Cut Types
+// ---------------------------
+export interface RoughCutSegment {
+  id: string;
+  trackId: string;              // "V1" | "A1"
+  type: "video" | "audio";
+  resourceType: "scene" | "b_roll" | "upload" | "audio";
+  resourceId: string;
+  startTime: number;
+  duration: number;
+  trimStart: number;
+  trimEnd: number | null;
+  playbackSpeed: number;
+  volume: number;
+  zIndex: number;
+  // Resolved via join
+  publicUrl?: string;
+  thumbnailUrl?: string;
+  label?: string;
+}
+
+export interface RoughCutTimeline {
+  id: string;
+  projectId: string;
+  zoomScale: number;
+  playheadPosition: number;
+  segments: RoughCutSegment[];
+}
+
+export interface RoughCutVersion {
+  id: string;
+  name: string;
+  versionNumber: number;
+  duration: number | null;
+  videoUrl: string | null;
+  createdAt: string | null;
+}

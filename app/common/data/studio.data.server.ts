@@ -3,7 +3,7 @@
 // =============================================================================
 // This layer handles all Supabase database operations for the Studio feature.
 
-import { eq, asc, and, desc } from "drizzle-orm";
+import { eq, asc, and, desc, count as drizzleCount } from "drizzle-orm";
 import { db, schema } from "~/lib/db.server";
 import { formatDistanceToNow } from "date-fns";
 import type {
@@ -16,6 +16,9 @@ import type {
   BRollSceneContext,
   BRollColor,
   SceneHint,
+  RoughCutSegment,
+  RoughCutTimeline,
+  RoughCutVersion,
 } from "../types/studio.types";
 
 import { BROLL_COLORS } from "../constants/colors";
@@ -1081,4 +1084,227 @@ export async function getBRollScenes(
  */
 export function getBRollColors(): BRollColor[] {
   return BROLL_COLORS;
+}
+
+// =============================================================================
+// Rough Cut Data Functions
+// =============================================================================
+
+/**
+ * Get or create the rough cut timeline for a project (1:1 per project).
+ * Resolves publicUrl/thumbnailUrl for scene-type segments via storyboard → video → mediaAsset join.
+ */
+export async function getOrCreateRoughCutTimeline(
+  projectId: string,
+): Promise<RoughCutTimeline> {
+  let timeline = await db.query.roughCutTimelines.findFirst({
+    where: eq(schema.roughCutTimelines.projectId, projectId),
+    with: {
+      segments: {
+        orderBy: [asc(schema.roughCutTimelineSegments.startTime)],
+      },
+    },
+  });
+
+  if (!timeline) {
+    const [created] = await db
+      .insert(schema.roughCutTimelines)
+      .values({ projectId })
+      .returning();
+    timeline = { ...created, segments: [] };
+  }
+
+  // Resolve publicUrl/thumbnailUrl for scene segments
+  const sceneResourceIds = timeline.segments
+    .filter((s) => s.resourceType === "scene")
+    .map((s) => s.resourceId);
+
+  const resolvedMap = new Map<
+    string,
+    { publicUrl?: string; thumbnailUrl?: string; sceneNumber?: number }
+  >();
+
+  if (sceneResourceIds.length > 0) {
+    // Fetch storyboards with imageAsset and latest video
+    const storyboards = await db.query.storyboards.findMany({
+      where: eq(schema.storyboards.projectId, projectId),
+      orderBy: [asc(schema.storyboards.sceneNumber)],
+      with: { imageAsset: true },
+    });
+
+    const allVideos = await db.query.sceneVideos.findMany({
+      where: eq(schema.sceneVideos.projectId, projectId),
+      orderBy: [desc(schema.sceneVideos.createdAt)],
+      with: { videoAsset: true },
+    });
+
+    const latestVideoMap = new Map<string, (typeof allVideos)[0]>();
+    for (const v of allVideos) {
+      if (!latestVideoMap.has(v.storyboardId)) {
+        latestVideoMap.set(v.storyboardId, v);
+      }
+    }
+
+    for (const sb of storyboards) {
+      const video = latestVideoMap.get(sb.id);
+      resolvedMap.set(sb.id, {
+        publicUrl: video?.videoAsset?.publicUrl ?? undefined,
+        thumbnailUrl: sb.imageAsset?.publicUrl ?? undefined,
+        sceneNumber: sb.sceneNumber,
+      });
+    }
+  }
+
+  const segments: RoughCutSegment[] = timeline.segments.map((s) => {
+    const resolved = resolvedMap.get(s.resourceId);
+    return {
+      id: s.id,
+      trackId: s.trackId,
+      type: s.type as "video" | "audio",
+      resourceType: s.resourceType as RoughCutSegment["resourceType"],
+      resourceId: s.resourceId,
+      startTime: s.startTime,
+      duration: s.duration,
+      trimStart: s.trimStart ?? 0,
+      trimEnd: s.trimEnd ?? null,
+      playbackSpeed: s.playbackSpeed ?? 1,
+      volume: s.volume ?? 1,
+      zIndex: s.zIndex ?? 0,
+      publicUrl: resolved?.publicUrl,
+      thumbnailUrl: resolved?.thumbnailUrl,
+      label: resolved?.sceneNumber != null
+        ? `씬 ${resolved.sceneNumber}`
+        : undefined,
+    };
+  });
+
+  return {
+    id: timeline.id,
+    projectId,
+    zoomScale: timeline.zoomScale ?? 30,
+    playheadPosition: timeline.playheadPosition ?? 0,
+    segments,
+  };
+}
+
+/**
+ * Save rough cut segments (full replace strategy).
+ */
+export async function saveRoughCutSegments(input: {
+  timelineId: string;
+  segments: Array<{
+    trackId: string;
+    type: "video" | "audio";
+    resourceType: "scene" | "b_roll" | "upload" | "audio";
+    resourceId: string;
+    startTime: number;
+    duration: number;
+    trimStart?: number;
+    trimEnd?: number | null;
+    playbackSpeed?: number;
+    volume?: number;
+    zIndex?: number;
+  }>;
+}): Promise<void> {
+  const { timelineId, segments } = input;
+
+  // Delete existing segments
+  await db
+    .delete(schema.roughCutTimelineSegments)
+    .where(eq(schema.roughCutTimelineSegments.timelineId, timelineId));
+
+  // Insert new segments
+  if (segments.length > 0) {
+    await db.insert(schema.roughCutTimelineSegments).values(
+      segments.map((seg) => ({
+        timelineId,
+        trackId: seg.trackId,
+        type: seg.type,
+        resourceType: seg.resourceType,
+        resourceId: seg.resourceId,
+        startTime: seg.startTime,
+        duration: seg.duration,
+        trimStart: seg.trimStart ?? 0,
+        trimEnd: seg.trimEnd ?? undefined,
+        playbackSpeed: seg.playbackSpeed ?? 1,
+        volume: seg.volume ?? 1,
+        zIndex: seg.zIndex ?? 0,
+      })),
+    );
+  }
+
+  // Update timeline updatedAt
+  await db
+    .update(schema.roughCutTimelines)
+    .set({ updatedAt: new Date() })
+    .where(eq(schema.roughCutTimelines.id, timelineId));
+}
+
+/**
+ * Update rough cut timeline metadata (zoom scale, playhead position).
+ */
+export async function updateRoughCutTimelineMeta(
+  timelineId: string,
+  data: { zoomScale?: number; playheadPosition?: number },
+): Promise<void> {
+  await db
+    .update(schema.roughCutTimelines)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(schema.roughCutTimelines.id, timelineId));
+}
+
+/**
+ * Create a new rough cut version after rendering.
+ */
+export async function createRoughCutVersion(input: {
+  projectId: string;
+  name: string;
+  description?: string;
+  videoAssetId: string;
+  duration: number;
+}): Promise<string> {
+  const [countResult] = await db
+    .select({ value: drizzleCount() })
+    .from(schema.roughCutVersions)
+    .where(eq(schema.roughCutVersions.projectId, input.projectId));
+
+  const versionNumber = (countResult?.value ?? 0) + 1;
+
+  const [version] = await db
+    .insert(schema.roughCutVersions)
+    .values({
+      projectId: input.projectId,
+      name: input.name,
+      description: input.description ?? null,
+      versionNumber,
+      videoAssetId: input.videoAssetId,
+      duration: input.duration,
+    })
+    .returning({ id: schema.roughCutVersions.id });
+
+  return version.id;
+}
+
+/**
+ * List rough cut versions for a project (newest first).
+ */
+export async function getRoughCutVersions(
+  projectId: string,
+): Promise<RoughCutVersion[]> {
+  const versions = await db.query.roughCutVersions.findMany({
+    where: eq(schema.roughCutVersions.projectId, projectId),
+    orderBy: [desc(schema.roughCutVersions.createdAt)],
+    with: {
+      videoAsset: true,
+    },
+  });
+
+  return versions.map((v) => ({
+    id: v.id,
+    name: v.name,
+    versionNumber: v.versionNumber,
+    duration: v.duration,
+    videoUrl: v.videoAsset?.publicUrl ?? null,
+    createdAt: v.createdAt?.toISOString() ?? null,
+  }));
 }

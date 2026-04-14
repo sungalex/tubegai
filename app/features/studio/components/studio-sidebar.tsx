@@ -74,7 +74,7 @@ export function StudioSidebar({
     },
     // Phase 2+ Features (Disabled)
     { title: "B-Roll", href: "#", icon: Film, disabled: true },
-    { title: "Rough Cut", href: "#", icon: Scissors, disabled: true },
+    { title: "Rough Cut", href: getPath("roughcut"), icon: Scissors, disabled: false },
     {
       title: "자막",
       href: getPath("subtitles"),

@@ -1,11 +1,23 @@
-import React, { useState, useRef } from "react";
-import { useParams } from "react-router";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useFetcher } from "react-router";
 import {
-  Scissors, Play, Pause, SkipBack, SkipForward,
-  Layers, Music, Video, Plus, Trash2,
-  MousePointer2, Wand2, ArrowLeftRight, Split,
-  Settings2, Download, ChevronRight, GripVertical,
-  Save, History, FileVideo, CheckCircle2, RotateCcw
+  Scissors,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Layers,
+  Music,
+  Video,
+  Trash2,
+  Split,
+  Save,
+  Download,
+  History,
+  FileVideo,
+  Loader2,
+  GripVertical,
+  Film,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/common/components/ui/button";
@@ -27,777 +39,1172 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "~/common/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/common/components/ui/table";
 import { StudioProjectSelector } from "../components/studio-project-selector";
+import { useTimeline } from "../hooks/use-timeline";
 import { cn } from "~/lib/utils";
+import type { RoughCutSegment, SceneVideo } from "~/common/types/studio.types";
+import type { Route } from "./+types/studio-rough-cut-page";
 
-// --- Mock Data ---
+// =============================================================================
+// Loader
+// =============================================================================
 
-interface TimelineSegment {
-  id: string;
-  type: "video" | "audio";
-  trackId: string;
-  start: number; // in seconds
-  duration: number; // in seconds
-  color: string;
-  label: string;
-  content: string;
+export async function loader({ params, request }: Route.LoaderArgs) {
+  if (!params.projectId) {
+    return {
+      project: null,
+      timeline: null,
+      sceneSegments: [],
+      versions: [],
+    };
+  }
+
+  const { requireAuth } = await import("~/lib/auth.server");
+  const { getProjectById } = await import("~/common/data/project.data.server");
+  const {
+    getOrCreateRoughCutTimeline,
+    getSceneSegments,
+    getRoughCutVersions,
+  } = await import("~/common/data/studio.data.server");
+
+  const userId = await requireAuth(request);
+  const project = await getProjectById(params.projectId, userId);
+
+  if (!project) {
+    return {
+      project: null,
+      timeline: null,
+      sceneSegments: [],
+      versions: [],
+    };
+  }
+
+  const [timeline, sceneSegments, versions] = await Promise.all([
+    getOrCreateRoughCutTimeline(params.projectId),
+    getSceneSegments(params.projectId),
+    getRoughCutVersions(params.projectId),
+  ]);
+
+  return {
+    project: { id: project.id, title: project.title },
+    timeline,
+    sceneSegments,
+    versions,
+  };
 }
 
-interface RenderedVersion {
-  id: string;
-  name: string;
-  timestamp: string;
-  duration: string;
-  size: string;
+// =============================================================================
+// Action
+// =============================================================================
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const { requireAuth } = await import("~/lib/auth.server");
+  const { getProjectById } = await import("~/common/data/project.data.server");
+  const {
+    getOrCreateRoughCutTimeline,
+    saveRoughCutSegments,
+    updateRoughCutTimelineMeta,
+    getSceneSegments,
+  } = await import("~/common/data/studio.data.server");
+
+  const userId = await requireAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string;
+  const projectId = params.projectId;
+
+  if (!projectId) {
+    return { success: false, error: "프로젝트 ID가 필요합니다." };
+  }
+
+  const project = await getProjectById(projectId, userId);
+  if (!project) {
+    return { success: false, error: "프로젝트를 찾을 수 없습니다." };
+  }
+
+  switch (intent) {
+    case "auto-assemble": {
+      const timeline = await getOrCreateRoughCutTimeline(projectId);
+      const sceneSegments = await getSceneSegments(projectId);
+
+      // Flatten completed scenes
+      const completedScenes = sceneSegments
+        .flatMap((seg) => seg.scenes)
+        .filter((s) => s.status === "completed" && s.videoUrl)
+        .sort((a, b) => a.sceneNumber - b.sceneNumber);
+
+      let cursor = 0;
+      const segments = completedScenes.map((scene) => {
+        const seg = {
+          trackId: "V1",
+          type: "video" as const,
+          resourceType: "scene" as const,
+          resourceId: scene.sceneId,
+          startTime: cursor,
+          duration: scene.duration,
+          trimStart: 0,
+          playbackSpeed: 1,
+          volume: 1,
+          zIndex: 0,
+        };
+        cursor += scene.duration;
+        return seg;
+      });
+
+      await saveRoughCutSegments({ timelineId: timeline.id, segments });
+      return { success: true };
+    }
+
+    case "save": {
+      const timeline = await getOrCreateRoughCutTimeline(projectId);
+      const segmentsJson = formData.get("segments") as string;
+
+      try {
+        const segments = JSON.parse(segmentsJson);
+        await saveRoughCutSegments({ timelineId: timeline.id, segments });
+
+        const zoomScale = formData.get("zoomScale");
+        const playheadPosition = formData.get("playheadPosition");
+        if (zoomScale || playheadPosition) {
+          await updateRoughCutTimelineMeta(timeline.id, {
+            zoomScale: zoomScale ? Number(zoomScale) : undefined,
+            playheadPosition: playheadPosition
+              ? Number(playheadPosition)
+              : undefined,
+          });
+        }
+      } catch {
+        return { success: false, error: "잘못된 세그먼트 데이터입니다." };
+      }
+
+      return { success: true };
+    }
+
+    default:
+      return { success: false, error: "알 수 없는 작업입니다." };
+  }
 }
 
-const INITIAL_SCENES = [
-  { id: "s1", order: 1, content: "Intro: Futuristic cityscape.", duration: 5, color: "bg-blue-500" },
-  { id: "s2", order: 2, content: "Host talking about AI.", duration: 8, color: "bg-indigo-500" },
-  { id: "s3", order: 3, content: "Microchips close-up.", duration: 4, color: "bg-violet-500" },
-  { id: "s4", order: 4, content: "Outro: Logo animation.", duration: 3, color: "bg-purple-500" },
-];
-
-const INITIAL_B_ROLL = [
-  { id: "b1", name: "Aerial View.mp4", duration: 5, color: "bg-teal-500", content: "Drone shot of city" },
-  { id: "b2", name: "Coding Timelapse.mp4", duration: 8, color: "bg-cyan-500", content: "Screen recording" },
-  { id: "b3", name: "Meeting Room.mp4", duration: 6, color: "bg-sky-500", content: "People talking" },
-];
-
-const INITIAL_TIMELINE: TimelineSegment[] = [
-  // Prep some initial timeline state
-  { id: "t1", type: "video", trackId: "V1", start: 0, duration: 5, color: "bg-blue-500", label: "Scene 1", content: "Intro City" },
-  { id: "t2", type: "video", trackId: "V1", start: 5, duration: 8, color: "bg-indigo-500", label: "Scene 2", content: "Host AI" },
-];
+// =============================================================================
+// Meta
+// =============================================================================
 
 export const meta = () => {
   return [
     { title: "Rough Cut | TubeGAI" },
-    { name: "description", content: "Assemble your clips, trim footage, and create your video sequence." },
+    {
+      name: "description",
+      content: "씬 비디오를 타임라인에 배치하여 러프컷을 만드세요.",
+    },
   ];
 };
 
-export default function StudioRoughCutPage() {
-  const { projectId } = useParams();
+// =============================================================================
+// Component
+// =============================================================================
 
-  // State
-  const [segments, setSegments] = useState<TimelineSegment[]>(INITIAL_TIMELINE);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [scale, setScale] = useState(30); // pixels per second
-  const [selectedTool, setSelectedTool] = useState<"select" | "razor" | "ripple">("select");
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
-  const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
-  const [isDraggingClip, setIsDraggingClip] = useState(false);
-  const timelineRef = useRef<HTMLDivElement>(null);
+export default function StudioRoughCutPage({
+  loaderData,
+}: Route.ComponentProps) {
+  const { project, timeline, sceneSegments, versions } = loaderData;
 
-  // Save & Export State
-  const [isSaving, setIsSaving] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [versions, setVersions] = useState<RenderedVersion[]>([]);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
-  if (!projectId) {
+  if (!project || !timeline) {
     return (
       <StudioProjectSelector
-        title="Rough Cut Studio"
-        description="Assemble your story in the timeline."
+        title="Rough Cut"
+        description="씬 비디오를 타임라인에 배치하여 러프컷을 만드세요."
         context="roughcut"
       />
     );
   }
 
+  return (
+    <RoughCutEditor
+      project={project}
+      timeline={timeline}
+      sceneSegments={sceneSegments}
+      versions={versions}
+    />
+  );
+}
+
+// =============================================================================
+// Editor Component
+// =============================================================================
+
+interface EditorProps {
+  project: { id: string; title: string };
+  timeline: {
+    id: string;
+    projectId: string;
+    zoomScale: number;
+    playheadPosition: number;
+    segments: RoughCutSegment[];
+  };
+  sceneSegments: Array<{
+    id: string;
+    order: number;
+    content: string;
+    scenes: SceneVideo[];
+  }>;
+  versions: Array<{
+    id: string;
+    name: string;
+    versionNumber: number;
+    duration: number | null;
+    videoUrl: string | null;
+    createdAt: string | null;
+  }>;
+}
+
+function RoughCutEditor({
+  project,
+  timeline: initialTimeline,
+  sceneSegments,
+  versions,
+}: EditorProps) {
+  const fetcher = useFetcher();
+  const isSaving = fetcher.state !== "idle";
+
+  // --- Render state ---
+  const [renderState, setRenderState] = useState<{
+    isRendering: boolean;
+    percent: number;
+    message: string;
+  }>({ isRendering: false, percent: 0, message: "" });
+
+  const tl = useTimeline({
+    initialSegments: initialTimeline.segments,
+    initialMeta: {
+      zoomScale: initialTimeline.zoomScale,
+      playheadPosition: initialTimeline.playheadPosition,
+    },
+  });
+
+  // All completed scenes for the clip bin
+  const completedScenes = sceneSegments
+    .flatMap((seg) => seg.scenes)
+    .filter((s) => s.status === "completed" && s.videoUrl);
+
   // --- Handlers ---
 
   const handleAutoAssemble = () => {
-    // Clear V1 and place all scenes sequentially
-    let cursor = 0;
-    const newSegments: TimelineSegment[] = INITIAL_SCENES.map(scene => {
-      const seg: TimelineSegment = {
-        id: `seg-${Date.now()}-${scene.id}`,
-        type: "video",
-        trackId: "V1",
-        start: cursor,
-        duration: scene.duration,
-        color: scene.color,
-        label: `Scene ${scene.order}`,
-        content: scene.content
-      };
-      cursor += scene.duration;
-      return seg;
+    tl.autoAssemble(completedScenes);
+    // Also persist to DB
+    fetcher.submit(
+      { intent: "auto-assemble" },
+      { method: "post" },
+    );
+    toast.success("자동 배치 완료", {
+      description: "모든 씬이 타임라인에 배치되었습니다.",
     });
-
-    setSegments(newSegments);
-    toast.success("Auto-Assembly Complete", { description: "All scenes placed on V1 track." });
-  };
-
-  // Combined handler for both Scenes and B-Roll
-  const handleAddClip = (item: { id: string, content: string, duration: number, color: string, name?: string }, type: "scene" | "b-roll", dropTime?: number) => {
-    // If dropTime is provided (DnD), use it. Otherwise use currentTime (Click)
-    let startTime = dropTime !== undefined ? dropTime : currentTime;
-
-    // Ensure we don't place before 0
-    if (startTime < 0) startTime = 0;
-
-    const newSeg: TimelineSegment = {
-      id: `seg-${Date.now()}-${item.id}`,
-      type: "video",
-      trackId: "V1",
-      start: startTime,
-      duration: item.duration,
-      color: item.color,
-      label: item.name || (type === "scene" ? `Scene ${item.id.replace('s', '')}` : "Clip"),
-      content: item.content
-    };
-
-    // --- Magnetic Timeline Logic (Insert & Ripple) ---
-    // 1. Sort existing segments by start time
-    const sorted = [...segments].sort((a, b) => a.start - b.start);
-
-    // 2. Find insertion index based on startTime
-    // We want to insert BEFORE the first segment that starts AFTER the drop time
-    // OR if we drop in the middle of a segment, effectively splitting it (but here we just push the whole segment)
-    let insertIndex = sorted.findIndex(s => s.start >= startTime);
-    if (insertIndex === -1) insertIndex = sorted.length; // Append if no segment found after
-
-    // 3. Insert new segment at the determined index
-    sorted.splice(insertIndex, 0, newSeg);
-
-    // 4. Recalculate start times to ensure NO GAPS and NO OVERLAPS
-    //    (Strict Magnetic: seg[i].start = seg[i-1].end)
-    let cursor = 0;
-    const recalculated = sorted.map(seg => {
-      const updated = { ...seg, start: cursor };
-      cursor += seg.duration;
-      return updated;
-    });
-
-    setSegments(recalculated);
-    toast.success("Clip Added", { description: `Added to timeline. All following clips shifted.` });
-  };
-
-  const handleMoveClip = (item: TimelineSegment, dropTime: number) => {
-    // 1. Remove the clip from its OLD position
-    const filtered = segments.filter(s => s.id !== item.id);
-
-    // 2. Sort remaining segments
-    const sorted = filtered.sort((a, b) => a.start - b.start);
-
-    // 3. Find NEW insertion index
-    let insertIndex = sorted.findIndex(s => s.start >= dropTime);
-    if (insertIndex === -1) insertIndex = sorted.length;
-
-    // 4. Insert at new position
-    // We reuse the existing item, but its start time will be recalculated
-    sorted.splice(insertIndex, 0, item);
-
-    // 5. Recalculate start times (Magnetic Ripple)
-    let cursor = 0;
-    const recalculated = sorted.map(seg => {
-      const updated = { ...seg, start: cursor };
-      cursor += seg.duration;
-      return updated;
-    });
-
-    setSegments(recalculated);
-    toast.success("Clip Reordered", { description: "Timeline updated." });
-  };
-
-  const handleDragStart = (e: React.DragEvent, item: any, type: "scene" | "b-roll" | "existing-segment") => {
-    // Defer state update to avoid blocking the drag initiation (which can happen if pointer-events changes immediately)
-    setTimeout(() => setIsDraggingClip(true), 0);
-    e.dataTransfer.setData("application/json", JSON.stringify({ ...item, _type: type }));
-    e.dataTransfer.effectAllowed = "copyMove"; // Allow both to satisfy drop targets that strictly ask for copy or move
-  };
-
-  const handleDragEnd = () => {
-    setIsDraggingClip(false);
-  };
-
-
-
-  const handleTrackDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const trackRect = e.currentTarget.getBoundingClientRect();
-    // Calculate time based on mouse position relative to the track start
-    // Note: The track container is scrollable, but we are dropping onto the track CONTENT div
-    // We need the pointer X relative to the track CONTENT div's left edge.
-    const offsetX = e.clientX - trackRect.left;
-    const dropTime = offsetX / scale;
-
-    const data = e.dataTransfer.getData("application/json");
-    if (data) {
-      try {
-        const parsed = JSON.parse(data);
-        // We expect _type to be present from handleDragStart
-        if (parsed._type === "existing-segment") {
-          handleMoveClip(parsed, dropTime);
-        } else if (parsed._type === "scene" || parsed._type === "b-roll") {
-          handleAddClip(parsed, parsed._type, dropTime);
-        }
-      } catch (err) {
-        console.error("Failed to parse drag data", err);
-      }
-    }
-    setIsDraggingClip(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
-  };
-
-  const handleTopTail = (mode: "top" | "tail") => {
-    if (segments.length === 0) return;
-    // Mock logic: just trim 1 second from the first clip found at cursor?
-    // For demo, just show toast
-    toast.info(`Performed ${mode === "top" ? "Top (Q)" : "Tail (W)"} Edit`, {
-      description: "Mock: Trimmed clip boundary to playhead."
-    });
-  };
-
-  const handleJumpCut = () => {
-    toast.success("Jump Cuts Applied", {
-      description: "Removed silent pauses > 0.5s (Mock)."
-    });
-  };
-
-  const handleTimelineClick = (e: React.MouseEvent) => {
-    // If dragging, ignore click to prevent double update or jitter
-    if (isDraggingPlayhead) return;
-
-    updatePlayheadPosition(e.clientX);
-  };
-
-  const updatePlayheadPosition = (clientX: number) => {
-    if (!timelineRef.current) return;
-    const rect = timelineRef.current.getBoundingClientRect();
-    const scrollLeft = timelineRef.current.scrollLeft;
-    const offsetX = clientX - rect.left + scrollLeft - 64; // 64px is header width
-    const newTime = Math.max(0, offsetX / scale);
-    setCurrentTime(newTime);
-  };
-
-  const handlePlayheadDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingPlayhead(true);
-  };
-
-  // Add global mouse listeners for dragging
-  // We use useEffect to attach window listeners so dragging works even if mouse leaves the element
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingPlayhead) {
-        e.preventDefault();
-        updatePlayheadPosition(e.clientX);
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (isDraggingPlayhead) {
-        setIsDraggingPlayhead(false);
-      }
-    };
-
-    if (isDraggingPlayhead) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDraggingPlayhead, scale]);
-
-  const handleAddPlaceholder = () => {
-    const newSeg: TimelineSegment = {
-      id: `ph-${Date.now()}`,
-      type: "video",
-      trackId: "V1",
-      start: segments.length > 0 ? segments[segments.length - 1].start + segments[segments.length - 1].duration : 0,
-      duration: 5,
-      color: "bg-gray-500",
-      label: "Placeholder",
-      content: "Insert Graphic"
-    };
-    setSegments([...segments, newSeg]);
-    toast.success("Placeholder Added");
-  };
-
-  const handleDeleteSegment = () => {
-    if (!selectedSegmentId) return;
-
-    // --- Magnetic Timeline Logic (Delete & Ripple) ---
-    // 1. Filter out the deleted segment
-    const remaining = segments.filter(s => s.id !== selectedSegmentId);
-
-    // 2. Sort remaining segments
-    const sorted = remaining.sort((a, b) => a.start - b.start);
-
-    // 3. Recalculate start times to close the gap
-    let cursor = 0;
-    const recalculated = sorted.map(seg => {
-      const updated = { ...seg, start: cursor };
-      cursor += seg.duration;
-      return updated;
-    });
-
-    setSegments(recalculated);
-    setSelectedSegmentId(null);
-    toast.success("Segment Deleted", { description: "Timeline ripple-deleted (gap closed)." });
   };
 
   const handleSave = () => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-      toast.success("Project Saved", { description: "Timeline state has been persisted." });
-    }, 800);
+    const segments = tl.toSavePayload();
+    fetcher.submit(
+      {
+        intent: "save",
+        segments: JSON.stringify(segments),
+        zoomScale: String(tl.zoomScale),
+        playheadPosition: String(tl.playheadPosition),
+      },
+      { method: "post" },
+    );
+    tl.resetDirty();
+    toast.success("저장 완료");
   };
 
-  const handleExport = () => {
-    setIsExporting(true);
-    toast.info("Rendering Video...", { description: "This may take a few moments." });
-
-    // Simulate Render Process
-    setTimeout(() => {
-      const newVersion: RenderedVersion = {
-        id: `v${versions.length + 1}`,
-        name: `Rough_Cut_v${versions.length + 1}.mp4`,
-        timestamp: new Date().toLocaleString(),
-        duration: formatTime(segments.reduce((acc, curr) => Math.max(acc, curr.start + curr.duration), 0)),
-        size: "45 MB"
-      };
-      setVersions([newVersion, ...versions]);
-      setIsExporting(false);
-      setIsHistoryOpen(true); // Open history to show result
-      toast.success("Export Complete", { description: "New version available in history." });
-    }, 2000);
+  const handleSplit = () => {
+    if (!tl.selectedSegmentId) return;
+    tl.splitClip(tl.selectedSegmentId, tl.playheadPosition);
+    toast.success("클립 분할 완료");
   };
 
-  const handleRestoreVersion = (version: RenderedVersion) => {
-    // Mock Restore Logic
-    setIsHistoryOpen(false);
-    toast.success(`Restored ${version.name}`, {
-      description: "Timeline state has been reverted to this version."
-    });
-    // In a real app, this would replace 'segments' with the data stored in the version
+  const handleDelete = () => {
+    if (!tl.selectedSegmentId) return;
+    tl.removeClip(tl.selectedSegmentId);
+    toast.success("클립 삭제 완료");
   };
+
+  const handleRender = async () => {
+    if (tl.videoSegments.length === 0) {
+      toast.error("타임라인에 클립이 없습니다.");
+      return;
+    }
+
+    // Save first if dirty
+    if (tl.isDirty) {
+      handleSave();
+    }
+
+    setRenderState({ isRendering: true, percent: 0, message: "렌더링 준비 중..." });
+
+    try {
+      const response = await fetch("/api/studio/render-rough-cut", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("렌더링 요청에 실패했습니다.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const dataMatch = line.match(/^data:\s*(.+)$/m);
+          if (!dataMatch) continue;
+
+          let data: Record<string, unknown>;
+          try {
+            data = JSON.parse(dataMatch[1]);
+          } catch {
+            continue; // skip malformed JSON
+          }
+
+          switch (data.event) {
+            case "start":
+              setRenderState({
+                isRendering: true,
+                percent: 5,
+                message: `${data.totalClips}개 클립 처리 시작...`,
+              });
+              break;
+            case "progress":
+              setRenderState({
+                isRendering: true,
+                percent: (data.percent as number) ?? 50,
+                message: (data.message as string) ?? `${data.step} (${data.percent}%)`,
+              });
+              break;
+            case "complete":
+              setRenderState({ isRendering: false, percent: 100, message: "" });
+              toast.success("렌더링 완료!", {
+                description: "버전 기록에서 다운로드할 수 있습니다.",
+              });
+              // Reload to get new version
+              window.location.reload();
+              return;
+            case "error":
+              throw new Error(data.message as string);
+          }
+        }
+      }
+    } catch (error) {
+      setRenderState({ isRendering: false, percent: 0, message: "" });
+      toast.error("렌더링 실패", {
+        description: error instanceof Error ? error.message : "알 수 없는 오류",
+      });
+    }
+  };
+
+  // Check if split is possible
+  const selectedSeg = tl.segments.find(
+    (s) => s.id === tl.selectedSegmentId,
+  );
+  const canSplit =
+    selectedSeg &&
+    tl.playheadPosition > selectedSeg.startTime + 0.1 &&
+    tl.playheadPosition < selectedSeg.startTime + selectedSeg.duration - 0.1;
+
+  return (
+    <div className="flex flex-col h-screen lg:h-[calc(100vh-4rem)] bg-background text-foreground overflow-hidden">
+      {/* Toolbar */}
+      <RoughCutToolbar
+        onAutoAssemble={handleAutoAssemble}
+        onSave={handleSave}
+        onSplit={handleSplit}
+        onDelete={handleDelete}
+        onRender={handleRender}
+        canSplit={!!canSplit}
+        canDelete={!!tl.selectedSegmentId}
+        canRender={tl.videoSegments.length > 0 && !renderState.isRendering}
+        isSaving={isSaving}
+        isDirty={tl.isDirty}
+        hasScenes={completedScenes.length > 0}
+        versions={versions}
+        renderState={renderState}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Clip Bin */}
+        <ClipBinPanel
+          scenes={completedScenes}
+          onAddClip={(scene) =>
+            tl.addClip({
+              resourceId: scene.sceneId,
+              resourceType: "scene",
+              publicUrl: scene.videoUrl,
+              thumbnailUrl: scene.thumbnailUrl,
+              duration: scene.duration,
+              label: `씬 ${scene.sceneNumber}`,
+            })
+          }
+        />
+
+        {/* Main Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Preview Player */}
+          <PreviewPlayer
+            segments={tl.videoSegments}
+            playheadPosition={tl.playheadPosition}
+            isPlaying={tl.isPlaying}
+            totalDuration={tl.totalDuration}
+            onPlay={tl.play}
+            onPause={tl.pause}
+            onSeek={tl.seekTo}
+            getActiveClipAtTime={tl.getActiveClipAtTime}
+          />
+
+          {/* Timeline */}
+          <TimelinePanel
+            segments={tl.videoSegments}
+            playheadPosition={tl.playheadPosition}
+            pixelsPerSecond={tl.pixelsPerSecond}
+            zoomScale={tl.zoomScale}
+            totalDuration={tl.totalDuration}
+            selectedSegmentId={tl.selectedSegmentId}
+            onSelectSegment={tl.setSelectedSegmentId}
+            onSeek={tl.seekTo}
+            onSetZoom={tl.setZoomScale}
+            onReorder={tl.reorderClips}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Toolbar
+// =============================================================================
+
+function RoughCutToolbar({
+  onAutoAssemble,
+  onSave,
+  onSplit,
+  onDelete,
+  onRender,
+  canSplit,
+  canDelete,
+  canRender,
+  isSaving,
+  isDirty,
+  hasScenes,
+  versions,
+  renderState,
+}: {
+  onAutoAssemble: () => void;
+  onSave: () => void;
+  onSplit: () => void;
+  onDelete: () => void;
+  onRender: () => void;
+  canSplit: boolean;
+  canDelete: boolean;
+  canRender: boolean;
+  isSaving: boolean;
+  isDirty: boolean;
+  hasScenes: boolean;
+  versions: EditorProps["versions"];
+  renderState: { isRendering: boolean; percent: number; message: string };
+}) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  return (
+    <div className="h-12 border-b flex items-center justify-between px-4 bg-background z-10 shrink-0">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-primary font-bold text-sm">
+          <Scissors className="h-4 w-4" />
+          <span>Rough Cut</span>
+        </div>
+        <Separator orientation="vertical" className="h-5" />
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={onAutoAssemble}
+                disabled={!hasScenes}
+              >
+                <Layers className="h-3 w-3 mr-1" />
+                자동 배치
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              완성된 씬 비디오를 순서대로 타임라인에 배치합니다
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onSplit}
+          disabled={!canSplit}
+        >
+          <Split className="h-3 w-3 mr-1 rotate-90" />
+          분할
+        </Button>
+
+        <Button
+          variant="destructive"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onDelete}
+          disabled={!canDelete}
+        >
+          <Trash2 className="h-3 w-3 mr-1" />
+          삭제
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onSave}
+          disabled={isSaving || !isDirty}
+        >
+          {isSaving ? (
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <Save className="h-3 w-3 mr-1" />
+          )}
+          {isSaving ? "저장 중..." : "저장"}
+        </Button>
+
+        <Button
+          variant="default"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onRender}
+          disabled={!canRender}
+        >
+          {renderState.isRendering ? (
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <Film className="h-3 w-3 mr-1" />
+          )}
+          {renderState.isRendering
+            ? `렌더링 ${renderState.percent}%`
+            : "렌더링"}
+        </Button>
+
+        <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 text-xs">
+              <History className="h-3 w-3 mr-1" />
+              버전 ({versions.length})
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>버전 기록</DialogTitle>
+              <DialogDescription>
+                렌더링된 러프컷 버전 목록입니다.
+              </DialogDescription>
+            </DialogHeader>
+            {versions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                아직 렌더링된 버전이 없습니다.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {versions.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex items-center justify-between p-2 rounded border bg-muted/5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileVideo className="h-4 w-4 text-blue-500" />
+                      <div>
+                        <p className="text-xs font-medium">{v.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {v.createdAt
+                            ? new Date(v.createdAt).toLocaleDateString("ko")
+                            : ""}
+                          {v.duration ? ` · ${Math.round(v.duration)}초` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    {v.videoUrl && (
+                      <a
+                        href={v.videoUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Clip Bin Panel
+// =============================================================================
+
+function ClipBinPanel({
+  scenes,
+  onAddClip,
+}: {
+  scenes: SceneVideo[];
+  onAddClip: (scene: SceneVideo) => void;
+}) {
+  const handleDragStart = (e: React.DragEvent, scene: SceneVideo) => {
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({ ...scene, _source: "clip-bin" }),
+    );
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  return (
+    <div className="w-56 border-r flex flex-col bg-muted/5 shrink-0">
+      <div className="p-3 border-b text-xs font-semibold uppercase text-muted-foreground">
+        클립 목록
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1.5">
+          {scenes.length === 0 ? (
+            <p className="text-xs text-muted-foreground p-2 text-center">
+              완성된 씬 비디오가 없습니다.
+              <br />
+              먼저 씬 비디오를 생성해주세요.
+            </p>
+          ) : (
+            scenes.map((scene) => (
+              <div
+                key={scene.sceneId}
+                className="group flex items-center gap-2 p-1.5 rounded border bg-card hover:border-primary cursor-grab active:cursor-grabbing transition-colors"
+                draggable
+                onDragStart={(e) => handleDragStart(e, scene)}
+                onClick={() => onAddClip(scene)}
+              >
+                {/* Thumbnail */}
+                <div className="h-10 w-16 bg-black/10 rounded overflow-hidden shrink-0">
+                  {scene.thumbnailUrl ? (
+                    <img
+                      src={scene.thumbnailUrl}
+                      alt={`씬 ${scene.sceneNumber}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Video className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] px-1 py-0 h-3.5"
+                    >
+                      씬 {scene.sceneNumber}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                    {scene.duration}초
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+// =============================================================================
+// Preview Player
+// =============================================================================
+
+function PreviewPlayer({
+  segments,
+  playheadPosition,
+  isPlaying,
+  totalDuration,
+  onPlay,
+  onPause,
+  onSeek,
+  getActiveClipAtTime,
+}: {
+  segments: RoughCutSegment[];
+  playheadPosition: number;
+  isPlaying: boolean;
+  totalDuration: number;
+  onPlay: () => void;
+  onPause: () => void;
+  onSeek: (time: number) => void;
+  getActiveClipAtTime: (time: number) => RoughCutSegment | null;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const currentClipRef = useRef<string | null>(null);
+
+  const activeClip = getActiveClipAtTime(playheadPosition);
+
+  // Sync video with playhead
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !activeClip?.publicUrl) return;
+
+    // If clip changed, update src
+    if (currentClipRef.current !== activeClip.id) {
+      currentClipRef.current = activeClip.id;
+      video.src = activeClip.publicUrl;
+      const localTime = playheadPosition - activeClip.startTime + activeClip.trimStart;
+      video.currentTime = localTime;
+      if (isPlaying) {
+        video.play().catch(() => {});
+      }
+    } else if (!isPlaying) {
+      // Just seek within same clip
+      const localTime = playheadPosition - activeClip.startTime + activeClip.trimStart;
+      if (Math.abs(video.currentTime - localTime) > 0.3) {
+        video.currentTime = localTime;
+      }
+    }
+  }, [activeClip, playheadPosition, isPlaying]);
+
+  // Play/pause sync
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isPlaying]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="flex flex-col h-screen lg:h-[calc(100vh-4rem)] bg-background text-foreground overflow-hidden">
+    <div className="flex-1 bg-black flex flex-col items-center justify-center relative min-h-56">
+      <div className="relative aspect-video max-h-[85%] w-[85%] bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+        {activeClip?.publicUrl ? (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain"
+            controls={false}
+            preload="metadata"
+            poster={activeClip.thumbnailUrl}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-zinc-500 text-sm">
+            {segments.length === 0
+              ? "클립을 추가하여 시작하세요"
+              : "미리보기"}
+          </div>
+        )}
 
-      {/* 1. Header & Toolbar */}
-      <div className="h-14 border-b flex items-center justify-between px-4 bg-background z-10 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-primary font-bold">
-            <Scissors className="h-5 w-5" />
-            <span>Rough Cut</span>
-          </div>
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-md">
-            <Button
-              variant={selectedTool === "select" ? "secondary" : "ghost"}
-              size="icon" className="h-7 w-7"
-              onClick={() => setSelectedTool("select")} title="Selection Tool (V)"
-            >
-              <MousePointer2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={selectedTool === "razor" ? "secondary" : "ghost"}
-              size="icon" className="h-7 w-7"
-              onClick={() => setSelectedTool("razor")} title="Razor Tool (C)"
-            >
-              <Split className="h-4 w-4 rotate-90" />
-            </Button>
-            <Button
-              variant={selectedTool === "ripple" ? "secondary" : "ghost"}
-              size="icon" className="h-7 w-7"
-              onClick={() => setSelectedTool("ripple")} title="Ripple Edit (B)"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </Button>
-          </div>
+        {/* Playback Controls */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-4 text-white">
+          <SkipBack
+            className="h-3.5 w-3.5 cursor-pointer hover:text-primary transition-colors"
+            onClick={() => onSeek(0)}
+          />
+          {isPlaying ? (
+            <Pause
+              className="h-5 w-5 cursor-pointer hover:text-primary transition-colors"
+              onClick={onPause}
+            />
+          ) : (
+            <Play
+              className="h-5 w-5 cursor-pointer hover:text-primary transition-colors"
+              onClick={onPlay}
+            />
+          )}
+          <SkipForward
+            className="h-3.5 w-3.5 cursor-pointer hover:text-primary transition-colors"
+            onClick={() => onSeek(totalDuration)}
+          />
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Editing Tools */}
-          <div className="flex items-center gap-2 mr-2">
-            <Button variant="outline" size="sm" onClick={() => handleTopTail("top")}>
-              <SkipBack className="h-3 w-3 mr-1" /> Top (Q)
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleTopTail("tail")}>
-              <SkipForward className="h-3 w-3 mr-1" /> Tail (W)
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleJumpCut}>
-              <Wand2 className="h-3 w-3 mr-1" /> Jump Cut
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleAddPlaceholder}>
-              <Plus className="h-3 w-3 mr-1" /> Placeholder
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleAddPlaceholder}>
-              <Plus className="h-3 w-3 mr-1" /> Placeholder
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteSegment}
-              disabled={!selectedSegmentId}
-              title="Delete Selected Clip (Del)"
-            >
-              <Trash2 className="h-3 w-3 mr-1" /> Delete
-            </Button>
+        {/* Timecode */}
+        <div className="absolute top-3 right-3 font-mono text-xs text-white bg-black/60 px-2 py-1 rounded">
+          {formatTime(playheadPosition)} / {formatTime(totalDuration)}
+        </div>
+
+        {/* Active clip label */}
+        {activeClip?.label && (
+          <div className="absolute top-3 left-3 text-[10px] text-white bg-blue-600/80 px-2 py-0.5 rounded">
+            {activeClip.label}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-          <Separator orientation="vertical" className="h-6" />
+// =============================================================================
+// Timeline Panel
+// =============================================================================
 
-          {/* Project Management */}
-          <Button variant="ghost" size="sm" onClick={handleSave} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
+function TimelinePanel({
+  segments,
+  playheadPosition,
+  pixelsPerSecond,
+  zoomScale,
+  totalDuration,
+  selectedSegmentId,
+  onSelectSegment,
+  onSeek,
+  onSetZoom,
+  onReorder,
+}: {
+  segments: RoughCutSegment[];
+  playheadPosition: number;
+  pixelsPerSecond: number;
+  zoomScale: number;
+  totalDuration: number;
+  selectedSegmentId: string | null;
+  onSelectSegment: (id: string | null) => void;
+  onSeek: (time: number) => void;
+  onSetZoom: (scale: number) => void;
+  onReorder: (from: number, to: number) => void;
+}) {
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
+  const trackHeaderWidth = 48;
 
-          <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <History className="h-4 w-4 mr-2" />
-                Versions
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Version History</DialogTitle>
-                <DialogDescription>
-                  Review and manage your rendered exports.
-                </DialogDescription>
-              </DialogHeader>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Version</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {versions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                        No exported versions yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    versions.map((ver) => (
-                      <TableRow key={ver.id}>
-                        <TableCell className="font-medium flex items-center gap-2">
-                          <FileVideo className="h-4 w-4 text-blue-500" />
-                          {ver.name}
-                        </TableCell>
-                        <TableCell>{ver.timestamp}</TableCell>
-                        <TableCell>{ver.duration}</TableCell>
-                        <TableCell>{ver.size}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon" variant="ghost" className="h-8 w-8 text-orange-500 hover:text-orange-600"
-                                    onClick={() => handleRestoreVersion(ver)}
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Restore this version</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+  const timelineWidth = Math.max(
+    600,
+    totalDuration * pixelsPerSecond + 200,
+  );
 
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                                    <Play className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Preview video</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+  // --- Playhead Dragging ---
 
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Download file</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </DialogContent>
-          </Dialog>
+  const updatePlayhead = useCallback(
+    (clientX: number) => {
+      if (!timelineRef.current) return;
+      const rect = timelineRef.current.getBoundingClientRect();
+      const scrollLeft = timelineRef.current.scrollLeft;
+      const offsetX = clientX - rect.left + scrollLeft - trackHeaderWidth;
+      const newTime = Math.max(0, Math.min(offsetX / pixelsPerSecond, totalDuration));
+      onSeek(newTime);
+    },
+    [pixelsPerSecond, totalDuration, onSeek],
+  );
 
-          <Button size="sm" onClick={handleExport} disabled={isExporting}>
-            {isExporting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            Export
-          </Button>
+  useEffect(() => {
+    if (!isDraggingPlayhead) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      updatePlayhead(e.clientX);
+    };
+    const handleMouseUp = () => setIsDraggingPlayhead(false);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDraggingPlayhead, updatePlayhead]);
+
+  const handleTimelineClick = (e: React.MouseEvent) => {
+    if (isDraggingPlayhead) return;
+    updatePlayhead(e.clientX);
+  };
+
+  // --- Drag & Drop for reordering ---
+
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+
+  const handleSegmentDragStart = (
+    e: React.DragEvent,
+    index: number,
+  ) => {
+    setDragFromIndex(index);
+    e.dataTransfer.setData("application/x-timeline-segment", String(index));
+    e.dataTransfer.effectAllowed = "move";
+    // Set drag image
+    if (e.currentTarget instanceof HTMLElement) {
+      e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
+    }
+  };
+
+  const handleSegmentDragEnd = () => {
+    setDragFromIndex(null);
+  };
+
+  const handleTrackDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if it's a timeline segment reorder
+    const segmentData = e.dataTransfer.getData("application/x-timeline-segment");
+    if (segmentData !== "") {
+      const fromIndex = Number(segmentData);
+      if (isNaN(fromIndex)) return;
+
+      // Calculate drop position
+      const rect = e.currentTarget.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const dropTime = offsetX / pixelsPerSecond;
+
+      // Find target index based on drop position
+      let toIndex = segments.length;
+      for (let i = 0; i < segments.length; i++) {
+        const midpoint = segments[i].startTime + segments[i].duration / 2;
+        if (dropTime < midpoint) {
+          toIndex = i;
+          break;
+        }
+      }
+
+      // Adjust toIndex for same-direction moves
+      const adjustedTo = toIndex > fromIndex ? toIndex - 1 : toIndex;
+      if (fromIndex !== adjustedTo) {
+        onReorder(fromIndex, adjustedTo);
+      }
+      setDragFromIndex(null);
+      return;
+    }
+
+    // Otherwise it might be from clip bin (no-op here, handled by ClipBinPanel onClick)
+  };
+
+  // --- Time Ruler ---
+
+  const rulerMarks = useMemo(() => {
+    const marks: Array<{ time: number; label: string }> = [];
+    // Determine interval based on zoom
+    let interval = 1;
+    if (pixelsPerSecond < 20) interval = 10;
+    else if (pixelsPerSecond < 40) interval = 5;
+    else if (pixelsPerSecond < 80) interval = 2;
+
+    const maxTime = Math.max(totalDuration + 10, 30);
+    for (let t = 0; t <= maxTime; t += interval) {
+      const mins = Math.floor(t / 60);
+      const secs = t % 60;
+      marks.push({
+        time: t,
+        label: `${mins}:${secs.toString().padStart(2, "0")}`,
+      });
+    }
+    return marks;
+  }, [totalDuration, pixelsPerSecond]);
+
+  return (
+    <div className="h-56 bg-zinc-900 border-t flex flex-col shrink-0">
+      {/* Time Ruler + Zoom */}
+      <div className="h-7 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-2 shrink-0">
+        <div
+          className="flex items-center overflow-hidden"
+          style={{ paddingLeft: trackHeaderWidth }}
+        >
+          {rulerMarks.slice(0, 20).map((mark) => (
+            <span
+              key={mark.time}
+              className="text-[10px] text-zinc-500 font-mono shrink-0"
+              style={{
+                width: mark.time === 0 ? "auto" : undefined,
+                marginLeft:
+                  mark.time === 0
+                    ? 0
+                    : `${(rulerMarks[1]?.time ?? 1) * pixelsPerSecond - 30}px`,
+              }}
+            >
+              {mark.label}
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-[10px] text-zinc-500">줌</span>
+          <Slider
+            defaultValue={[zoomScale]}
+            max={100}
+            min={10}
+            step={1}
+            className="w-20"
+            onValueChange={(v) => onSetZoom(v[0])}
+          />
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* 2. Assembly Bin (Source) */}
-        <div className="w-64 border-r flex flex-col bg-muted/10 shrink-0">
-          <div className="p-3 border-b text-xs font-semibold uppercase text-muted-foreground flex justify-between">
-            <span>Assembly Bin</span>
-            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={handleAutoAssemble} title="Auto Assemble All">
-              <Layers className="h-3 w-3" />
-            </Button>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-2">
-              {INITIAL_SCENES.map(scene => (
-                <div
-                  key={scene.id}
-                  className="group flex flex-col gap-1 p-2 rounded border bg-card hover:border-primary cursor-grab active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, scene, "scene")}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleAddClip(scene, "scene")}
-                >
-                  <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">Scene {scene.order}</Badge>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span>{formatTime(scene.duration)}</span>
-                      <Plus className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <p className="text-xs font-medium line-clamp-2">{scene.content}</p>
-                  <div className="h-1 w-full rounded-full mt-1 opacity-50" style={{ backgroundColor: scene.color.replace("bg-", "").replace("-500", "") }} />
-                </div>
-              ))}
-
-              <Separator className="my-2" />
-              <div className="text-xs text-muted-foreground px-1 pb-1 font-semibold">B-Roll (Click to Add)</div>
-              {INITIAL_B_ROLL.map(bRoll => (
-                <div
-                  key={bRoll.id}
-                  className="flex items-center gap-2 p-2 rounded border bg-card opacity-80 hover:opacity-100 cursor-grab active:cursor-grabbing hover:border-primary transition-all"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, bRoll, "b-roll")}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleAddClip(bRoll, "b-roll")}
-                >
-                  <div className="h-8 w-12 bg-black/20 rounded flex items-center justify-center shrink-0">
-                    <Video className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs truncate font-medium">{bRoll.name}</p>
-                    <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                      <span>{formatTime(bRoll.duration)}</span>
-                      <Plus className="h-3 w-3" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* 3. Main Workspace */}
-        <div className="flex-1 flex flex-col min-w-0">
-
-          {/* Top: Preview Player */}
-          <div className="flex-1 bg-black flex flex-col items-center justify-center relative min-h-75">
-            <div className="relative aspect-video max-h-[80%] w-[90%] bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden">
-              <p className="text-zinc-500 font-medium">Program Monitor (Preview)</p>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur rounded-full px-4 py-2 flex items-center gap-4 text-white">
-                <SkipBack className="h-4 w-4 cursor-pointer hover:text-primary" />
-                {isPlaying ? (
-                  <Pause className="h-6 w-6 cursor-pointer hover:text-primary" onClick={() => setIsPlaying(false)} />
-                ) : (
-                  <Play className="h-6 w-6 cursor-pointer hover:text-primary" onClick={() => setIsPlaying(true)} />
-                )}
-                <SkipForward className="h-4 w-4 cursor-pointer hover:text-primary" />
-              </div>
-              <div className="absolute top-4 right-4 font-mono text-sm text-white bg-black/50 px-2 py-1 rounded">
-                {formatTime(currentTime)}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom: Timeline */}
-          <div className="h-72 bg-zinc-900 border-t flex flex-col shrink-0">
-
-            {/* Timeline Toolbar / Time Ruler */}
-            <div className="h-8 border-b border-zinc-800 bg-zinc-950 flex items-center px-4 justify-between">
-              <div className="flex items-center gap-2 text-zinc-400 text-xs font-mono">
-                <span>00:00</span>
-                <span>|</span>
-                <span>00:15</span>
-                <span>|</span>
-                <span>00:30</span>
-                <span>|</span>
-                <span>00:45</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-500 text-xs">Zoom</span>
-                <Slider
-                  defaultValue={[10]} max={50} min={10} step={1}
-                  className="w-24"
-                  onValueChange={(v) => setScale(v[0])}
-                />
-              </div>
-            </div>
-
-            {/* Tracks */}
+      {/* Tracks */}
+      <div
+        className="flex-1 overflow-x-auto overflow-y-hidden relative"
+        ref={timelineRef}
+        onClick={handleTimelineClick}
+        style={{ cursor: "crosshair" }}
+      >
+        <div
+          className="min-w-full h-full flex flex-col relative"
+          style={{ width: `${timelineWidth}px` }}
+        >
+          {/* Playhead */}
+          <div
+            className="absolute top-0 bottom-0 w-px bg-red-500 z-50 pointer-events-auto"
+            style={{
+              left: `${playheadPosition * pixelsPerSecond + trackHeaderWidth}px`,
+            }}
+          >
             <div
-              className="flex-1 overflow-x-auto overflow-y-hidden relative timeline-scroll-area"
-              ref={timelineRef}
-              onClick={handleTimelineClick}
-            >
-              <style>{`
-                .timeline-scroll-area::-webkit-scrollbar {
-                  height: 10px;
-                  background-color: #18181b; /* zinc-950 */
-                }
-                .timeline-scroll-area::-webkit-scrollbar-thumb {
-                  background-color: #3f3f46; /* zinc-700 */
-                  border-radius: 5px;
-                  border: 2px solid #18181b;
-                }
-                .timeline-scroll-area::-webkit-scrollbar-thumb:hover {
-                  background-color: #52525b; /* zinc-600 */
-                }
-              `}</style>
-              <div
-                className="min-w-full h-full flex flex-col relative"
-                style={{
-                  width: `${Math.max(100, (segments.reduce((acc, s) => Math.max(acc, s.start + s.duration), 0) * scale) + 500)}px`
-                }}
-              >
-
-                {/* Playhead Line */}
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-red-500 z-50 group cursor-ew-resize"
-                  style={{ left: `${(currentTime * scale) + 64}px` /* 64px offset for track header */ }}
-                  onMouseDown={handlePlayheadDragStart}
-                >
-                  <div className="absolute -top-1 -translate-x-1/2 text-[10px] bg-red-500 text-white px-1 rounded-sm">▼</div>
-
-                  {/* Invisible Hit Area for easier grabbing */}
-                  <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-4 bg-transparent hover:bg-white/10" />
-                </div>
-
-                {/* Track V1 */}
-                {/* Track V1 */}
-                <div className="h-24 border-b border-zinc-800 flex relative group bg-zinc-900/50">
-                  <div className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center text-xs text-zinc-500 font-bold sticky left-0 z-20 pointer-events-none">
-                    V1
-                    <Video className="h-3 w-3 mt-1 opacity-50" />
-                  </div>
-                  <div
-                    className="flex-1 relative py-2"
-                    onDragOver={handleDragOver}
-                    onDrop={handleTrackDrop}
-                  >
-                    {segments.filter(s => s.trackId === "V1").map(seg => (
-                      <div
-                        key={seg.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, seg, "existing-segment")}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          "absolute top-2 bottom-2 rounded-md border border-white/10 overflow-hidden cursor-pointer hover:brightness-110 active:brightness-90 transition-all flex flex-col justify-center px-2 shadow-sm",
-                          seg.color,
-                          selectedSegmentId === seg.id ? "ring-2 ring-white z-20" : "",
-                          "text-white",
-                          isDraggingClip ? "pointer-events-none" : ""
-                        )}
-                        style={{
-                          left: `${seg.start * scale}px`,
-                          width: `${seg.duration * scale}px`,
-                          zIndex: selectedSegmentId === seg.id ? 30 : 10
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentTime(seg.start);
-                          setSelectedSegmentId(seg.id);
-                        }}
-                      >
-                        <div className="text-[10px] font-bold truncate flex items-center gap-1">
-                          <GripVertical className="h-3 w-3 opacity-50" />
-                          {seg.label} <span className="text-[9px] opacity-70 font-normal">({formatTime(seg.duration)})</span>
-                        </div>
-                        <div className="text-[9px] opacity-80 truncate">{seg.content}</div>
-
-                        {/* Handles Visualization */}
-                        <div className="absolute left-0 top-0 bottom-0 w-2 hover:bg-white/20 cursor-w-resize" title="Trim Start" />
-                        <div className="absolute right-0 top-0 bottom-0 w-2 hover:bg-white/20 cursor-e-resize" title="Trim End" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Track A1 */}
-                <div className="h-16 border-b border-zinc-800 flex relative bg-zinc-900/50">
-                  <div className="w-16 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center text-xs text-zinc-500 font-bold sticky left-0 z-20">
-                    A1
-                    <Music className="h-3 w-3 mt-1 opacity-50" />
-                  </div>
-                  <div className="flex-1 relative py-3 opacity-50">
-                    {/* Mock Audio Wave */}
-                    <div className="absolute left-0 right-0 top-1/2 h-8 -translate-y-1/2 bg-emerald-900/30 w-200 border border-emerald-800/50 rounded flex items-center justify-center text-[10px] text-emerald-500">
-                      Background Music (Placeholder)
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
+              className="absolute -top-0.5 -translate-x-1/2 w-3 h-3 bg-red-500 cursor-ew-resize"
+              style={{
+                clipPath: "polygon(0 0, 100% 0, 50% 100%)",
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDraggingPlayhead(true);
+              }}
+            />
+            {/* Wider hit area */}
+            <div
+              className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 bg-transparent cursor-ew-resize"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDraggingPlayhead(true);
+              }}
+            />
           </div>
 
-        </div>
+          {/* V1 Track */}
+          <div className="h-24 border-b border-zinc-800 flex relative bg-zinc-900/50">
+            <div className="w-12 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center text-[10px] text-zinc-500 font-bold sticky left-0 z-20">
+              V1
+              <Video className="h-3 w-3 mt-0.5 opacity-50" />
+            </div>
+            <div
+              className="flex-1 relative py-1.5"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect =
+                  e.dataTransfer.types.includes("application/x-timeline-segment")
+                    ? "move"
+                    : "copy";
+              }}
+              onDrop={handleTrackDrop}
+            >
+              {segments.map((seg, idx) => (
+                <div
+                  key={seg.id}
+                  draggable
+                  onDragStart={(e) => handleSegmentDragStart(e, idx)}
+                  onDragEnd={handleSegmentDragEnd}
+                  className={cn(
+                    "absolute top-1.5 bottom-1.5 rounded border overflow-hidden cursor-grab active:cursor-grabbing transition-all flex items-center px-1.5 gap-1",
+                    "bg-blue-600/80 border-blue-400/30 hover:brightness-110 text-white",
+                    selectedSegmentId === seg.id &&
+                      "ring-2 ring-white z-20 brightness-110",
+                    dragFromIndex === idx && "opacity-40",
+                  )}
+                  style={{
+                    left: `${seg.startTime * pixelsPerSecond}px`,
+                    width: `${Math.max(seg.duration * pixelsPerSecond, 4)}px`,
+                    zIndex: selectedSegmentId === seg.id ? 30 : 10,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectSegment(
+                      seg.id === selectedSegmentId ? null : seg.id,
+                    );
+                    onSeek(seg.startTime);
+                  }}
+                >
+                  {/* Thumbnail strip */}
+                  {seg.thumbnailUrl && seg.duration * pixelsPerSecond > 30 && (
+                    <div
+                      className="absolute inset-0 opacity-30"
+                      style={{
+                        backgroundImage: `url(${seg.thumbnailUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
+                  )}
 
-      </div >
-    </div >
+                  {/* Content */}
+                  <div className="relative z-10 flex items-center gap-1 min-w-0">
+                    <GripVertical className="h-3 w-3 opacity-50 shrink-0" />
+                    {seg.duration * pixelsPerSecond > 50 && (
+                      <span className="text-[10px] font-medium truncate">
+                        {seg.label}
+                      </span>
+                    )}
+                    {seg.duration * pixelsPerSecond > 80 && (
+                      <span className="text-[9px] opacity-70">
+                        {Math.round(seg.duration)}초
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Trim handles (visible on selection) */}
+                  {selectedSegmentId === seg.id && (
+                    <>
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-white/30 hover:bg-white/50 cursor-col-resize z-20" />
+                      <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-white/30 hover:bg-white/50 cursor-col-resize z-20" />
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {/* Empty state */}
+              {segments.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center text-zinc-600 text-xs">
+                  클립을 드래그하여 추가하세요
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* A1 Track (placeholder) */}
+          <div className="h-14 border-b border-zinc-800 flex relative bg-zinc-900/50">
+            <div className="w-12 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col items-center justify-center text-[10px] text-zinc-500 font-bold sticky left-0 z-20">
+              A1
+              <Music className="h-3 w-3 mt-0.5 opacity-50" />
+            </div>
+            <div className="flex-1 relative py-2 opacity-40">
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-6 bg-emerald-900/20 border border-emerald-800/30 rounded mx-2 flex items-center justify-center text-[10px] text-emerald-600">
+                오디오 트랙 (추후 지원)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

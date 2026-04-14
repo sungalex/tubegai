@@ -101,6 +101,11 @@ export default [
       "studio/select-scene-video",
       "features/studio/api/select-scene-video.ts",
     ),
+    // Rough Cut API
+    route(
+      "studio/render-rough-cut",
+      "features/studio/api/render-rough-cut.ts",
+    ),
     // TrendTube Step APIs (4-step pipeline split)
     route(
       "studio/trendtube-step-trends",
@@ -180,18 +185,23 @@ export default [
         "features/studio/pages/studio-subtitles-page.tsx",
       ),
 
+      // Rough Cut
+      route("roughcut", "features/studio/pages/studio-rough-cut-page.tsx", {
+        id: "studio-rough-cut-static",
+      }),
+      route(
+        "roughcut/:projectId",
+        "features/studio/pages/studio-rough-cut-page.tsx",
+      ),
+
       // ============================================
       // DISABLED: Phase 2+ Studio Routes
       // ============================================
       // route("b-roll", "features/studio/pages/studio-b-roll-page.tsx", { id: "studio-b-roll-static" }),
-      // route("roughcut", "features/studio/pages/studio-rough-cut-page.tsx", { id: "studio-rough-cut-static" }),
       // route("thumbnail", "features/studio/pages/studio-thumbnail-page.tsx", { id: "studio-thumbnail-static" }),
       // route("seo", "features/studio/pages/studio-seo-page.tsx", { id: "studio-seo-static" }),
       //
-      // route("storyboard/:projectId", "features/studio/pages/studio-storyboard-page.tsx"),
-      // route("scene/:projectId", "features/studio/pages/studio-scene-page.tsx"),
       // route("b-roll/:projectId", "features/studio/pages/studio-b-roll-page.tsx"),
-      // route("roughcut/:projectId", "features/studio/pages/studio-rough-cut-page.tsx"),
       // route("thumbnail/:projectId", "features/studio/pages/studio-thumbnail-page.tsx"),
       // route("seo/:projectId", "features/studio/pages/studio-seo-page.tsx"),
     ]),
